@@ -8,6 +8,9 @@ out.println("Message to the user")
 # out.print can be accessed by writing a rvalue expression
 "message to be printed"
 
+# There is also an alias for out.print and out.println that does not contain the out object
+print("message to be printed")
+
 # There is also standard error output `err`
 err.println("Error to the user")
 

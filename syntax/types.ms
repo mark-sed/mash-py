@@ -38,11 +38,14 @@ class MyClass {
         # Unitialized object variables will be set to `nil`
     }
 
-    String _to_string() {
+    fun _to_string() {
         # Overriding implicit String conversion method
         # Here String interpolation is used to embed argument values into the string
         return f"value1 = {value1}; value2 = {value2}; value3 = {value3}"
     }
+
+    # Getter
+    fun getMul1(c) = value1 * c
 }
 
 # New class instance can be created by calling class constructor
