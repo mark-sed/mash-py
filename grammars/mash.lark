@@ -1,0 +1,32 @@
+start : expr
+      
+
+expr : import 
+     | rvalue 
+     | assignment
+     | END 
+     | expr END+ expr END*
+
+import : "import" VAR_NAME
+
+assignment : VAR_NAME "=" rvalue
+
+rvalue : NUMBER
+       | VAR_NAME
+
+VAR_NAME : CNAME
+END : NEWLINE
+    | ";"
+
+INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
+INL_COMMENT : /#[^\n]*/
+
+%import common.WS_INLINE
+%import common.CNAME
+%import common.NUMBER
+%import common.NEWLINE
+%import common.C_COMMENT
+
+%ignore WS_INLINE
+%ignore INL_COMMENT
+%ignore C_COMMENT

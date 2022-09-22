@@ -9,6 +9,7 @@ Mash code is constructed from expressions, where each expression ends with a sem
 ### Operators
 | **Operator**                     | **Description**                                  | **Associativity** |
 |----------------------------------|--------------------------------------------------|---------------|
+| `::`                             | Scope resolution                                 | Left          |
 | `()`                             | Function call                                    | Left          |
 | `[]`                             | List Selection                                   | Left          |
 | `.`                              | Element selection                                | Left          |
@@ -21,10 +22,9 @@ Mash code is constructed from expressions, where each expression ends with a sem
 | `in`                             | Membership                                       | Left          |
 | `<=`, `>=`, `>`, `<`             | Comparisons                                      | Left          |
 | `==`, `!=`                       | Equals, Not equals                               | Left          |
-| `&&`                             | Logical and                                      | Left          |
-| `!`                              | Logical not                                      | Right         |
-| `&&`                             | Logical and                                      | Left          |
-| `\|\|`                           | Logical or                                       | Left          |
+| `!`, `not`                       | Logical not                                      | Right         |
+| `&&`, `and`                      | Logical and                                      | Left          |
+| `\|\|`, `or`                     | Logical or                                       | Left          |
 | `?:`                             | Ternary if                                       | Right         |
 | `=`, `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `^=` | Assignment, Operation and assignment | Right       |
 
@@ -41,6 +41,7 @@ Mash code is constructed from expressions, where each expression ends with a sem
 | `fun`                | Function            |
 | `class`              | Class               |
 | `assert`             | Debugging assertion |
+| `space`              | Namespace           |
 
 ### Types and values
 * `42`, `0x2A`, `0x2a` - Positive integers

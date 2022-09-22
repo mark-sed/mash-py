@@ -20,7 +20,7 @@ string42 = String(42)
 is42 = Bool("true")
 is43 = Bool("False") # Everything that is not "true" (in any capitalization) will be false
 
-# Every class, including the built-in types, extends class Object and has build it conversion to String
+# Every class, including the built-in types, extends class Object and has built-in conversion to String
 # and unique ID
 out.println(Bool("TRUE"))  # Prints "true\n"
 
