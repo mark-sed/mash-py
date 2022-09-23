@@ -8,6 +8,9 @@ out.println("Message to the user")
 # out.print can be accessed by writing a rvalue expression
 "message to be printed"
 
+# If one wanted to not print an rvalue, then the silence operator (`~`) can be used
+~foo(a, b)  # This won't print
+
 # There is also an alias for out.print and out.println that does not contain the out object
 print("message to be printed")
 

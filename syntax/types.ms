@@ -44,7 +44,7 @@ class MyClass {
         return f"value1 = {value1}; value2 = {value2}; value3 = {value3}"
     }
 
-    # Getter
+    # Lambda getter
     fun getMul1(c) = value1 * c
 }
 
@@ -67,3 +67,7 @@ if(otherObj._type() == Int) {
 
 # _type() method returns a _Type class object and so it can be printed using the implicit _to_string method
 out.println(myObject._type())  # Prints "MyObject\n"
+
+# A lambda function can also be anonymous
+lambdas = [fun (a, b) = a * b, fun (a, b) = a / b]
+lambdas[1](84, 2)

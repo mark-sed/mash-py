@@ -27,6 +27,7 @@ Mash code is constructed from expressions, where each expression ends with a sem
 | `\|\|`, `or`                     | Logical or                                       | Left          |
 | `?:`                             | Ternary if                                       | Right         |
 | `=`, `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `^=` | Assignment, Operation and assignment | Right       |
+| `~`                              | Silence operator                                 | Right         |
 
 ### Keywords
 | **Keyword**          | **Description**     |

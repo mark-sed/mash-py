@@ -1,24 +1,87 @@
+// Start nonterminal
 start : expr
-      
+      |
 
+// Standalone expression
 expr : import 
      | rvalue 
      | assignment
-     | END 
+     | definition
+     | code_block
+     | END
      | expr END+ expr END*
+     |
 
 import : "import" VAR_NAME
 
 assignment : VAR_NAME "=" rvalue
 
-rvalue : NUMBER
+rvalue : const
        | VAR_NAME
+       | lambda
+       | fun_call
 
-VAR_NAME : CNAME
+const : NUMBER
+      | STRING
+      | "nil"
+      | "true"
+      | "false"
+
+definition : lambda
+           | function
+           | space
+           | class
+
+fun_call : VAR_NAME "(" arg_list_call ")"
+
+lambda : "fun" VAR_NAME? "(" arg_list ")" "=" rvalue
+
+function : "fun" VAR_NAME "(" arg_list ")" fun_code_block
+
+constructor : VAR_NAME "(" arg_list ")" code_block
+
+code_block : "{" expr "}"
+
+fun_code_block : "{" expr END "return" rvalue? END? "}"
+               | "{" END? "return" rvalue? END? "}"
+               | code_block
+
+class_content : constructor
+              | VAR_NAME
+              | assignment
+              | definition
+              | END
+              | class_content END+ class_content END*
+              |
+
+space : "space" VAR_NAME? code_block 
+
+class : "class" VAR_NAME "{" END? class_content END? "}"
+      | "class" VAR_NAME ":" var_list "{" END? class_content END? "}"
+
+VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|assert|space)\b)[a-zA-Z_][a-zA-Z0-9]*/
+
+var_list : VAR_NAME
+         | var_list "," VAR_NAME
+
+arg_list_call : rvalue
+              | arg_list_call "," rvalue
+              |
+
+arg_list_ndef : VAR_NAME 
+              | arg_list_ndef "," VAR_NAME 
+
+arg_list : VAR_NAME "=" const
+         | arg_list_ndef "," VAR_NAME "=" const
+         | arg_list "," VAR_NAME "=" const
+         | arg_list_ndef
+         |
+
 END : NEWLINE
     | ";"
 
 INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
+
 INL_COMMENT : /#[^\n]*/
 
 %import common.WS_INLINE
@@ -26,6 +89,7 @@ INL_COMMENT : /#[^\n]*/
 %import common.NUMBER
 %import common.NEWLINE
 %import common.C_COMMENT
+%import common.ESCAPED_STRING -> STRING
 
 %ignore WS_INLINE
 %ignore INL_COMMENT
