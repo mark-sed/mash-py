@@ -1,51 +1,95 @@
+// EBNF grammar for MASH language used by the parser
+// @author: Marek Sedlacek
+
 // Start nonterminal
-start : expr
+start : stmt
       |
 
 // Standalone expression
-expr : import 
-     | rvalue 
+stmt : import
+     | rvalue
      | assignment
      | definition
      | code_block
      | END
-     | expr END+ expr END*
+     | stmt END+ stmt END*
      |
 
+// Importing
 import : "import" VAR_NAME
 
-assignment : VAR_NAME "=" rvalue
+// Value assignment excluding standalone variable (nil assignment)
+assignment : scope_name ASSIGN_OP rvalue
+           | VAR_NAME "=" INTERNAL
 
-rvalue : const
-       | VAR_NAME
+// Different assignments
+ASSIGN_OP : ("="|"+="|"-="|"*="|"/="|"//="|"%="|"^=")
+
+// Right side value
+rvalue : silent_expr
+       | expr
        | lambda
-       | fun_call
 
-const : NUMBER
+silent_expr : "~" expr
+
+// Expressions using operators
+expr : const
+     | scope_name
+     | fun_call
+     | member
+     | "(" expr ")"
+     | expr OP_BIN expr
+     | OP_UN_PRE expr
+     | expr OP_UN_POST
+
+// Binary operator
+OP_BIN : ("^"|"*"|"/"|"//"|"%"|"+"|"-"|"in"|"<="|">="|">"|"<"|"=="|"!="|"&&"|"and"|"||"|"or")
+
+// Unary prefix operator
+OP_UN_PRE : ("!"|"not")
+
+// Unary postfix operator
+OP_UN_POST : ("++"|"--")
+
+// Constants
+const : SIGNED_NUMBER
+      | HEX_INT
       | STRING
       | "nil"
       | "true"
       | "false"
 
+// Member
+member : expr "[" expr "]"
+
+// Definitions
 definition : lambda
            | function
            | space
            | class
 
-fun_call : VAR_NAME "(" arg_list_call ")"
+// Function call
+fun_call : scope_name "(" arg_list_call ")" END?
+         | member "(" arg_list_call ")" END?
 
+// Lambda function definition
 lambda : "fun" VAR_NAME? "(" arg_list ")" "=" rvalue
 
+// Function definition
 function : "fun" VAR_NAME "(" arg_list ")" fun_code_block
 
+// Class constructor
 constructor : VAR_NAME "(" arg_list ")" code_block
 
-code_block : "{" expr "}"
+// Block of code
+code_block : "{" stmt "}"
 
-fun_code_block : "{" expr END "return" rvalue? END? "}"
+// Code allowed in function body
+fun_code_block : "{" stmt END "return" rvalue? END? "}"
                | "{" END? "return" rvalue? END? "}"
                | code_block
 
+// Constructs allowed in class body
 class_content : constructor
               | VAR_NAME
               | assignment
@@ -54,43 +98,82 @@ class_content : constructor
               | class_content END+ class_content END*
               |
 
-space : "space" VAR_NAME? code_block 
+// Constructs allowed in space body
+space_conent : import 
+             | VAR_NAME 
+             | assignment
+             | definition
+             | END
+             | space_conent END+ space_conent END*
+             |
 
+// Namespace definition
+space : "space" VAR_NAME? "{" END? space_conent END? "}"
+
+// Class definition
 class : "class" VAR_NAME "{" END? class_content END? "}"
       | "class" VAR_NAME ":" var_list "{" END? class_content END? "}"
 
-VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|assert|space)\b)[a-zA-Z_][a-zA-Z0-9]*/
+// Variable name
+VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|assert|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
-var_list : VAR_NAME
-         | var_list "," VAR_NAME
+// Variable in some scope
+scope_name : space_name
+           | dot_name
+           | VAR_NAME
 
+// Class member selection
+dot_name : scope_name "." VAR_NAME
+
+// Space member selection
+space_name : scope_name "::" VAR_NAME
+
+// List of variables/ids
+var_list : scope_name
+         | var_list "," scope_name
+
+// List of arguments allowed in function call
 arg_list_call : rvalue
               | arg_list_call "," rvalue
               |
 
+// List of arguments without default values
 arg_list_ndef : VAR_NAME 
               | arg_list_ndef "," VAR_NAME 
 
-arg_list : VAR_NAME "=" const
-         | arg_list_ndef "," VAR_NAME "=" const
-         | arg_list "," VAR_NAME "=" const
+// List of arguments with possibility of default values
+arg_list : VAR_NAME "=" (expr|lambda)
+         | arg_list_ndef "," VAR_NAME "=" (expr|lambda)
+         | arg_list "," VAR_NAME "=" (expr|lambda)
          | arg_list_ndef
          |
 
+// Statement end
 END : NEWLINE
     | ";"
 
+// Internal implementation comment
 INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
 
+// One line comment
 INL_COMMENT : /#[^\n]*/
+
+// Hex int
+HEX_INT : /0x[a-fA-F0-9]+/
+
+// String
+STRING : ESCAPED_STRING
+       | "f"ESCAPED_STRING
+       | "r"ESCAPED_STRING
 
 %import common.WS_INLINE
 %import common.CNAME
-%import common.NUMBER
+%import common.SIGNED_NUMBER
 %import common.NEWLINE
 %import common.C_COMMENT
-%import common.ESCAPED_STRING -> STRING
+%import common.ESCAPED_STRING
 
+// Ignoring inline whitespaces and comments (not new lines)
 %ignore WS_INLINE
 %ignore INL_COMMENT
 %ignore C_COMMENT

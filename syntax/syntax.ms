@@ -8,6 +8,14 @@ import a; import b
 a
 
 b = 42;
+c = 4.45e-9
+
+# Consts
+0xF
+0xaa848FdC
+"Unicode 🍣"
+42
+f"Format string {b}"
 
 fun (a, b) = 4
 fun (a = 4, b = 5) = a
@@ -32,12 +40,11 @@ fun foo() {
     return
 }
 
-fun bar(a = 4, b = 5) {
+fun bar(a = 4.5, b = .5) {
     return fun(a, b) = a
 }
 
-"Unicode 🍣"
-42
+
 
 fun a(a) {
     A = 5
@@ -65,7 +72,7 @@ class InternalClass {
 }
 
 class A : B, C {
-    arg1; arg2
+    arg1; arg2 = true
     A() {
 
     }
@@ -80,8 +87,29 @@ space {
         fun nn(a = 4) = 8
 
         class A2 {
-            a
-            b = 5
+            b
+            c = nil
+
+            space N {
+                import t
+                a = 85
+                a  # This is SYNTACTICALLY correct, but semantically its is a redefinition 
+                b
+
+                fun a() {
+                    import C
+                    return nil
+                }
+            }
         }
     }
 }
+
+fun f(a=fun()=4) = 4
+
+fun(a=fun(b)=b*4) = a(5)
+
+a(4, b)[(54+4+a)^4]()
+
+# Internal implementation of a variable
+some_const = # [! internal !]

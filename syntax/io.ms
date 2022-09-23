@@ -5,14 +5,23 @@ Code that showcases IO workflow
 # Standard output is stored in global variable `out`
 out.println("Message to the user")
 
-# out.print can be accessed by writing a rvalue expression
+# There is also an alias for out.print and out.println that does not contain the out object
+print("message to be printed")
+
+# out.print can be accessed by writing a rvalue expression, but it has to be inside of a function or global space
+# or code block inside one of these
 "message to be printed"
 
 # If one wanted to not print an rvalue, then the silence operator (`~`) can be used
 ~foo(a, b)  # This won't print
 
-# There is also an alias for out.print and out.println that does not contain the out object
-print("message to be printed")
+# Variables can be also printed in this way, but the variable has to be defined before the print, otherwise 
+# such statment would be taken as a nil assignment
+a  # same as writing `a = nil`
+a  # same as writing `print(a)`
+
+# Silence operator can be use in this case as well, but in ends up being a pointless expression
+~a  # Won't do anything only does semantic check is `a` is define 
 
 # There is also standard error output `err`
 err.println("Error to the user")

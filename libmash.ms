@@ -16,13 +16,17 @@ class File {
      *             "w" for writing
      *             "a" for appending
      */
-    File(path, mode="r");
+    File(path, mode="r") { 
+        # [!internal!] 
+    }
 
     /**
      * Writes first argument to the file
      * @param msg Value to be printed to the file
      */
-    fun print(msg);
+    fun print(msg) { 
+        # [!internal!] 
+    }
 
     /**
      * Writes first argument to the file and appends a new line symbol
@@ -36,26 +40,34 @@ class File {
      * Reads contents of the file into a String
      * @return Contents of the file as a String
      */
-    fun read();
+    fun read() { 
+        # [!internal!] 
+    }
 
     /**
      * Reads one line of the file
      * @return One line from the file
      */
-    fun readln();
+    fun readln() { 
+        # [!internal!] 
+    }
 
     /**
      * Reads all lines of the file
      * @return List with each line without \n of the file as its elements
      */
-    fun read_lines();
+    fun read_lines() { 
+        # [!internal!] 
+    }
 
     /**
      * Parses opened file as a CSV file
      * @param delim Delimiter used in the CSV file
      * @return File parsed into list of list
      */
-    fun read_csv(delim=",");
+    fun read_csv(delim=",") { 
+        # [!internal!] 
+    }
 }
 
 /**
@@ -67,7 +79,9 @@ space Rand {
      * Sets explicit seed value for the RNG
      * @param seed Seed for the RNG
      */
-    fun seed(seed);
+    fun seed(seed) { 
+        # [!internal!] 
+    }
 
     /**
      * Random integer generator
@@ -75,7 +89,9 @@ space Rand {
      * @param max Maximum possible value to be generated (including this value)
      * @return Random integer from specified range
      */
-    fun int(min, max);
+    fun int(min, max) { 
+        # [!internal!] 
+    }
 
     /**
      * Random float generator
@@ -83,5 +99,7 @@ space Rand {
      * @param max Maximum possible value to be generated (including this value)
      * @return Random float from specified range
      */
-    fun float(min=0.0, max=1.0);
+    fun float(min=0.0, max=1.0) { 
+        # [!internal!] 
+    }
 }
