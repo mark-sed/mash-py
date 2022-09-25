@@ -103,3 +103,20 @@ space Rand {
         # [!internal!] 
     }
 }
+
+# Built-in functions
+
+/**
+ * Absolute value
+ * @param x Numberic value
+ * @return Absolute value of passed in argument
+ */
+fun abs(x) = x > 0 ? x : -x
+
+/**
+ * Integer to character conversion
+ * @param c Character's UNICODE value to convert to string
+ * @return Passed in argument converted to UNICODE character as a string
+ */
+fun chr(c) = # [! internal !]
+

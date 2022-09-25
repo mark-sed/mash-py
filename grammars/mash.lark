@@ -27,7 +27,6 @@ import : "import" VAR_NAME
 // Value assignment excluding standalone variable (nil assignment)
 assignment : scope_name ASSIGN_OP rvalue
            | VAR_NAME "=" INTERNAL
-           | scope_name "=" expr "?" (expr|lambda) ":" (expr|lambda) // Ternary if
 
 // Different assignments
 ASSIGN_OP : ("="|"+="|"-="|"*="|"/="|"//="|"%="|"^=")
@@ -58,8 +57,10 @@ expr : const
      | scope_name
      | fun_call
      | member
+     | ternary_if
      | "(" expr ")"
      | expr op_bin expr
+     | OP_PLMIN expr
      | OP_UN_PRE expr
      | expr OP_UN_POST
 
@@ -81,6 +82,7 @@ OP2_ADDSUB : ("+"|"-")
 OP2_MULDIV : ("*"|"/"|"//"|"%")
 OP2_EXP : "^"
 OP_UN_POST : ("++"|"--")
+OP_PLMIN : ("+"|"-")
 
 // Constants
 const : NUMBER
@@ -89,6 +91,9 @@ const : NUMBER
       | "nil"
       | "true"
       | "false"
+
+// Ternary if
+ternary_if : expr "?" (expr|lambda) ":" (expr|lambda)
 
 // Member
 member : expr "[" expr "]"
@@ -107,7 +112,7 @@ fun_call : scope_name "(" arg_list_call ")" END?
          | fun_call "(" arg_list_call ")" END?
 
 // Lambda function definition
-lambda : "fun" VAR_NAME? "(" arg_list ")" "=" rvalue
+lambda : "fun" VAR_NAME? "(" arg_list ")" "=" (rvalue|INTERNAL)
 
 // Function definition
 function : "fun" VAR_NAME "(" arg_list ")" fun_code_block

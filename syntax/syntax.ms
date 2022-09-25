@@ -117,3 +117,5 @@ some_const = # [! internal !]
 someObj.a::f = f(a = 42) ? fun(a)=42*a : nil
 
 a = [x*y : x = 1..a, y = f(4)]
+
+# {"a": 52, nil: 8, 9: 9, obj: "som"}
