@@ -41,7 +41,6 @@ Mash code is constructed from expressions, where each expression ends with a sem
 | `true`, `false`      | Boolean values      |
 | `fun`                | Function            |
 | `class`              | Class               |
-| `assert`             | Debugging assertion |
 | `space`              | Namespace           |
 
 ### Types and values

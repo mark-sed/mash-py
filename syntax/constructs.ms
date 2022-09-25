@@ -15,7 +15,7 @@ b = false
 
 if (a == b || b == false) {
     out.println("matched 1st if.")
-} elif (a = true) {
+} elif (a == true) {
     out.println("matched 2nd if.")
 } else {
     out.println("fell in else.")

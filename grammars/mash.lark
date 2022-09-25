@@ -14,6 +14,8 @@ stmt : _stmts
 // Statements without ENDs
 _stmts : import
        | rvalue
+       | FLOW_CTRL
+       | INTERNAL
        | assignment
        | definition
        | code_block
@@ -31,13 +33,17 @@ assignment : scope_name ASSIGN_OP rvalue
 ASSIGN_OP : ("="|"+="|"-="|"*="|"/="|"//="|"%="|"^=")
 
 // List
-list.2 : expr "," expr ".." expr
+list : expr "," expr ".." expr
      | expr ".." expr
      | "[" list_vals "]"
+     | "[" (expr|lambda) ":" list_assig "]"
 
 list_vals : list_vals "," (expr|lambda)
           | (expr|lambda)
           |
+
+list_assig : VAR_NAME "=" expr
+           | list_assig "," VAR_NAME "=" expr
 
 // Right side value
 rvalue : silent_expr
@@ -143,11 +149,12 @@ class : "class" VAR_NAME "{" END? class_content END? "}"
       | "class" VAR_NAME ":" var_list "{" END? class_content END? "}"
 
 // Variable name
-VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|assert|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
+VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
 // Variable in some scope
 scope_name : space_name
            | dot_name
+           | fun_call
            | VAR_NAME
 
 // Class member selection
@@ -215,7 +222,11 @@ STRING : ESCAPED_STRING
        | "f"ESCAPED_STRING
        | "r"ESCAPED_STRING
 
+// Just 1 dot, not 2
 DOT : /(?<!\.)\.(?!\.)/
+
+// Flow control
+FLOW_CTRL : ("continue" | "break" | "return")
 
 // Statement end
 END : NEWLINE
