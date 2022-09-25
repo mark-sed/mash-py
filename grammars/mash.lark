@@ -6,14 +6,18 @@ start : stmt
       |
 
 // Standalone expression
-stmt : import
-     | rvalue
-     | assignment
-     | definition
-     | code_block
+stmt : _stmts
      | END
      | stmt END+ stmt END*
      |
+
+// Statements without ENDs
+_stmts : import
+       | rvalue
+       | assignment
+       | definition
+       | code_block
+       | construct
 
 // Importing
 import : "import" VAR_NAME
@@ -21,9 +25,19 @@ import : "import" VAR_NAME
 // Value assignment excluding standalone variable (nil assignment)
 assignment : scope_name ASSIGN_OP rvalue
            | VAR_NAME "=" INTERNAL
+           | scope_name "=" expr "?" (expr|lambda) ":" (expr|lambda) // Ternary if
 
 // Different assignments
 ASSIGN_OP : ("="|"+="|"-="|"*="|"/="|"//="|"%="|"^=")
+
+// List
+list.2 : expr "," expr ".." expr
+     | expr ".." expr
+     | "[" list_vals "]"
+
+list_vals : list_vals "," (expr|lambda)
+          | (expr|lambda)
+          |
 
 // Right side value
 rvalue : silent_expr
@@ -34,25 +48,36 @@ silent_expr : "~" expr
 
 // Expressions using operators
 expr : const
+     | list
      | scope_name
      | fun_call
      | member
      | "(" expr ")"
-     | expr OP_BIN expr
+     | expr op_bin expr
      | OP_UN_PRE expr
      | expr OP_UN_POST
 
-// Binary operator
-OP_BIN : ("^"|"*"|"/"|"//"|"%"|"+"|"-"|"in"|"<="|">="|">"|"<"|"=="|"!="|"&&"|"and"|"||"|"or")
+// Binary and unary operator
+op_bin : OP2_OR
+       | OP2_AND
+       | OP2_CMP
+       | OP2_IN
+       | OP2_ADDSUB
+       | OP2_MULDIV
+       | OP2_EXP
 
-// Unary prefix operator
+OP2_OR : ("||"|"or")
+OP2_AND : ("&&"|"and")
 OP_UN_PRE : ("!"|"not")
-
-// Unary postfix operator
+OP2_CMP : ("<="|">="|">"|"<"|"=="|"!=")
+OP2_IN : "in"
+OP2_ADDSUB : ("+"|"-")
+OP2_MULDIV : ("*"|"/"|"//"|"%")
+OP2_EXP : "^"
 OP_UN_POST : ("++"|"--")
 
 // Constants
-const : SIGNED_NUMBER
+const : NUMBER
       | HEX_INT
       | STRING
       | "nil"
@@ -61,6 +86,8 @@ const : SIGNED_NUMBER
 
 // Member
 member : expr "[" expr "]"
+       | expr "[" expr ":" expr "]"
+       | expr "[" expr ":" expr ":" expr "]"
 
 // Definitions
 definition : lambda
@@ -71,6 +98,7 @@ definition : lambda
 // Function call
 fun_call : scope_name "(" arg_list_call ")" END?
          | member "(" arg_list_call ")" END?
+         | fun_call "(" arg_list_call ")" END?
 
 // Lambda function definition
 lambda : "fun" VAR_NAME? "(" arg_list ")" "=" rvalue
@@ -123,7 +151,7 @@ scope_name : space_name
            | VAR_NAME
 
 // Class member selection
-dot_name : scope_name "." VAR_NAME
+dot_name : scope_name DOT VAR_NAME
 
 // Space member selection
 space_name : scope_name "::" VAR_NAME
@@ -133,9 +161,14 @@ var_list : scope_name
          | var_list "," scope_name
 
 // List of arguments allowed in function call
-arg_list_call : rvalue
-              | arg_list_call "," rvalue
+arg_list_call : (expr|lambda)
+              | arg_list_call "," (expr|lambda)
+              | arg_list_call "," arg_list_call_exp
+              | arg_list_call_exp
               |
+
+arg_list_call_exp : VAR_NAME "=" (expr|lambda)
+                  | arg_list_call_exp "," VAR_NAME "=" (expr|lambda)
 
 // List of arguments without default values
 arg_list_ndef : VAR_NAME 
@@ -148,9 +181,25 @@ arg_list : VAR_NAME "=" (expr|lambda)
          | arg_list_ndef
          |
 
-// Statement end
-END : NEWLINE
-    | ";"
+// Constructs
+construct : if
+          | while
+          | do_while
+          | for
+
+// If statement
+if : "if" "(" expr ")" END* (code_block|_stmts) END* elif* END* else? END?
+elif : "elif" "(" expr ")" END* (code_block|_stmts) END*
+else : "else" END* (code_block|_stmts) END*
+
+// While
+while : "while" "(" expr ")" END* (code_block|_stmts) END?
+
+// Do while
+do_while : "do" END* (code_block|_stmts) END* "while" "(" expr ")" END?
+
+// For loop
+for : "for" "(" VAR_NAME ":" list ")" END* (code_block|_stmts) END?
 
 // Internal implementation comment
 INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
@@ -166,9 +215,25 @@ STRING : ESCAPED_STRING
        | "f"ESCAPED_STRING
        | "r"ESCAPED_STRING
 
+DOT : /(?<!\.)\.(?!\.)/
+
+// Statement end
+END : NEWLINE
+    | ";"
+
+NUMBER : SIGNED_INT | SIGNED_FLOAT
+
+CM_DECIMAL: INT DOT INT? | DOT INT
+CM_EXP: ("e"|"E") SIGNED_INT
+
+FLOAT: INT CM_EXP | CM_DECIMAL CM_EXP?
+
+SIGNED_FLOAT: ["+"|"-"] FLOAT
+
 %import common.WS_INLINE
 %import common.CNAME
-%import common.SIGNED_NUMBER
+%import common.SIGNED_INT
+%import common.INT
 %import common.NEWLINE
 %import common.C_COMMENT
 %import common.ESCAPED_STRING

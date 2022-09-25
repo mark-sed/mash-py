@@ -113,3 +113,5 @@ a(4, b)[(54+4+a)^4]()
 
 # Internal implementation of a variable
 some_const = # [! internal !]
+
+someObj.a::f = f(a = 42) ? fun(a)=42*a : nil
