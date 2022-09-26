@@ -4,6 +4,69 @@ Mash core library.
 */
 
 /**
+ * Integer value
+ */
+class Int {
+
+    /**
+     * Constructor to cast parameter to Int
+     */
+    Int(x) {
+        # [!internal!]
+    }
+}
+
+/**
+ * Floating point value
+ */
+class Float {
+
+    /**
+     * Constructor to cast parameter to Float
+     */
+    Float(x) {
+        # [!internal!]
+    }
+}
+
+/**
+ * List type class
+ */
+class List {
+
+    /**
+     * Constructor to cast parameter to a list
+     * @param x Value to be converted to a list
+     */
+    List(x) { 
+        # [!internal!]
+    }
+
+    /**
+     * Constructor to create an empty list.
+     * This is the same as writing `[]`
+     */
+    List() {
+        # [!internal!]
+    }
+
+    # TODO: Other methods
+}
+
+class Dict {
+
+    /**
+     * Constructor to create an empty dictionary.
+     * This is the same as writing `{,}`
+     */
+    Dict() {
+        # [!internal!]
+    }
+
+    # TODO: Other methods
+}
+
+/**
  * File class
  */ 
 class File {
@@ -111,7 +174,7 @@ space Rand {
  * @param x Numberic value
  * @return Absolute value of passed in argument
  */
-fun abs(x) = x > 0 ? x : -x
+fun abs(x) = x > 0.0 ? x : -x
 
 /**
  * Integer to character conversion
@@ -120,3 +183,54 @@ fun abs(x) = x > 0 ? x : -x
  */
 fun chr(c) = # [! internal !]
 
+/**
+ * Fliters second argument by calling all its elements as parameters to the function that is the first argument.
+ * If the function returns True, this element is added to the list that will be returned.
+ * @param f Filter function, that returns bool and takes one argument
+ * @param l List of elements to be filtered
+ * @return Second argument filtered by function in the first argument
+ */ 
+fun filter(f, l) = [x if f(x) : x = l]
+
+/**
+ * Map function.
+ * Applied passed in function to all elements in the second argument
+ * @param f Function to be applied to elements in the second argument
+ * @param l List of values to be mapped
+ * @return List of elements in the second argument after being passed into the first argument
+ */
+fun map(f, l) = [f(x) : x = l]
+
+/**
+ * Maximum function
+ * @param a1 First value
+ * @param a2 Second value
+ * @return a1 if a1 is bigger than a2, otherwise a2
+ */
+fun max(a1, a2) = a1 > a2 ? a1 : a2
+fun max(l) {
+    biggest = l[0]
+    for(a: l[1:]) {
+        if(a > biggest) {
+            biggest = a
+        }
+    }
+    return biggest
+}
+
+/**
+ * Minimum function
+ * @param a1 First value
+ * @param a2 Second value
+ * @return a1 if a1 is smaller than a2, otherwise a2
+ */
+fun min(a1, a2) = a1 < a2 ? a1 : a2
+fun min(l) {
+    smallest = l[0]
+    for(a: l[1:]) {
+        if(a < smallest) {
+            smallest = a
+        }
+    }
+    return smallest
+}

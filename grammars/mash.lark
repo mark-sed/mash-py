@@ -36,13 +36,18 @@ list : expr "," expr ".." expr
      | expr ".." expr
      | "[" list_vals "]"
      | "[" (expr|lambda) ":" list_assig "]"
-
+     | "[" (expr|lambda) "if" expr ":" list_assig "]"
 list_vals : list_vals "," (expr|lambda)
           | (expr|lambda)
           |
-
-list_assig : VAR_NAME "=" expr
+list_assig : VAR_NAME "=" expr 
            | list_assig "," VAR_NAME "=" expr
+
+// Dictionary
+dict : "{" dict_val_list "}"
+     | "{" "," "}" // Empty dict
+dict_val_list : expr ":" expr
+              | dict_val_list "," expr ":" expr
 
 // Right side value
 rvalue : silent_expr
@@ -54,6 +59,7 @@ silent_expr : "~" expr
 // Expressions using operators
 expr : const
      | list
+     | dict
      | scope_name
      | fun_call
      | member
@@ -97,8 +103,8 @@ ternary_if : expr "?" (expr|lambda) ":" (expr|lambda)
 
 // Member
 member : expr "[" expr "]"
-       | expr "[" expr ":" expr "]"
-       | expr "[" expr ":" expr ":" expr "]"
+       | expr "[" expr? ":" expr? "]"
+       | expr "[" expr? ":" expr? ":" expr? "]"
 
 // Definitions
 definition : lambda
@@ -211,7 +217,7 @@ while : "while" "(" expr ")" END* (code_block|_stmts) END?
 do_while : "do" END* (code_block|_stmts) END* "while" "(" expr ")" END?
 
 // For loop
-for : "for" "(" VAR_NAME ":" list ")" END* (code_block|_stmts) END?
+for : "for" "(" VAR_NAME ":" expr ")" END* (code_block|_stmts) END?
 
 // Internal implementation comment
 INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
