@@ -234,3 +234,73 @@ fun min(l) {
     }
     return smallest
 }
+
+/**
+ * Converts character to its ordinal value
+ * @param c String of length 1
+ * @return Ordinal value of character in passed in string
+ */
+fun ord(c) = # [!internal!]
+
+/**
+ * Sum of elements in passed in list and start value
+ * @param l List to be summed up
+ * @param start Starting value of the sum
+ * @return Sum of all elements in l and start
+ */
+fun sum(l, start=0) {
+    for(i: l) {
+        start += i
+    }
+    return start
+}
+
+/**
+ * Returns a proxy object that delegates method calls to parent of
+ * passed in argument. This is useful for invoking overriden methods.
+ * @param obj Object to get the parent of
+ * @return Parent proxy object of passed in object
+ */
+fun super(obj) = # [!internal!]
+
+/**
+ * Returns type of passed in object.
+ * @param obj Object to get the type of
+ * @return Returns type of passed in object
+ */
+fun type(obj) = # [!internal!]
+
+/**
+ * Does cartesian product of passed in lists
+ * @param l1 List
+ * @param l2 List
+ * @return List of lists containing cartesian product of passed in arguments.
+ */
+fun zip(l1, l2) = [[x, y] : x = l1, y = l2]
+# fun zip(..)
+
+## Math
+
+/**
+ * Sinus
+ * @param x Numeric value
+ * @return Sinus of x
+ */
+fun sin(x) = # [!internal!]
+
+/**
+ * Tangent
+ * @param x Numeric value
+ * @return Tangent of x
+ */
+fun tan(x) = # [!internal!]
+
+/**
+ * Cosine
+ * @param x Numeric value
+ * @return Cosine of x
+ */
+fun cos(x) = # [!internal!]
+
+# TODO: More math funcs
+# TODO: Methods for operators (add, mul...)
