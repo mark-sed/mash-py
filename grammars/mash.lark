@@ -2,18 +2,18 @@
 // @author: Marek Sedlacek
 
 // Start nonterminal
-start : stmt
+start : _stmt
       |
 
 // Standalone expression
-stmt : _stmts
-     | END
-     | stmt END+ stmt END*
-     |
+_stmt : _stmts
+      | _END
+      | _stmt _END+ _stmt _END*
+      |
 
 // Statements without ENDs
 _stmts : import
-       | rvalue
+       | _rvalue
        | FLOW_CTRL
        | INTERNAL
        | assignment
@@ -25,86 +25,102 @@ _stmts : import
 import : "import" VAR_NAME
 
 // Value assignment excluding standalone variable (nil assignment)
-assignment : scope_name ASSIGN_OP rvalue
+assignment : scope_name ASSIGN_OP _rvalue
            | VAR_NAME "=" INTERNAL
 
 // Different assignments
 ASSIGN_OP : ("="|"+="|"-="|"*="|"/="|"//="|"%="|"^=")
 
 // List
-list : expr "," expr ".." expr
-     | expr ".." expr
+list : _expr "," _expr ".." _expr
+     | _expr ".." _expr
      | "[" list_vals "]"
-     | "[" (expr|lambda) ":" list_assig "]"
-     | "[" (expr|lambda) "if" expr ":" list_assig "]"
-list_vals : list_vals "," (expr|lambda)
-          | (expr|lambda)
+     | "[" (_expr|lambda) ":" list_assig "]"
+     | "[" (_expr|lambda) "if" _expr ":" list_assig "]"
+list_vals : list_vals "," (_expr|lambda)
+          | (_expr|lambda)
           |
-list_assig : VAR_NAME "=" expr 
-           | list_assig "," VAR_NAME "=" expr
+list_assig : VAR_NAME "=" _expr 
+           | list_assig "," VAR_NAME "=" _expr
 
 // Dictionary
 dict : "{" dict_val_list "}"
      | "{" "," "}" // Empty dict
-dict_val_list : expr ":" expr
-              | dict_val_list "," expr ":" expr
+dict_val_list : _expr ":" _expr
+              | dict_val_list "," _expr ":" _expr
 
 // Right side value
-rvalue : silent_expr
-       | expr
-       | lambda
+_rvalue : silent_expr
+        | _expr
+        | lambda
 
-silent_expr : "~" expr
+silent_expr : "~" _expr
 
 // Expressions using operators
-expr : const
+_expr : const
      | list
      | dict
      | scope_name
      | fun_call
      | member
      | ternary_if
-     | "(" expr ")"
-     | expr op_bin expr
-     | OP_PLMIN expr
-     | OP_UN_PRE expr
-     | expr OP_UN_POST
+     | "(" _expr ")"
+     | expr_or
+     | expr_and
+     | expr_not
+     | expr_lte
+     | expr_gte
+     | expr_gt
+     | expr_lt
+     | expr_eq
+     | expr_neq
+     | expr_in
+     | expr_add
+     | expr_sub
+     | expr_mul
+     | expr_fdiv
+     | expr_idiv
+     | expr_mod
+     | expr_exp
+     | expr_inc
+     | expr_dec
 
-// Binary and unary operator
-op_bin : OP2_OR
-       | OP2_AND
-       | OP2_CMP
-       | OP2_IN
-       | OP2_ADDSUB
-       | OP2_MULDIV
-       | OP2_EXP
-
-OP2_OR : ("||"|"or")
-OP2_AND : ("&&"|"and")
-OP_UN_PRE : ("!"|"not")
-OP2_CMP : ("<="|">="|">"|"<"|"=="|"!=")
-OP2_IN : "in"
-OP2_ADDSUB : ("+"|"-")
-OP2_MULDIV : ("*"|"/"|"//"|"%")
-OP2_EXP : "^"
-OP_UN_POST : ("++"|"--")
-OP_PLMIN : ("+"|"-")
+expr_or : _expr ("||"|"or") _expr
+expr_and : _expr ("&&"|"and") _expr
+expr_not : ("!"|"not") _expr
+expr_lte : _expr "<=" _expr
+expr_gte : _expr ">=" _expr
+expr_gt : _expr ">" _expr
+expr_lt : _expr "<" _expr
+expr_eq : _expr "==" _expr
+expr_neq : _expr "!=" _expr
+expr_in : _expr "in" _expr
+expr_add : _expr "+"_expr
+expr_sub : _expr "-" _expr
+expr_mul : _expr "*" _expr
+expr_fdiv : _expr "/" _expr
+expr_idiv : _expr "//" _expr
+expr_mod : _expr "%" _expr
+expr_exp : _expr "^" _expr
+expr_inc : _expr "++"
+expr_dec : _expr "--"
 
 // Constants
-const : NUMBER
-      | HEX_INT
-      | STRING
-      | "nil"
-      | "true"
-      | "false"
+const : SIGNED_FLOAT  -> float
+      | SIGNED_INT -> int
+      | HEX_INT -> hex_int
+      | STRING  -> string
+      | "nil"   -> nil
+      | "true"  -> true
+      | "false" -> false
 
 // Ternary if
-ternary_if : expr "?" (expr|lambda) ":" (expr|lambda)
+ternary_if : _expr "?" (_expr|lambda) ":" (_expr|lambda)
 
 // Member
-member : expr "[" expr "]"
-       | expr "[" expr? ":" expr? "]"
-       | expr "[" expr? ":" expr? ":" expr? "]"
+member : _expr "[" _expr "]"
+       | _expr "[" _expr? ":" _expr? "]"
+       | _expr "[" _expr? ":" _expr? ":" _expr? "]"
 
 // Definitions
 definition : lambda
@@ -113,12 +129,12 @@ definition : lambda
            | class
 
 // Function call
-fun_call : scope_name "(" arg_list_call ")" END?
-         | member "(" arg_list_call ")" END?
-         | fun_call "(" arg_list_call ")" END?
+fun_call : scope_name "(" arg_list_call ")" _END?
+         | member "(" arg_list_call ")" _END?
+         | fun_call "(" arg_list_call ")" _END?
 
 // Lambda function definition
-lambda : "fun" VAR_NAME? "(" arg_list ")" "=" (rvalue|INTERNAL)
+lambda : "fun" VAR_NAME? "(" arg_list ")" "=" (_rvalue|INTERNAL)
 
 // Function definition
 function : "fun" VAR_NAME "(" arg_list ")" fun_code_block
@@ -127,11 +143,11 @@ function : "fun" VAR_NAME "(" arg_list ")" fun_code_block
 constructor : VAR_NAME "(" arg_list ")" code_block
 
 // Block of code
-code_block : "{" stmt "}"
+code_block : "{" _stmt "}"
 
 // Code allowed in function body
-fun_code_block : "{" stmt END "return" rvalue? END? "}"
-               | "{" END? "return" rvalue? END? "}"
+fun_code_block : "{" _stmt _END "return" _rvalue? _END? "}"
+               | "{" _END? "return" _rvalue? _END? "}"
                | code_block
 
 // Constructs allowed in class body
@@ -139,8 +155,8 @@ class_content : constructor
               | VAR_NAME
               | assignment
               | definition
-              | END
-              | class_content END+ class_content END*
+              | _END
+              | class_content _END+ class_content _END*
               |
 
 // Constructs allowed in space body
@@ -148,16 +164,16 @@ space_conent : import
              | VAR_NAME 
              | assignment
              | definition
-             | END
-             | space_conent END+ space_conent END*
+             | _END
+             | space_conent _END+ space_conent _END*
              |
 
 // Namespace definition
-space : "space" VAR_NAME? "{" END? space_conent END? "}"
+space : "space" VAR_NAME? "{" _END? space_conent _END? "}"
 
 // Class definition
-class : "class" VAR_NAME "{" END? class_content END? "}"
-      | "class" VAR_NAME ":" var_list "{" END? class_content END? "}"
+class : "class" VAR_NAME "{" _END? class_content _END? "}"
+      | "class" VAR_NAME ":" var_list "{" _END? class_content _END? "}"
 
 // Variable name
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
@@ -179,23 +195,23 @@ var_list : scope_name
          | var_list "," scope_name
 
 // List of arguments allowed in function call
-arg_list_call : (expr|lambda)
-              | arg_list_call "," (expr|lambda)
+arg_list_call : (_expr|lambda)
+              | arg_list_call "," (_expr|lambda)
               | arg_list_call "," arg_list_call_exp
               | arg_list_call_exp
               |
 
-arg_list_call_exp : VAR_NAME "=" (expr|lambda)
-                  | arg_list_call_exp "," VAR_NAME "=" (expr|lambda)
+arg_list_call_exp : VAR_NAME "=" (_expr|lambda)
+                  | arg_list_call_exp "," VAR_NAME "=" (_expr|lambda)
 
 // List of arguments without default values
 arg_list_ndef : VAR_NAME 
               | arg_list_ndef "," VAR_NAME 
 
 // List of arguments with possibility of default values
-arg_list : VAR_NAME "=" (expr|lambda)
-         | arg_list_ndef "," VAR_NAME "=" (expr|lambda)
-         | arg_list "," VAR_NAME "=" (expr|lambda)
+arg_list : VAR_NAME "=" (_expr|lambda)
+         | arg_list_ndef "," VAR_NAME "=" (_expr|lambda)
+         | arg_list "," VAR_NAME "=" (_expr|lambda)
          | arg_list_ndef
          |
 
@@ -206,18 +222,18 @@ construct : if
           | for
 
 // If statement
-if : "if" "(" expr ")" END* (code_block|_stmts) END* elif* END* else? END?
-elif : "elif" "(" expr ")" END* (code_block|_stmts) END*
-else : "else" END* (code_block|_stmts) END*
+if : "if" "(" _expr ")" _END* (code_block|_stmts) _END* elif* _END* else? _END?
+elif : "elif" "(" _expr ")" _END* (code_block|_stmts) _END*
+else : "else" _END* (code_block|_stmts) _END*
 
 // While
-while : "while" "(" expr ")" END* (code_block|_stmts) END?
+while : "while" "(" _expr ")" _END* (code_block|_stmts) _END?
 
 // Do while
-do_while : "do" END* (code_block|_stmts) END* "while" "(" expr ")" END?
+do_while : "do" _END* (code_block|_stmts) _END* "while" "(" _expr ")" _END?
 
 // For loop
-for : "for" "(" VAR_NAME ":" expr ")" END* (code_block|_stmts) END?
+for : "for" "(" VAR_NAME ":" _expr ")" _END* (code_block|_stmts) _END?
 
 // Internal implementation comment
 INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
@@ -239,8 +255,8 @@ DOT : /(?<!\.)\.(?!\.)/
 // Flow control
 FLOW_CTRL : ("continue" | "break" | "return")
 
-// Statement end
-END : NEWLINE
+// Statement _END
+_END : NEWLINE
     | ";"
 
 NUMBER : SIGNED_INT | SIGNED_FLOAT

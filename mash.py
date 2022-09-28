@@ -7,7 +7,6 @@ __date__ = "September 2022"
 __version__ = "0.0.1"
 __email__ = "mr.mareksedlacek@gmail.com"
 
-import shlex
 import argparse
 import interpreter
 import sys
@@ -44,11 +43,13 @@ class Initializer():
             else:
                 # File passed in
                 with open(self.opts.mash_file, 'r', encoding='utf-8') as mash_file:
-                    self.code = mash_file.readlines()
-        else:
-            # Parse new lines even in the argument
-            self.code = self.code.split('\n')
-        print(self.code)
+                    self.code = mash_file.read()
+
+    def interpret(self):
+        """
+        Starts code interpretation
+        """
+        interpreter.interpret(self.opts, self.code)
 
     def add_arguments(self, argparser):
         """
@@ -58,8 +59,12 @@ class Initializer():
                                 help='Prints interpreter version to the output.')
         argparser.add_argument('-e', dest='code', default=None,
                                 help='Mash code.')
+        argparser.add_argument('-v', dest='verbose', default=False, action='store_true',
+                                help='Verbose output for debugging.')
         argparser.add_argument('mash_file', default=None, nargs='?',
                                 help='File with Mash code.')
+        argparser.add_argument('--parse-only', action='store_true', dest='parse_only',
+                                help='Runs only the parser.')
 
     def error(self, msg):
         """
@@ -71,4 +76,5 @@ class Initializer():
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Mash interpreter")
     initializer = Initializer(argparser)
+    initializer.interpret()
     
