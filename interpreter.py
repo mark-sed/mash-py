@@ -1,5 +1,6 @@
 from lark import Lark, Transformer
 from lark.lexer import Token
+from lark.tree import Tree
 import ir
 import sys
 from mash import Mash
@@ -122,7 +123,6 @@ class Interpreter(Mash):
         Generates internal IR from parse tree
         """
         # Declaration or print
-        print(root)
         if type(root) == Token:
             # Variable declaration or print
             if root.type == "VAR_NAME":
@@ -141,19 +141,39 @@ class Interpreter(Mash):
                 exists, msg = self.symb_table.exists(root.value)
                 if exists:
                     r = self.uniq_var()
-                    return [
-                        ir.ToString(r, root.value),
-                        ir.Print(r)
-                    ]
+                    return [ir.Print(r)]
                 else:
                     self.error(msg)
         else:
+            insts = []
             # If statement
-            if root.data == "if":
-                tr = root.children[0].children
-                print(tr[0])
-
-        
+            if root.data == "if" or root.data == "elif":
+                tree = root.children[0].children
+                cnd = None
+                tr = None
+                fl = ir.Nop()
+                # Condition check
+                if tree[0].type == "CODE":
+                    insts += tree[0].value
+                    cnd = insts[-1].dst
+                else:
+                    s, m = self.symb_table.exists(tree[0].value)
+                    if not s:
+                        self.error(m)
+                    cnd = tree[0].value
+                # True branch
+                # TODO: Push a new symbtable
+                tr = self.generate_ir(tree[1])
+                if root.data == "elif" and len(root.children) > 1:
+                    fl = self.generate_ir(Tree("elif", root.children[1:]))
+                # False branch
+                elif len(tree) > 2:
+                    if tree[2].data == "else":
+                        fl = self.generate_ir(tree[2].children[0])
+                    elif tree[2].data == "elif":
+                        fl = self.generate_ir(Tree("elif", tree[2:]))
+                insts.append(ir.If(cnd, tr, fl))
+            return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []
 
@@ -201,36 +221,32 @@ class ConstTransformer(Transformer):
         return Token("scope_name", var)
 
     def int(self, items):
-        items[0].value = int(items[0].value)
-        return items
+        return Token("SIGNED_INT", int(items[0].value))
 
     def float(self, items):
-        items[0].value = float(items[0].value)
-        return items
+        return Token("SIGNED_FLOAT", float(items[0].value))
 
     def expr_mul(self, items):
-        srcs = [items[0].value, items[1].value]
+        srcs = [0, 0]
         # Evaluating const expr
         if (items[0].type == "SIGNED_INT" or items[0].type == "SIGNED_FLOAT") and (items[1].type == "SIGNED_INT" 
                 or items[1].type == "SIGNED_FLOAT"):
             if(items[0].type == "SIGNED_FLOAT" or items[1].type == "SIGNED_FLOAT"):
-                return Token("SIGNED_FLOAT", items[0]*items[1])
+                return Token("SIGNED_FLOAT", items[0].value*items[1].value)
             else:
-                return Token("SIGNED_INT", items[0]*items[1])
+                return Token("SIGNED_INT", items[0].value*items[1].value)
         # Generating code
-
-        ##### FIX ALL! Calc constants and generate code for others, but watch out for function calls and such
-
-
-        for i in range(0, 1):
+        insts = []
+        for i in range(0, 2):
             if items[i].type == "CODE":
+                insts += items[i].value
                 # Expr code
-                if issubclass(items[i].value[-1], ir.Expr):
-                    srcs[i] = items[i].value[0].dst
-        return Token("CODE", [ir.Mul(self.uniq_var(), *srcs)])
-
-
-
+                #if issubclass(type(items[i].value[-1]), ir.Expr):
+                srcs[i] = items[i].value[0].dst
+            else:
+                srcs[i] = items[i].value
+        insts.append(ir.Mul(self.uniq_var(), srcs[0], srcs[1]))
+        return Token("CODE", insts)
 
 def interpret(opts, code):
     """

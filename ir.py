@@ -83,7 +83,13 @@ class If(IR):
         self.f = f
 
     def __str__(self):
-        return f"IF ({self.cnd}) {{\n\t{self.t}\n}} else {{\n\t {self.f}\n}}"
+        t = self.t
+        f = self.f
+        if type(self.t) == list:
+            t = "\n".join(str(i) for i in t)
+        if type(self.f) == list:
+            f = "\n".join(str(i) for i in f)
+        return f"IF ({self.cnd}) {{\n{t}\n}} ELSE {{\n{f}}}"
         
 class Expr(IR):
     """
