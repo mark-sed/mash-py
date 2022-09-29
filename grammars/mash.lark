@@ -179,16 +179,16 @@ class : "class" VAR_NAME "{" _END? class_content _END? "}"
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
 // Variable in some scope
-scope_name : space_name
-           | dot_name
+scope_name : _space_name
+           | _dot_name
            | fun_call
            | VAR_NAME
 
 // Class member selection
-dot_name : scope_name DOT VAR_NAME
+_dot_name : scope_name DOT VAR_NAME
 
 // Space member selection
-space_name : scope_name "::" VAR_NAME
+_space_name : scope_name SCOPE VAR_NAME
 
 // List of variables/ids
 var_list : scope_name
@@ -216,10 +216,10 @@ arg_list : VAR_NAME "=" (_expr|lambda)
          |
 
 // Constructs
-construct : if
-          | while
-          | do_while
-          | for
+construct : if       -> if
+          | while    -> while
+          | do_while -> do_while
+          | for      -> for
 
 // If statement
 if : "if" "(" _expr ")" _END* (code_block|_stmts) _END* elif* _END* else? _END?
@@ -251,6 +251,8 @@ STRING : ESCAPED_STRING
 
 // Just 1 dot, not 2
 DOT : /(?<!\.)\.(?!\.)/
+
+SCOPE : "::"
 
 // Flow control
 FLOW_CTRL : ("continue" | "break" | "return")

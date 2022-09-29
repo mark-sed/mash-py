@@ -17,6 +17,18 @@ def print_version():
     """
     print("Mash {}".format(__version__))
 
+class Mash:
+    """
+    Class that is to be extended by all interpreter parts
+    """
+
+    def error(self, msg, code=1):
+        """
+        Prints error and exits with passed in code
+        """
+        print("Error: {}.".format(msg), file=sys.stderr)
+        exit(code)
+
 class Initializer():
     """
     Main class that intializes all needed resources and handles arguments
