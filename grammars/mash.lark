@@ -17,6 +17,7 @@ _stmts : import
        | FLOW_CTRL
        | INTERNAL
        | assignment
+       | op_assign
        | definition
        | code_block
        | construct
@@ -25,11 +26,14 @@ _stmts : import
 import : "import" VAR_NAME
 
 // Value assignment excluding standalone variable (nil assignment)
-assignment : scope_name ASSIGN_OP _rvalue
+assignment : scope_name "=" _rvalue
            | VAR_NAME "=" INTERNAL
 
+// Operation and assignment over 1 variable
+op_assign : scope_name ASSIGN_OP _rvalue
+
 // Different assignments
-ASSIGN_OP : ("="|"+="|"-="|"*="|"/="|"//="|"%="|"^=")
+ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^=")
 
 // List
 list : _expr "," _expr ".." _expr

@@ -1,16 +1,25 @@
 from lark import Lark, Transformer
 from lark.lexer import Token
 from lark.tree import Tree
-import ir
-import sys
 from mash import Mash
+import mash_exceptions as mex
+from symbol_table import symb_table
+import ir
+from sys import stderr
 
 def debug(msg, opts):
     """
     Debug message
     """
     if opts.verbose:
-        print("DEBUG: {}.".format(msg))
+        print("DEBUG: {}.".format(msg), file=stderr)
+
+def info(msg, opts):
+    """
+    Info message
+    """
+    if opts.verbose:
+        print(msg, file=stderr)
 
 class Parser(Mash):
     """
@@ -33,73 +42,8 @@ class Parser(Mash):
         """
         parse_tree = self.parser.parse(self.code)
         if self.opts.verbose:
-            print(parse_tree.pretty())
+            info(parse_tree.pretty(), self.opts)
         return parse_tree
-
-class Symbol:
-
-    def key(self):
-        return "!!!ERROR"
-
-class Var(Symbol):
-    """
-    Variable
-    """
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def key(self):
-        return self.name
-
-    def __str__(self):
-        return f"{self.name} = {self.value}"
-
-class Fun(Symbol):
-    """
-    Function
-    """
-    ...
-
-class SymbTable(Mash):
-    """
-    Symbolic table
-    """
-    GLOB_TBL = {
-        #"print?1": {ir.Print("@0")}
-    }
-
-    def __init__(self):
-        self.tbls = []
-        self.tbls.append(SymbTable.GLOB_TBL)
-
-    def declare(self, symb):
-        """
-        Declares variable for the first time.
-        If it already exists an error is raised.
-        """
-        if self.exists_top(symb.key()):
-            self.error(f"Redefinition of {symb.key()}")
-        self.tbls[-1][symb.key()] = symb
-
-    def exists_top(self, symb):
-        return symb in self.tbls[-1]
-
-    def exists(self, symb):
-        nested = False
-        s = symb
-        if type(symb) == list:
-            s = symb[0]
-            nested = True
-
-        for t in reversed(self.tbls):
-            if s in t:
-                if not nested:
-                    return (True, "")
-                else:
-                    # TODO: Add when classes and spaces added
-                    print("NOT IMPLEMENTED!!")
-        return (False, f"Undefined reference to '{s}'")
 
 class Interpreter(Mash):
     """
@@ -122,18 +66,18 @@ class Interpreter(Mash):
         """
         Generates internal IR from parse tree
         """
+        debug(root, self.opts)
         # Declaration or print
         if type(root) == Token:
             # Variable declaration or print
             if root.type == "VAR_NAME":
                 if not self.symb_table.exists_top(root.value):
-                    v = Var(root.value, None)
-                    self.symb_table.declare(v)
-                    return [ir.AssignVar(v.key(), ir.NIL())]
+                    self.symb_table.declare(root.value, ir.NIL())
+                    return [ir.AssignVar(root.value, ir.NIL())]
                 else:
                     r = self.uniq_var()
                     return [
-                        ir.ToString(r, root.value),
+                        ir.ToString(root.value, r),
                         ir.Print(r)
                     ]
             # Printing
@@ -144,10 +88,23 @@ class Interpreter(Mash):
                     return [ir.Print(r)]
                 else:
                     self.error(msg)
+            # Generated code
+            elif root.type == "CODE":
+                return root.value+[ir.Print(root.value[-1].dst)]
         else:
             insts = []
-            # If statement
-            if root.data == "if" or root.data == "elif":
+            if root.data == "assignment":
+                if root.children[1].type in {"SIGNED_INT", "SIGNED_FLOAT", "nil", "true", "false"}:
+                    self.symb_table.assign(root.children[0].value, root.children[1].value)
+                    return [ir.AssignVar(root.children[0].value, root.children[1].value)]
+                else:
+                    raise mex.Unimplemented("UNIMPLEMENTED: Assignment not implemented for such value")
+            # Block of code
+            elif root.data == "code_block":
+                for tree in root.children:
+                    insts += self.generate_ir(tree)
+            # If statement or elif part
+            elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
                 cnd = None
                 tr = None
@@ -186,10 +143,19 @@ class Interpreter(Mash):
         for i in root.children:
             # i.data, i.children
             self.ir += self.generate_ir(i)
-        print("Generated code:")
-        for i in self.ir:
-            print(i)
+        if self.opts.verbose:
+            debug("Generated code:", self.opts)
+            for i in self.ir:
+                info(i, self.opts)
+        return self.ir
 
+    def interpret(self, code):
+        """
+        Interprets passed in ir
+        @param code IR code to be interpreted
+        """
+        for i in code:
+            i.exec()
 
 
 class ConstTransformer(Transformer):
@@ -226,6 +192,15 @@ class ConstTransformer(Transformer):
     def float(self, items):
         return Token("SIGNED_FLOAT", float(items[0].value))
 
+    def nil(self, items):
+        return Token("nil", None)
+
+    def true(self, items):
+        return Token("true", True)
+
+    def false(self, items):
+        return Token("false", False)
+
     def expr_mul(self, items):
         srcs = [0, 0]
         # Evaluating const expr
@@ -245,7 +220,7 @@ class ConstTransformer(Transformer):
                 srcs[i] = items[i].value[0].dst
             else:
                 srcs[i] = items[i].value
-        insts.append(ir.Mul(self.uniq_var(), srcs[0], srcs[1]))
+        insts.append(ir.Mul(srcs[0], srcs[1], self.uniq_var()))
         return Token("CODE", insts)
 
 def interpret(opts, code):
@@ -258,7 +233,10 @@ def interpret(opts, code):
     debug("Parser finished", opts)
     if opts.parse_only:
         return
-    symb_table = SymbTable()
     interpreter = Interpreter(opts, symb_table)
-    interpreter.interpret_top_level(ConstTransformer(symb_table).transform(tree))
+    ir_code = interpreter.interpret_top_level(ConstTransformer(symb_table).transform(tree))
+    debug("IR generation done", opts)
+    debug("Running IR", opts)
+    interpreter.interpret(ir_code)
+    debug("Finished running IR", opts)
     

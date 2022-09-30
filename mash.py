@@ -10,6 +10,7 @@ __email__ = "mr.mareksedlacek@gmail.com"
 import argparse
 import interpreter
 import sys
+import mash_exceptions as mex
 
 def print_version():
     """
@@ -51,7 +52,7 @@ class Initializer():
         if self.code is None:
             if self.opts.mash_file is None:
                 # Stdin
-                self.code = sys.stdin.readlines()
+                self.code = sys.stdin.read()
             else:
                 # File passed in
                 with open(self.opts.mash_file, 'r', encoding='utf-8') as mash_file:
@@ -88,5 +89,9 @@ class Initializer():
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Mash interpreter")
     initializer = Initializer(argparser)
-    initializer.interpret()
+    try:
+        initializer.interpret()
+    except mex.MashException as e:
+        print("Error: {}".format(e))
+        exit(1)
     
