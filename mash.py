@@ -74,6 +74,8 @@ class Initializer():
                                 help='Mash code.')
         argparser.add_argument('-v', dest='verbose', default=False, action='store_true',
                                 help='Verbose output for debugging.')
+        argparser.add_argument('-s', dest='code_only', default=False, action='store_true',
+                                help='Parse and output generated code.')
         argparser.add_argument('mash_file', default=None, nargs='?',
                                 help='File with Mash code.')
         argparser.add_argument('--parse-only', action='store_true', dest='parse_only',
@@ -89,9 +91,9 @@ class Initializer():
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Mash interpreter")
     initializer = Initializer(argparser)
-    try:
-        initializer.interpret()
-    except mex.MashException as e:
-        print("Error: {}".format(e))
-        exit(1)
+    #try:
+    initializer.interpret()
+    #except mex.MashException as e:
+    #    print("Error: {}".format(e))
+    #    exit(1)
     

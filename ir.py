@@ -1,61 +1,37 @@
 from symbol_table import symb_table
 from mash import Mash
 import mash_exceptions as mex
+from mash_types import Float, Int, Nil, Bool, String, Value
 
 class IR:
     """
     Base class for all ir nodes
     """
+    def getV(self, name):
+        if type(name) == str:
+            return symb_table.get(name).get_value()
+        elif issubclass(type(name), Value):
+            return name.get_value()
 
-class Value(IR):
-    """
-    Values
-    """
-    def get_value(self):
-        raise mex.Unimplemented()
+    def get(self, name):
+        if type(name) == str:
+            return symb_table.get(name)
+        elif issubclass(type(name), Value):
+            return name
 
-class STRING(Value, str):
-    """
-    String
-    """
-    def __init__(self, value):
-        self.value = value
-
-    def get_value(self):
-        return self.value
-
-    def __str__(self):
-        return super(str).__str__()
-
-class NIL(Value):
-    """
-    Nil
-    """
-    def get_value(self):
-        return None
-
-    def __str__(self):
-        return "nil"
-
-class TRUE(Value):
-    """
-    True
-    """
-    def get_value(self):
-        return True
-
-    def __str__(self):
-        return "true"
-
-class FALSE(Value):
-    """
-    False
-    """
-    def get_value(self):
-        return False
-
-    def __str__(self):
-        return "false"
+def wrap(v):
+    if type(v) == int:
+        return Int(v)
+    elif type(v) == float:
+        return Float(v)
+    elif type(v) == str:
+        return String(v)
+    elif type(v) == bool:
+        return Bool(v)
+    elif v is None:
+        return Nil(v)
+    else:
+        raise mex.Unimplemented(f"Unimplemented wrapper for type '{type(v)}'")
 
 class Instruction(IR):
     """
@@ -67,12 +43,6 @@ class Instruction(IR):
         Method to be overrriden by an instruction
         """
         print("MISSING EXEC METHOD")
-
-    def getV(self, name):
-        if type(name) == str:
-            return symb_table.get(name)
-        elif isinstance(type(name), Value):
-            return name.get_value()
 
 class AssignVar(Instruction):
     """
@@ -92,7 +62,7 @@ class Print(Instruction):
     """
     Variable declaration and definition
     """
-    def __init__(self, value, dst=NIL()):
+    def __init__(self, value, dst=Nil()):
         self.dst = dst
         self.value = value
 
@@ -111,7 +81,7 @@ class ToString(Instruction):
         self.value = value
 
     def exec(self):
-        symb_table.assign(self.dst, str(self.getV(self.value)))
+        symb_table.assign(self.dst, String(str(self.get(self.value))))
 
     def __str__(self):
         return f"TOSTR {self.value}, {self.dst}"
@@ -133,7 +103,20 @@ class If(Instruction):
     def __init__(self, cnd, t, f):
         self.cnd = cnd
         self.t = t
+        if type(self.t) is not list:
+            self.t = [self.t]
         self.f = f
+        if type(self.f) is not list:
+            self.f = [self.f]
+
+    def exec(self):
+        c = self.getV(self.cnd)
+        if c:
+            for i in self.t:
+                i.exec()
+        else:
+            for i in self.f:
+                i.exec()
 
     def __str__(self):
         t = self.t
@@ -143,22 +126,33 @@ class If(Instruction):
         if type(self.f) == list:
             f = "\n".join(str(i) for i in f)
         return f"IF ({self.cnd}) {{\n{t}\n}} ELSE {{\n{f}}}"
+
+class While(Instruction):
+    """
+    While loop
+    """
+    def __init__(self, cnd, t):
+        self.cnd = cnd
+        self.t = t
+        if type(self.t) is not list:
+            self.t = [self.t]
+
+    def exec(self):
+        c = self.getV(self.cnd)
+        while c:
+            for i in self.t:
+                i.exec()
+            c = self.getV(self.cnd)
+
+    def __str__(self):
+        t = self.t
+        if type(self.t) == list:
+            t = "\n".join(str(i) for i in t)
+        return f"WHILE ({self.cnd}) {{\n{t}\n}}"
         
 class Expr(IR):
     """
     """
-    def vsrc1(self):
-        if type(self.src1) == str:
-            return symb_table.get(self.src1)
-        else:
-            return self.src1
-
-    def vsrc2(self):
-        if type(self.src2) == str:
-            return symb_table.get(self.src2)
-        else:
-            return self.src2
-
     def check_types(self, op, s1, s2, allowed):
         if not ((type(s1) in allowed) and (type(s2) in allowed)):
             raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'.")
@@ -173,10 +167,49 @@ class Mul(Expr):
         self.src2 = src2
 
     def exec(self):
-        s1 = self.vsrc1()
-        s2 = self.vsrc2()
+        s1 = self.getV(self.src1)
+        s2 = self.getV(self.src2)
         self.check_types("*", s1, s2, {int, float})
-        symb_table.assign(self.dst, s1*s2)
+        r = s1*s2
+        symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"MUL {self.src1}, {self.src2}, {self.dst}"
+
+class Add(Expr):
+    """
+    Multiplication
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.getV(self.src1)
+        s2 = self.getV(self.src2)
+        self.check_types("+", s1, s2, {int, float, str, list})
+        r = s1+s2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"ADD {self.src1}, {self.src2}, {self.dst}"
+
+class Sub(Expr):
+    """
+    Multiplication
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.getV(self.src1)
+        s2 = self.getV(self.src2)
+        self.check_types("-", s1, s2, {int, float})
+        r = s1-s2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"SUB {self.src1}, {self.src2}, {self.dst}"

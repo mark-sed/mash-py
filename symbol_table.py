@@ -1,5 +1,6 @@
 from mash import Mash
 import mash_exceptions as mex
+
 class Symbol:
 
     def key(self):
@@ -33,9 +34,16 @@ class SymbTable(Mash):
         #"print?1": {ir.Print("@0")}
     }
 
-    def __init__(self):
+    def __init__(self, analyzer=False):
+        self.initialize()
+        self.analyzer = analyzer
+
+    def initialize(self):
         self.tbls = []
         self.tbls.append(SymbTable.GLOB_TBL)
+
+    def clear_all(self):
+        self.initialize()
 
     def declare(self, symb, value):
         """
@@ -50,6 +58,13 @@ class SymbTable(Mash):
         """
         Assigns value to a variable.
         """
+        # In non-analyzer mode, values are to be copied
+        if not self.analyzer:
+            if type(value) == str:
+                # TODO: Make sure that Int, Float, String, Bool are copied
+                #       They should be, because Expr creates a new object
+                value = self.get(value)
+
         if type(symb) == list:
             pass
             self.error("NOT IMPLEMENTED!!")
@@ -96,4 +111,4 @@ class SymbTable(Mash):
     def __str__(self):
         return str(self.tbls)
 
-symb_table = SymbTable()
+symb_table = SymbTable(analyzer=True)
