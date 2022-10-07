@@ -17,6 +17,9 @@ class Var(Symbol):
     def key(self):
         return self.name
 
+    def fstr(self):
+        return self.value.fstr()
+
     def __str__(self):
         return f"{self.name} = {self.value}"
 

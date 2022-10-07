@@ -36,14 +36,14 @@ op_assign : scope_name ASSIGN_OP _rvalue
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^=")
 
 // List
-list : _expr "," _expr ".." _expr
-     | _expr ".." _expr
-     | "[" list_vals "]"
-     | "[" (_expr|lambda) ":" list_assig "]"
-     | "[" (_expr|lambda) "if" _expr ":" list_assig "]"
-list_vals : list_vals "," (_expr|lambda)
-          | (_expr|lambda)
-          |
+list : _expr "," _expr ".." _expr -> range_step
+     | _expr ".." _expr -> range
+     | "[" _list_vals "]"
+     | "[" (_expr|lambda) ":" list_assig "]"  // List comprehension
+     | "[" (_expr|lambda) "if" _expr ":" list_assig "]"  // List comprehension with condition
+_list_vals : _list_vals "," (_expr|lambda)
+           | (_expr|lambda)
+           |
 list_assig : VAR_NAME "=" _expr 
            | list_assig "," VAR_NAME "=" _expr
 

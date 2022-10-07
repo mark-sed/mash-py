@@ -67,7 +67,7 @@ class Print(Instruction):
         self.value = value
 
     def exec(self):
-        print(self.getV(self.value), end="")
+        print(self.get(self.value), end="")
 
     def __str__(self):
         return f"PRINT {self.value}, {self.dst}"
@@ -82,10 +82,7 @@ class ToString(Instruction):
 
     def exec(self):
         v = self.get(self.value)
-        if issubclass(type(v), String):
-            symb_table.assign(self.dst, v)
-        else:
-            symb_table.assign(self.dst, String(str(v)))
+        symb_table.assign(self.dst, String(str(v)))
 
     def __str__(self):
         return f"TOSTR {self.value}, {self.dst}"
@@ -153,9 +150,30 @@ class While(Instruction):
         if type(self.t) == list:
             t = "\n".join(str(i) for i in t)
         return f"WHILE ({self.cnd}) {{\n{t}\n}}"
+
+class For(Instruction):
+    """
+    For loop
+    """
+    def __init__(self, i, l, t):
+        self.i = i
+        self.l = l
+        self.t = t
+        if type(self.t) is not list:
+            self.t = [self.t]
+
+    #def exec(self):
+    #    ...
+
+    def __str__(self):
+        t = self.t
+        if type(self.t) == list:
+            t = "\n".join(str(i) for i in t)
+        return f"FOR ({self.i} : {self.cnd}) {{\n{t}\n}}"
         
 class Expr(IR):
     """
+    Expression
     """
     def check_types(self, op, s1, s2, allowed):
         if not ((type(s1) in allowed) and (type(s2) in allowed)):

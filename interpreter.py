@@ -1,59 +1,21 @@
-from symtable import SymbolTable
-from lark import Lark, Transformer
 from lark.lexer import Token
 from lark.tree import Tree
+from sys import stderr
+from symtable import SymbolTable
 from mash import Mash
 import mash_exceptions as mex
 from symbol_table import symb_table
-import types
 import ir
-import mash_types as types
-from sys import stderr
-
-def debug(msg, opts):
-    """
-    Debug message
-    """
-    if opts.verbose:
-        print("DEBUG: {}.".format(msg), file=stderr)
-
-def info(msg, opts):
-    """
-    Info message
-    """
-    if opts.verbose:
-        print(msg, file=stderr)
-
-class Parser(Mash):
-    """
-    Parser class
-    """
-
-    def __init__(self, code, opts):
-        """
-        Constructor
-        """
-        self.code = code
-        self.opts = opts
-        with open("grammars/mash.lark", "r") as gfile:
-            grammar = gfile.read()
-        self.parser = Lark(grammar, start="start")
-    
-    def parse(self):
-        """
-        Parses mash code
-        """
-        parse_tree = self.parser.parse(self.code)
-        if self.opts.verbose:
-            info(parse_tree.pretty(), self.opts)
-        return parse_tree
+import parsing
+from parsing import Parser
+from debugging import info, debug
 
 class Interpreter(Mash):
     """
     Mash interpreter
     """
 
-    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "Nil", "true", "false", "string"}
+    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "Nil", "true", "false", "string", "list"}
 
     def __init__(self, opts, symb_table):
         self.opts = opts
@@ -80,20 +42,12 @@ class Interpreter(Mash):
                     self.symb_table.declare(root.value, ir.Nil())
                     return [ir.AssignVar(root.value, ir.Nil())]
                 else:
-                    r = self.uniq_var()
-                    return [
-                        ir.ToString(root.value, r),
-                        ir.Print(r)
-                    ]
+                    return [ir.Print(root.value)]
             # Printing
             elif root.type == "scope_name":
                 exists, msg = self.symb_table.exists(root.value)
                 if exists:
-                    r = self.uniq_var()
-                    return [
-                        ir.ToString(root.value, r),
-                        ir.Print(r)
-                    ]
+                    return [ir.Print(root.value)]
                 else:
                     self.error(msg)
             # Generated code
@@ -101,11 +55,7 @@ class Interpreter(Mash):
                 return root.value+[ir.Print(root.value[-1].dst)]
             # Const print
             elif root.type in Interpreter.CONSTS:
-                r = self.uniq_var()
-                return [
-                        ir.ToString(root.value, r),
-                        ir.Print(r)
-                    ]
+                return [ir.Print(root.value)]
         else:
             insts = []
             if root.data == "assignment":
@@ -117,6 +67,15 @@ class Interpreter(Mash):
                     last_dst = tree.value[-1].dst
                     self.symb_table.assign(root.children[0].value, last_dst)
                     return tree.value+[ir.AssignVar(root.children[0].value, last_dst)]
+                elif tree.type == "CALC":
+                    subtree = tree.value
+                    for i in subtree:
+                        if i.type == "CODE":
+                            insts += i.value
+                        else:
+                            if i.type in Interpreter.CONSTS:
+                                self.symb_table.assign(root.children[0].value, i.value)
+                                insts += [ir.AssignVar(root.children[0].value, i.value)]
                 else:
                     raise mex.Unimplemented("UNIMPLEMENTED: Assignment not implemented for such value")
             # Block of code
@@ -196,94 +155,6 @@ class Interpreter(Mash):
         for i in code:
             i.exec()
 
-
-class ConstTransformer(Transformer):
-    """
-    Tree transformer
-    """
-    def __init__(self, symb_table):
-        """
-        Transformer constructor
-        """
-        self.symb_table = symb_table
-        self._last_id = 0
-
-    def uniq_var(self):
-        self._last_id += 1
-        return f"@ct_{self._last_id}"
-
-    def scope_name(self, items):
-        # Single variable = declaration
-        if len(items) == 1:
-            return items[0]
-        # Scope name
-        var = []
-        for v in items:
-            if type(v.value) == list:
-                var += v.value
-            else:
-                var.append(v.value)
-        return Token("scope_name", var)
-
-    def int(self, items):
-        return Token("SIGNED_INT", ir.Int(int(items[0].value)))
-
-    def float(self, items):
-        return Token("SIGNED_FLOAT", ir.Float(float(items[0].value)))
-
-    def Nil(self, items):
-        return Token("Nil", types.Nil())
-
-    def true(self, items):
-        return Token("true", types.Bool(True))
-
-    def false(self, items):
-        return Token("false", types.Bool(False))
-
-    def string(self, items):
-        return Token("string", types.String(items[0].value[1:-1]))
-
-    def rstring(self, items):
-        return Token("string", types.RString(items[0].value[1:-1]))
-
-    def fstring(self, items):
-        return Token("string", types.FString(items[0].value[1:-1]))
-
-    def hex_int(self, items):
-        return Token("SIGNED_INT", ir.Int(int(items[0].value, base=16)))
-
-    def _help_expr_bin(self, items, op, Cls):
-        srcs = [0, 0]
-        # Evaluating const expr
-        if (items[0].type == "SIGNED_INT" or items[0].type == "SIGNED_FLOAT") and (items[1].type == "SIGNED_INT" 
-                or items[1].type == "SIGNED_FLOAT"):
-            if(items[0].type == "SIGNED_FLOAT" or items[1].type == "SIGNED_FLOAT"):
-                return Token("SIGNED_FLOAT", ir.Float(op(items[0].value.value, items[1].value.value)))
-            else:
-                return Token("SIGNED_INT", ir.Int(op(items[0].value.value, items[1].value.value)))
-        # Generating code
-        insts = []
-        for i in range(0, 2):
-            if items[i].type == "CODE":
-                insts += items[i].value
-                # Expr code
-                #if issubclass(type(items[i].value[-1]), ir.Expr):
-                srcs[i] = items[i].value[-1].dst
-            else:
-                srcs[i] = items[i].value
-        insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
-        return Token("CODE", insts)
-
-    def expr_mul(self, items):
-        return self._help_expr_bin(items, lambda a, b: a*b, ir.Mul)
-
-    def expr_add(self, items):
-        return self._help_expr_bin(items, lambda a, b: a+b, ir.Add)
-
-    def expr_sub(self, items):
-        return self._help_expr_bin(items, lambda a, b: a-b, ir.Sub)
-        
-
 def interpret(opts, code):
     """
     Interpret mash code
@@ -295,7 +166,7 @@ def interpret(opts, code):
     if opts.parse_only:
         return
     interpreter = Interpreter(opts, symb_table)
-    ir_code = interpreter.interpret_top_level(ConstTransformer(symb_table).transform(tree))
+    ir_code = interpreter.interpret_top_level(parsing.ConstTransformer(symb_table).transform(tree))
     debug("IR generation done", opts)
     if opts.code_only:
         for i in ir_code:

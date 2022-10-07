@@ -1,4 +1,5 @@
 import mash_exceptions as mex
+from symbol_table import symb_table
 
 class Value():
     """
@@ -10,17 +11,19 @@ class Value():
     def __str__(self):
         return str(self.get_value())
 
+    def fstr(self):
+        return self.__str__()
+
 class String(Value):
     """
     String
     """
-    def __init__(self, value, escape=True):
-        self.value = value
-        if escape:
-            self.escape()
+    def __init__(self, value, escape_chs=True):
+        self.original = value
+        self.value = self.escape(value) if escape_chs else value
 
-    def escape(self):
-        self.value = self.value.replace("\\n", "\n"
+    def escape(self, value):
+        return value.replace("\\n", "\n"
             ).replace("\\t", "\t"
             ).replace("\\", "\\"
             ).replace("\\\"", "\""
@@ -32,6 +35,9 @@ class String(Value):
 
     def __str__(self):
         return self.value
+
+    def fstr(self):
+        return "\""+self.original+"\""
 
 class RString(String):
     """
@@ -53,6 +59,27 @@ class FString(String):
 
     def __str__(self):
         return self.value
+
+class List(Value):
+    """
+    List
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        v = []
+        for x in self.value:
+            if type(x) == str:
+                if(symb_table.analyzer):
+                    v.append(x)
+                else:
+                    v.append(symb_table.get(x).fstr())
+            elif type(x) == list:
+                ...
+            else:
+                v.append(x.fstr())
+        return "["+", ".join(v)+"]"
 
 class Float(Value):
     """
