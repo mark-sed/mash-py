@@ -7,6 +7,7 @@ import mash_exceptions as mex
 from symbol_table import symb_table
 import types
 import ir
+import mash_types as types
 from sys import stderr
 
 def debug(msg, opts):
@@ -52,7 +53,7 @@ class Interpreter(Mash):
     Mash interpreter
     """
 
-    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "Nil", "true", "false"}
+    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "Nil", "true", "false", "string"}
 
     def __init__(self, opts, symb_table):
         self.opts = opts
@@ -89,12 +90,22 @@ class Interpreter(Mash):
                 exists, msg = self.symb_table.exists(root.value)
                 if exists:
                     r = self.uniq_var()
-                    return [ir.Print(r)]
+                    return [
+                        ir.ToString(root.value, r),
+                        ir.Print(r)
+                    ]
                 else:
                     self.error(msg)
             # Generated code
             elif root.type == "CODE":
                 return root.value+[ir.Print(root.value[-1].dst)]
+            # Const print
+            elif root.type in Interpreter.CONSTS:
+                r = self.uniq_var()
+                return [
+                        ir.ToString(root.value, r),
+                        ir.Print(r)
+                    ]
         else:
             insts = []
             if root.data == "assignment":
@@ -221,13 +232,25 @@ class ConstTransformer(Transformer):
         return Token("SIGNED_FLOAT", ir.Float(float(items[0].value)))
 
     def Nil(self, items):
-        return Token("Nil", ir.Nil())
+        return Token("Nil", types.Nil())
 
     def true(self, items):
-        return Token("true", ir.Bool(True))
+        return Token("true", types.Bool(True))
 
     def false(self, items):
-        return Token("false", ir.Bool(False))
+        return Token("false", types.Bool(False))
+
+    def string(self, items):
+        return Token("string", types.String(items[0].value[1:-1]))
+
+    def rstring(self, items):
+        return Token("string", types.RString(items[0].value[1:-1]))
+
+    def fstring(self, items):
+        return Token("string", types.FString(items[0].value[1:-1]))
+
+    def hex_int(self, items):
+        return Token("SIGNED_INT", ir.Int(int(items[0].value, base=16)))
 
     def _help_expr_bin(self, items, op, Cls):
         srcs = [0, 0]

@@ -126,3 +126,8 @@ a = [x*y if x*y > 20 : x = 1..a, y = f(4)]
 # Empty dictionary needs to have a comma to distinguish it from empty block of code
 a = {,}
 ~{,}
+
+# Ternary ifs
+zero = if(a == "zero") 0 else -1
+
+zero2 = a == zero ? 0 : -1

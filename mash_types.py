@@ -1,3 +1,5 @@
+import mash_exceptions as mex
+
 class Value():
     """
     Values
@@ -12,11 +14,45 @@ class String(Value):
     """
     String
     """
-    def __init__(self, value):
+    def __init__(self, value, escape=True):
         self.value = value
+        if escape:
+            self.escape()
+
+    def escape(self):
+        self.value = self.value.replace("\\n", "\n"
+            ).replace("\\t", "\t"
+            ).replace("\\", "\\"
+            ).replace("\\\"", "\""
+            ).replace("\\a", "\a"
+            ).replace("\\b", "\b"
+            ).replace("\\f", "\f"
+            ).replace("\\r", "\r"
+            ).replace("\\v", "\v")
 
     def __str__(self):
-        return super(str).__str__()
+        return self.value
+
+class RString(String):
+    """
+    Raw String
+    """
+    def __init__(self, value):
+        super().__init__(value, False)
+
+    def __str__(self):
+        return self.value
+
+class FString(String):
+    """
+    Formatted String
+    """
+    def __init__(self, value):
+        mex.warning("FStrings are not yet implemented")
+        super().__init__(value, False)
+
+    def __str__(self):
+        return self.value
 
 class Float(Value):
     """

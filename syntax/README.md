@@ -51,3 +51,16 @@ Mash code is constructed from expressions, where each expression ends with a sem
 * `true`, `false` - Booleans
 * `nil` - No value
 * `"text"`, `f"text {foo}"`, `r"new line: \n"` - String
+
+### Strings
+
+Escape characters start with `\` can be one of the following:
+* `\\` - Backslash (`\`).
+* `\"` - Double quote (`"`).
+* `\a` - Alarm/Bell character.
+* `\b` - Backspace character.
+* `\f` - Form feed (new page).
+* `\n` - Mew line (line feed).
+* `\r` - Carriage return.
+* `\t` - Horizontal tab.
+* `\v` - Vertical tab.

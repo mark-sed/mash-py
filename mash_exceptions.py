@@ -1,3 +1,5 @@
+from sys import stderr
+
 class MashException(Exception):
     pass
 
@@ -9,3 +11,6 @@ class Unimplemented(MashException):
 
 class TypeError(MashException):
     pass
+
+def warning(msg):
+    print(f"Warning: {msg}", file=stderr)

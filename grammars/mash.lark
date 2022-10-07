@@ -114,12 +114,15 @@ const : SIGNED_FLOAT  -> float
       | SIGNED_INT -> int
       | HEX_INT -> hex_int
       | STRING  -> string
+      | "r"STRING -> rstring
+      | "f"STRING -> fstring
       | "nil"   -> nil
       | "true"  -> true
       | "false" -> false
 
 // Ternary if
 ternary_if : _expr "?" (_expr|lambda) ":" (_expr|lambda)
+           | "if" "(" _expr ")" (_expr|lambda) "else" (_expr|lambda)
 
 // Member
 member : _expr "[" _expr "]"
@@ -250,8 +253,6 @@ HEX_INT : /0x[a-fA-F0-9]+/
 
 // String
 STRING : ESCAPED_STRING
-       | "f"ESCAPED_STRING
-       | "r"ESCAPED_STRING
 
 // Just 1 dot, not 2
 DOT : /(?<!\.)\.(?!\.)/

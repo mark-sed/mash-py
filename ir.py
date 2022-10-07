@@ -81,7 +81,11 @@ class ToString(Instruction):
         self.value = value
 
     def exec(self):
-        symb_table.assign(self.dst, String(str(self.get(self.value))))
+        v = self.get(self.value)
+        if issubclass(type(v), String):
+            symb_table.assign(self.dst, v)
+        else:
+            symb_table.assign(self.dst, String(str(v)))
 
     def __str__(self):
         return f"TOSTR {self.value}, {self.dst}"
