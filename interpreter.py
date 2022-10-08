@@ -78,11 +78,13 @@ class Interpreter(Mash):
                                 self.symb_table.assign(root.children[0].value, i.value)
                                 insts += [ir.AssignVar(root.children[0].value, i.value)]
                 else:
-                    raise mex.Unimplemented("UNIMPLEMENTED: Assignment not implemented for such value")
+                    raise mex.Unimplemented("Assignment not implemented for such value")
             # Block of code
             elif root.data == "code_block":
+                symb_table.push()
                 for tree in root.children:
                     insts += self.generate_ir(tree)
+                symb_table.pop()
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
@@ -99,14 +101,22 @@ class Interpreter(Mash):
                         self.error(m)
                     cnd = tree[0].value
                 # True branch
-                # TODO: Push a new symbtable
+                if tree[1].data != "code_block":
+                    symb_table.push()
                 tr = self.generate_ir(tree[1])
+                if tree[1].data != "code_block":
+                    symb_table.pop()
+                
                 if root.data == "elif" and len(root.children) > 1:
                     fl = self.generate_ir(Tree("elif", root.children[1:]))
                 # False branch
                 elif len(tree) > 2:
                     if tree[2].data == "else":
+                        if tree[2].children[0].type != "code_block" or tree[2].children[0].data != "code_block":
+                            symb_table.push()
                         fl = self.generate_ir(tree[2].children[0])
+                        if tree[2].children[0].type != "code_block" or tree[2].children[0].data != "code_block":
+                            symb_table.pop()
                     elif tree[2].data == "elif":
                         fl = self.generate_ir(Tree("elif", tree[2:]))
                 insts.append(ir.If(cnd, tr, fl))
@@ -126,15 +136,25 @@ class Interpreter(Mash):
                     cnd = tree[0].value
                 else:
                     cnd = tree[0].value
-                insts.append(ir.While(cnd, self.generate_ir(tree[1])))
+
+                if tree[1].data != "code_block":
+                    symb_table.push()
+                t = self.generate_ir(tree[1])
+                if tree[1].data != "code_block":
+                    symb_table.pop()
+                insts.append(ir.While(cnd, t))
             # For loop
             elif root.data == "for":
                 tree = root.children[0].children
                 i = tree[0].value
                 symb_table.assign(i, types.Nil())
                 l = tree[1].value
-                # Variable
-                insts.append(ir.For(i, l, self.generate_ir(tree[2])))
+                if tree[2].data != "code_block":
+                    symb_table.push()
+                t = self.generate_ir(tree[2])
+                if tree[2].data != "code_block":
+                    symb_table.pop()
+                insts.append(ir.For(i, l, t))
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []

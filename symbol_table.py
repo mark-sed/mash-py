@@ -29,13 +29,22 @@ class Fun(Symbol):
     """
     ...
 
+class Frame(dict):
+    """
+    Frame for symbol table
+    """
+
+    def __str__(self):
+        return ", ".join(["{"+str(k)+": "+str(v)+"}" for k, v in self.items()])
+
+
 class SymbTable(Mash):
     """
     Symbolic table
     """
-    GLOB_TBL = {
+    GLOB_TBL = Frame({
         #"print?1": {ir.Print("@0")}
-    }
+    })
 
     def __init__(self, analyzer=False):
         self.initialize()
@@ -44,6 +53,12 @@ class SymbTable(Mash):
     def initialize(self):
         self.tbls = []
         self.tbls.append(SymbTable.GLOB_TBL)
+
+    def push(self):
+        self.tbls.append(Frame())
+
+    def pop(self):
+        return self.tbls.pop()
 
     def clear_all(self):
         self.initialize()
@@ -112,6 +127,6 @@ class SymbTable(Mash):
         return (False, f"Undefined reference to '{s}'")
 
     def __str__(self):
-        return str(self.tbls)
+        return str([str(x) for x in self.tbls])
 
 symb_table = SymbTable(analyzer=True)

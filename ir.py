@@ -1,7 +1,7 @@
 from symbol_table import symb_table
 from mash import Mash
 import mash_exceptions as mex
-from mash_types import Float, Int, Nil, Bool, String, Value
+from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString
 
 class IR:
     """
@@ -31,7 +31,7 @@ def wrap(v):
     elif v is None:
         return Nil(v)
     else:
-        raise mex.Unimplemented(f"Unimplemented wrapper for type '{type(v)}'")
+        raise mex.Unimplemented(f"Wrapper for type '{type(v)}'")
 
 class Instruction(IR):
     """
@@ -111,6 +111,7 @@ class If(Instruction):
             self.f = [self.f]
 
     def exec(self):
+        symb_table.push()
         c = self.getV(self.cnd)
         if c:
             for i in self.t:
@@ -118,6 +119,7 @@ class If(Instruction):
         else:
             for i in self.f:
                 i.exec()
+        symb_table.pop()
 
     def __str__(self):
         t = self.t
@@ -139,11 +141,13 @@ class While(Instruction):
             self.t = [self.t]
 
     def exec(self):
+        symb_table.push()
         c = self.getV(self.cnd)
         while c:
             for i in self.t:
                 i.exec()
             c = self.getV(self.cnd)
+        symb_table.pop()
 
     def __str__(self):
         t = self.t
@@ -163,10 +167,12 @@ class For(Instruction):
             self.t = [self.t]
 
     def exec(self):
+        symb_table.push()
         for a in self.l.get_value():
             symb_table.assign(self.i, a)
             for b in self.t:
                 b.exec()
+        symb_table.pop()
 
     def __str__(self):
         t = self.t
@@ -192,10 +198,12 @@ class Mul(Expr):
         self.src2 = src2
 
     def exec(self):
-        s1 = self.getV(self.src1)
-        s2 = self.getV(self.src2)
-        self.check_types("*", s1, s2, {int, float})
-        r = s1*s2
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("+", s1, s2, {Int, Float})
+        r = v1+v2
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
@@ -211,13 +219,16 @@ class Add(Expr):
         self.src2 = src2
 
     def exec(self):
-        s1 = self.getV(self.src1)
-        s2 = self.getV(self.src2)
-        if type(s1) == str or type(s2) == str:
-            s1 = str(self.get(self.src1))
-            s2 = str(self.get(self.src2))
-        self.check_types("+", s1, s2, {int, float, str, list})
-        r = s1+s2
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        if issubclass(type(s1), String) or issubclass(type(s2), String):
+            v1 = str(v1)
+            v2 = str(v2)
+        else:
+            self.check_types("+", s1, s2, {Int, Float, String, RString, FString, List})
+        r = v1+v2
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
@@ -233,10 +244,12 @@ class Sub(Expr):
         self.src2 = src2
 
     def exec(self):
-        s1 = self.getV(self.src1)
-        s2 = self.getV(self.src2)
-        self.check_types("-", s1, s2, {int, float})
-        r = s1-s2
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("+", s1, s2, {Int, Float})
+        r = v1+v2
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):

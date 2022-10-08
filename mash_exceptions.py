@@ -4,13 +4,25 @@ class MashException(Exception):
     pass
 
 class UndefinedReference(MashException):
-    pass
+    """
+    Undefined reference to a symbol
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Undefined reference to '"+msg+"'", *args)
 
 class Unimplemented(MashException):
-    pass
+    """
+    Unimplemented feature that should work
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Unimplemented: "+msg, *args)
 
 class TypeError(MashException):
-    pass
+    """
+    Type or value error
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Type error: "+msg, *args)
 
 def warning(msg):
     print(f"Warning: {msg}", file=stderr)

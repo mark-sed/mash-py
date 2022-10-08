@@ -91,9 +91,9 @@ class Initializer():
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Mash interpreter")
     initializer = Initializer(argparser)
-    #try:
-    initializer.interpret()
-    #except mex.MashException as e:
-    #    print("Error: {}".format(e))
-    #    exit(1)
+    try:
+        initializer.interpret()
+    except mex.MashException as e:
+        print("Error: {}.".format(e))
+        exit(1)
     
