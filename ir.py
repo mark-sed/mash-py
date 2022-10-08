@@ -2,6 +2,7 @@ from symbol_table import symb_table
 from mash import Mash
 import mash_exceptions as mex
 from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString
+import mash_types as types
 
 class IR:
     """
@@ -239,7 +240,6 @@ class Fun(Instruction):
     """
     Function
     """
-
     def __init__(self, name, args, body):
         self.name = name
         self.args = args
@@ -334,7 +334,7 @@ class Mul(Expr):
 
 class Add(Expr):
     """
-    Multiplication
+    Addition
     """
     def __init__(self, src1, src2, dst):
         self.dst = dst
@@ -359,7 +359,7 @@ class Add(Expr):
 
 class Sub(Expr):
     """
-    Multiplication
+    Subtraction
     """
     def __init__(self, src1, src2, dst):
         self.dst = dst
@@ -377,3 +377,78 @@ class Sub(Expr):
 
     def __str__(self):
         return f"SUB {self.src1}, {self.src2}, {self.dst}"
+
+class LOr(Expr):
+    """
+    Logical OR
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        if type(s1) in types.IMPLICIT_TO_BOOL:
+            v1 = bool(v1)
+            s1 = types.Bool(v1)
+        if type(s2) in types.IMPLICIT_TO_BOOL:
+            v2 = bool(v2)
+            s2 = types.Bool(v2)
+        self.check_types("or", s1, s2, {Bool})
+        r = v1 or v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"OR {self.src1}, {self.src2}, {self.dst}"
+
+class LAnd(Expr):
+    """
+    Logical AND
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        if type(s1) in types.IMPLICIT_TO_BOOL:
+            v1 = bool(v1)
+            s1 = types.Bool(v1)
+        if type(s2) in types.IMPLICIT_TO_BOOL:
+            v2 = bool(v2)
+            s2 = types.Bool(v2)
+        self.check_types("and", s1, s2, {Bool})
+        r = v1 and v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"AND {self.src1}, {self.src2}, {self.dst}"
+
+"""
+class (Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("", s1, s2, {Int, Float})
+        r = v1 v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f" {self.src1}, {self.src2}, {self.dst}"
+"""

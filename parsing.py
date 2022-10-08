@@ -115,7 +115,6 @@ class ConstTransformer(Transformer):
         return Token("fun_args", args)
 
     def _help_expr_bin(self, items, op, Cls):
-        srcs = [0, 0]
         # Evaluating const expr
         if (items[0].type == "SIGNED_INT" or items[0].type == "SIGNED_FLOAT") and (items[1].type == "SIGNED_INT" 
                 or items[1].type == "SIGNED_FLOAT"):
@@ -125,11 +124,29 @@ class ConstTransformer(Transformer):
                 return Token("SIGNED_INT", ir.Int(op(items[0].value.value, items[1].value.value)))
         # Generating code
         insts = []
+        srcs = [0, 0]
         for i in range(0, 2):
             if items[i].type == "CODE":
                 insts += items[i].value
                 # Expr code
                 #if issubclass(type(items[i].value[-1]), ir.Expr):
+                srcs[i] = items[i].value[-1].dst
+            else:
+                srcs[i] = items[i].value
+        insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
+        return Token("CODE", insts)
+
+    def _help_expr_log(self, items, op, Cls):
+        if type(items[0].value) == ir.Bool and type(items[1].value) == ir.Bool:
+            r = ir.Bool(op(items[0].value.value, items[0].value.value))
+            return Token(str(r), r)
+        # Generating code
+        insts = []
+        srcs = [0, 0]
+        for i in range(0, 2):
+            if items[i].type == "CODE":
+                insts += items[i].value
+                # Expr code
                 srcs[i] = items[i].value[-1].dst
             else:
                 srcs[i] = items[i].value
@@ -144,3 +161,52 @@ class ConstTransformer(Transformer):
 
     def expr_sub(self, items):
         return self._help_expr_bin(items, lambda a, b: a-b, ir.Sub)
+
+    def expr_or(self, items):
+        return self._help_expr_log(items, lambda a, b: a or b, ir.LOr)
+
+    def expr_and(self, items):
+        return self._help_expr_bin(items, lambda a, b: a and b, ir.LAnd)
+"""
+    def expr_not(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_lte(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_gte(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_gt(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_lt(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_eq(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_neq(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_in(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_fdiv(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_idiv(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_mod(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_exp(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_inc(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+
+    def expr_dec(self, items):
+        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+"""

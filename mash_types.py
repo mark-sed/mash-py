@@ -118,3 +118,5 @@ class Nil(Value):
 
     def __str__(self):
         return "nil"
+
+IMPLICIT_TO_BOOL = {Int, Float, Nil}
