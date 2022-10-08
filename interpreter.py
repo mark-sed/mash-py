@@ -16,7 +16,7 @@ class Interpreter(Mash):
     Mash interpreter
     """
 
-    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "Nil", "true", "false", "string", "list"}
+    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "nil", "true", "false", "string", "list"}
 
     def __init__(self, opts, symb_table):
         self.opts = opts
@@ -39,7 +39,7 @@ class Interpreter(Mash):
         if type(root) == Token:
             # Variable declaration or print
             if root.type == "VAR_NAME":
-                if not self.symb_table.exists_top(root.value):
+                if not self.symb_table.exists(root.value):
                     self.symb_table.declare(root.value, ir.Nil())
                     return [ir.AssignVar(root.value, ir.Nil())]
                 else:
@@ -145,6 +145,28 @@ class Interpreter(Mash):
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.pop()
                 insts.append(ir.While(cnd, t))
+            # Do while loop
+            elif root.data == "do_while":
+                tree = root.children[0].children
+                if type(tree[0]) == Tree and tree[0].data != "code_block":
+                    symb_table.push()
+                t = self.generate_ir(tree[0])
+                if type(tree[0]) == Tree and tree[0].data != "code_block":
+                    symb_table.pop()
+                cnd = None
+                # Condition check
+                if type(tree[1]) == Token and tree[1].type == "CODE":
+                    insts += tree[1].value
+                    cnd = insts[-1].dst
+                elif (type(tree[1]) == Token and tree[1].type == "VAR_NAME") or (type(tree[1]) == Token and tree[1].type == "scope_name"):
+                    s, m = self.symb_table.exists(tree[1].value)
+                    if not s:
+                        # TODO: Change to an exception 
+                        raise mex.UndefinedReference(m)
+                    cnd = tree[1].value
+                else:
+                    cnd = tree[1].value
+                insts.append(ir.DoWhile(t, cnd))
             # For loop
             elif root.data == "for":
                 tree = root.children[0].children

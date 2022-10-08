@@ -64,8 +64,8 @@ class ConstTransformer(Transformer):
     def float(self, items):
         return Token("SIGNED_FLOAT", ir.Float(float(items[0].value)))
 
-    def Nil(self, items):
-        return Token("Nil", types.Nil())
+    def nil(self, items):
+        return Token("nil", types.Nil())
 
     def true(self, items):
         return Token("true", types.Bool(True))

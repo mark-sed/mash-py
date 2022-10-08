@@ -149,7 +149,7 @@ class SymbTable(Mash):
                 else:
                     # TODO: Add when classes and spaces added
                     self.error("NOT IMPLEMENTED!!")
-        return (False, f"Undefined reference to '{s}'")
+        return (False, s)
 
     def __str__(self):
         return str([str(x) for x in self.tbls])

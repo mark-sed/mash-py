@@ -162,6 +162,33 @@ class While(Instruction):
             t = "\n".join(str(i) for i in t)
         return f"WHILE ({self.cnd}) {{\n{t}\n}}"
 
+class DoWhile(Instruction):
+    """
+    Do While loop
+    """
+    def __init__(self, t, cnd):
+        self.cnd = cnd
+        self.t = t
+        if type(self.t) is not list:
+            self.t = [self.t]
+
+    def exec(self):
+        symb_table.push()
+        for i in self.t:
+            i.exec()
+        c = self.getV(self.cnd)
+        while c:
+            for i in self.t:
+                i.exec()
+            c = self.getV(self.cnd)
+        symb_table.pop()
+
+    def __str__(self):
+        t = self.t
+        if type(self.t) == list:
+            t = "\n".join(str(i) for i in t)
+        return f"DO {{\n{t}\n}} WHILE ({self.cnd})"
+
 class For(Instruction):
     """
     For loop
@@ -252,8 +279,8 @@ class Mul(Expr):
         s2 = self.get(self.src2)
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("+", s1, s2, {Int, Float})
-        r = v1+v2
+        self.check_types("*", s1, s2, {Int, Float})
+        r = v1*v2
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
@@ -298,8 +325,8 @@ class Sub(Expr):
         s2 = self.get(self.src2)
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("+", s1, s2, {Int, Float})
-        r = v1+v2
+        self.check_types("-", s1, s2, {Int, Float})
+        r = v1-v2
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
