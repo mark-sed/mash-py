@@ -162,14 +162,17 @@ class For(Instruction):
         if type(self.t) is not list:
             self.t = [self.t]
 
-    #def exec(self):
-    #    ...
+    def exec(self):
+        for a in self.l.get_value():
+            symb_table.assign(self.i, a)
+            for b in self.t:
+                b.exec()
 
     def __str__(self):
         t = self.t
         if type(self.t) == list:
             t = "\n".join(str(i) for i in t)
-        return f"FOR ({self.i} : {self.cnd}) {{\n{t}\n}}"
+        return f"FOR ({self.i} : {self.l}) {{\n{t}\n}}"
         
 class Expr(IR):
     """
@@ -210,6 +213,9 @@ class Add(Expr):
     def exec(self):
         s1 = self.getV(self.src1)
         s2 = self.getV(self.src2)
+        if type(s1) == str or type(s2) == str:
+            s1 = str(self.get(self.src1))
+            s2 = str(self.get(self.src2))
         self.check_types("+", s1, s2, {int, float, str, list})
         r = s1+s2
         symb_table.assign(self.dst, wrap(r))

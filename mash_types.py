@@ -75,8 +75,6 @@ class List(Value):
                     v.append(x)
                 else:
                     v.append(symb_table.get(x).fstr())
-            elif type(x) == list:
-                ...
             else:
                 v.append(x.fstr())
         return "["+", ".join(v)+"]"

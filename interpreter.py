@@ -7,6 +7,7 @@ import mash_exceptions as mex
 from symbol_table import symb_table
 import ir
 import parsing
+import mash_types as types
 from parsing import Parser
 from debugging import info, debug
 
@@ -111,7 +112,7 @@ class Interpreter(Mash):
                 insts.append(ir.If(cnd, tr, fl))
             # While loop
             elif root.data == "while":
-                tree = tree = root.children[0].children
+                tree = root.children[0].children
                 cnd = None
                 # Condition check
                 if tree[0].type == "CODE":
@@ -126,6 +127,14 @@ class Interpreter(Mash):
                 else:
                     cnd = tree[0].value
                 insts.append(ir.While(cnd, self.generate_ir(tree[1])))
+            # For loop
+            elif root.data == "for":
+                tree = root.children[0].children
+                i = tree[0].value
+                symb_table.assign(i, types.Nil())
+                l = tree[1].value
+                # Variable
+                insts.append(ir.For(i, l, self.generate_ir(tree[2])))
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []
