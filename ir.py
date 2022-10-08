@@ -151,8 +151,13 @@ class While(Instruction):
         symb_table.push()
         c = self.getV(self.cnd)
         while c:
-            for i in self.t:
-                i.exec()
+            try:
+                for i in self.t:
+                    i.exec()
+            except mex.FlowControlBreak:
+                break
+            except mex.FlowControlContinue:
+                continue
             c = self.getV(self.cnd)
         symb_table.pop()
 
@@ -174,12 +179,23 @@ class DoWhile(Instruction):
 
     def exec(self):
         symb_table.push()
-        for i in self.t:
-            i.exec()
-        c = self.getV(self.cnd)
-        while c:
+        try:
             for i in self.t:
                 i.exec()
+        except mex.FlowControlBreak:
+            symb_table.pop()
+            return
+        except mex.FlowControlContinue:
+            ...
+        c = self.getV(self.cnd)
+        while c:
+            try:
+                for i in self.t:
+                    i.exec()
+            except mex.FlowControlBreak:
+                break
+            except mex.FlowControlContinue:
+                continue
             c = self.getV(self.cnd)
         symb_table.pop()
 
@@ -204,8 +220,13 @@ class For(Instruction):
         symb_table.push()
         for a in self.l.get_value():
             symb_table.assign(self.i, a)
-            for b in self.t:
-                b.exec()
+            try:
+                for i in self.t:
+                    i.exec()
+            except mex.FlowControlBreak:
+                break
+            except mex.FlowControlContinue:
+                continue
         symb_table.pop()
 
     def __str__(self):
@@ -256,6 +277,31 @@ class Fun(Instruction):
                 args.append(f"{k} = {v}")
         args_s = ", ".join(args)
         return f"FUN {self.name}({args_s}) {{\n{t}\n}}"
+
+class Keyword(Instruction):
+    """
+    Keyword instruction
+    """
+
+class Break(Keyword):
+    """
+    Break
+    """
+    def exec(self):
+        raise mex.FlowControlBreak()
+
+    def __str__(self):
+        return "break"
+
+class Continue(Keyword):
+    """
+    Continue
+    """
+    def exec(self):
+        raise mex.FlowControlContinue()
+
+    def __str__(self):
+        return "continue"
         
 class Expr(IR):
     """

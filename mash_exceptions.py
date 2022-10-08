@@ -38,5 +38,20 @@ class AmbiguousRedefinition(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Ambiguous redefinition of "+msg+"", *args)
 
+class FlowControl(MashException):
+    """
+    Exceptions for controlling flow
+    """
+
+class FlowControlBreak(FlowControl):
+    """
+    Break
+    """
+
+class FlowControlContinue(FlowControl):
+    """
+    Continue
+    """
+
 def warning(msg):
     print(f"Warning: {msg}", file=stderr)

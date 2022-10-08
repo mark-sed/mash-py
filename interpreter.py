@@ -57,6 +57,10 @@ class Interpreter(Mash):
             # Const print
             elif root.type in Interpreter.CONSTS:
                 return [ir.Print(root.value)]
+            elif root.value == "break":
+                return [ir.Break()]
+            elif root.value == "continue":
+                return [ir.Continue()]
         else:
             insts = []
             if root.data == "assignment":
