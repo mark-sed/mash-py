@@ -42,7 +42,14 @@ class Instruction(IR):
         """
         Method to be overrriden by an instruction
         """
+        # TODO: Change to exception
         print("MISSING EXEC METHOD")
+
+    def call(self):
+        """
+        Method to be overriden by instructions that are callable
+        """
+        print("MISSING CALL METHOD")
 
 class AssignVar(Instruction):
     """
@@ -179,6 +186,49 @@ class For(Instruction):
         if type(self.t) == list:
             t = "\n".join(str(i) for i in t)
         return f"FOR ({self.i} : {self.l}) {{\n{t}\n}}"
+
+class Fun(Instruction):
+    """
+    Function
+    """
+
+    def __init__(self, name, args, body):
+        self.name = name
+        self.args = args
+        self.req_args = [k for k, v in args if v is None]
+        self.min_args = len(self.req_args)
+        self.max_args = len(self.args)
+        self.body = body
+
+    def exec(self):
+        # Exec is for definition
+        symb_table.define_fun(self.name, self.min_args, self.max_args, self)
+
+    def call(self):
+        pass
+
+    def str_header(self):
+        args = []
+        for k, v in self.args:
+            if v is None:
+                args.append(str(k))
+            else:
+                args.append(f"{k} = {v}")
+        args_s = ", ".join(args)
+        return f"FUN {self.name}({args_s})"
+
+    def __str__(self):
+        t = self.body
+        if type(self.body) == list:
+            t = "\n".join(str(i) for i in t)
+        args = []
+        for k, v in self.args:
+            if v is None:
+                args.append(str(k))
+            else:
+                args.append(f"{k} = {v}")
+        args_s = ", ".join(args)
+        return f"FUN {self.name}({args_s}) {{\n{t}\n}}"
         
 class Expr(IR):
     """

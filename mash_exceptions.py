@@ -24,5 +24,19 @@ class TypeError(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Type error: "+msg, *args)
 
+class Redefinition(MashException):
+    """
+    Symbol redefinition
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Redefinition of '"+msg+"'", *args)
+
+class AmbiguousRedefinition(MashException):
+    """
+    Ambiguous redefinition
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Ambiguous redefinition of "+msg+"", *args)
+
 def warning(msg):
     print(f"Warning: {msg}", file=stderr)

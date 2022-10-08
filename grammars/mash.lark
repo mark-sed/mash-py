@@ -18,7 +18,7 @@ _stmts : import
        | INTERNAL
        | assignment
        | op_assign
-       | definition
+       | _definition
        | code_block
        | construct
 
@@ -130,7 +130,7 @@ member : _expr "[" _expr "]"
        | _expr "[" _expr? ":" _expr? ":" _expr? "]"
 
 // Definitions
-definition : lambda
+_definition : lambda
            | function
            | space
            | class
@@ -141,13 +141,13 @@ fun_call : scope_name "(" arg_list_call ")" _END?
          | fun_call "(" arg_list_call ")" _END?
 
 // Lambda function definition
-lambda : "fun" VAR_NAME? "(" arg_list ")" "=" (_rvalue|INTERNAL)
+lambda : "fun" VAR_NAME? "(" fun_args ")" "=" (_rvalue|INTERNAL)
 
 // Function definition
-function : "fun" VAR_NAME "(" arg_list ")" fun_code_block
+function : "fun" VAR_NAME "(" fun_args ")" fun_code_block
 
 // Class constructor
-constructor : VAR_NAME "(" arg_list ")" code_block
+constructor : VAR_NAME "(" fun_args ")" code_block
 
 // Block of code
 code_block : "{" _stmt "}"
@@ -161,7 +161,7 @@ fun_code_block : "{" _stmt _END "return" _rvalue? _END? "}"
 class_content : constructor
               | VAR_NAME
               | assignment
-              | definition
+              | _definition
               | _END
               | class_content _END+ class_content _END*
               |
@@ -170,7 +170,7 @@ class_content : constructor
 space_conent : import 
              | VAR_NAME 
              | assignment
-             | definition
+             | _definition
              | _END
              | space_conent _END+ space_conent _END*
              |
@@ -211,16 +211,18 @@ arg_list_call : (_expr|lambda)
 arg_list_call_exp : VAR_NAME "=" (_expr|lambda)
                   | arg_list_call_exp "," VAR_NAME "=" (_expr|lambda)
 
+fun_args : _arg_list_ndef
+         | arg_list
+         | _arg_list_ndef "," arg_list
+         |
+
 // List of arguments without default values
-arg_list_ndef : VAR_NAME 
-              | arg_list_ndef "," VAR_NAME 
+_arg_list_ndef : VAR_NAME 
+              | _arg_list_ndef "," VAR_NAME 
 
 // List of arguments with possibility of default values
 arg_list : VAR_NAME "=" (_expr|lambda)
-         | arg_list_ndef "," VAR_NAME "=" (_expr|lambda)
          | arg_list "," VAR_NAME "=" (_expr|lambda)
-         | arg_list_ndef
-         |
 
 // Constructs
 construct : if       -> if

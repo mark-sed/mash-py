@@ -98,6 +98,21 @@ class ConstTransformer(Transformer):
             return Token("list", types.List(v))
         else:
             return Token("CALC", [Token("CODE", code), Token("list", types.List(v))])
+    
+    def arg_list(self, items):
+        if len(items) > 2:
+            return Token("arg_list", items[0].value+[(items[1].value, items[2].value)])
+        else:
+            return Token("arg_list", [(items[0].value, items[1].value)])
+
+    def fun_args(self, items):
+        args = []
+        for x in items:
+            if x.type == "arg_list":
+                args += x.value
+            else:
+                args.append((x.value, None))
+        return Token("fun_args", args)
 
     def _help_expr_bin(self, items, op, Cls):
         srcs = [0, 0]

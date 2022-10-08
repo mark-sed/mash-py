@@ -1,3 +1,4 @@
+from ftplib import all_errors
 from mash import Mash
 import mash_exceptions as mex
 
@@ -35,8 +36,7 @@ class Frame(dict):
     """
 
     def __str__(self):
-        return ", ".join(["{"+str(k)+": "+str(v)+"}" for k, v in self.items()])
-
+        return ", ".join(["{"+str(k)+": "+str(v)+"}" if type(v) != list else k+": "+str([i.str_header() for i in v]) for k, v in self.items()])
 
 class SymbTable(Mash):
     """
@@ -71,6 +71,31 @@ class SymbTable(Mash):
         if self.exists_top(symb):
             raise mex.Redefinition(symb)
         self.tbls[-1][symb] = value
+
+    def define_fun(self, name, min_args, max_args, irfun):
+        """
+        Function re/definition
+        """
+        fprev = None
+        try:
+            fprev = self.get(name)
+        except mex.UndefinedReference as e:
+            pass
+
+        if fprev is None:
+            self.tbls[-1][name] = [irfun]
+        else:
+            # Redefinition or ambiguous redef
+            for i, f in enumerate(fprev):
+                # Check if argument amount ranges overlap
+                if f.min_args <= max_args and f.max_args >= min_args:
+                    raise mex.AmbiguousRedefinition(f"function '{name}'")
+                elif f.max_args == max_args:
+                    # Overridden
+                    self.tbls[-1][name][i] = irfun
+                    break
+            else:
+                self.tbls[-1][name].append(irfun)
 
     def assign(self, symb, value):
         """
