@@ -77,6 +77,18 @@ class Interpreter(Mash):
                     return (opres, left+right+[ir.LOr(lr, rr, opres)])
                 elif iname == "AND":
                     return (opres, left+right+[ir.LAnd(lr, rr, opres)])
+                elif iname == "LTE":
+                    return (opres, left+right+[ir.Lte(lr, rr, opres)])
+                elif iname == "GTE":
+                    return (opres, left+right+[ir.Gte(lr, rr, opres)])
+                elif iname == "GT":
+                    return (opres, left+right+[ir.Gt(lr, rr, opres)])
+                elif iname == "LT":
+                    return (opres, left+right+[ir.Lt(lr, rr, opres)])
+                elif iname == "EQ":
+                    return (opres, left+right+[ir.Eq(lr, rr, opres)])
+                elif iname == "NEQ":
+                    return (opres, left+right+[ir.Neq(lr, rr, opres)])
                 else:
                     raise mex.Unimplemented("Runtime expression '"+iname+"'")
             elif root.data == "fun_call":
@@ -259,8 +271,14 @@ class Interpreter(Mash):
                 if len(root.children) == 0:
                     value = types.Nil()
                 else:
-                    value = root.children[0].value
-                insts.append(ir.Return(value))
+                    if type(root.children[0]) == Tree:
+                        value, insts = self.generate_expr(root.children[0])
+                    elif root.children[0].type == "CODE":
+                        insts += root.children[0].value
+                        value = insts[-1].dst
+                    else:
+                        value = root.children[0].value
+                    insts.append(ir.Return(value))
             # Expression that could not be constructed at parse time
             elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
                 resvar, insts = self.generate_expr(root)

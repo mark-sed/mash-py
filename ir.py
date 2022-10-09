@@ -102,6 +102,9 @@ class Nop(Instruction):
     def __init__(self):
         pass
 
+    def exec(self):
+        pass
+
     def __str__(self):
         return "NOP"
 
@@ -121,12 +124,15 @@ class If(Instruction):
     def exec(self):
         symb_table.push()
         c = self.getV(self.cnd)
-        if c:
-            for i in self.t:
-                i.exec()
-        else:
-            for i in self.f:
-                i.exec()
+        try:
+            if c:
+                for i in self.t:
+                    i.exec()
+            else:
+                for i in self.f:
+                    i.exec()
+        except mex.FlowControl as e:
+            raise mex.FlowControlReturn(e.value, e.frames+1)
         symb_table.pop()
 
     def __str__(self):
@@ -159,6 +165,8 @@ class While(Instruction):
                 break
             except mex.FlowControlContinue:
                 continue
+            except mex.FlowControlReturn as e:
+                raise mex.FlowControlReturn(e.value, e.frames+1)
             c = self.getV(self.cnd)
         symb_table.pop()
 
@@ -188,6 +196,8 @@ class DoWhile(Instruction):
             return
         except mex.FlowControlContinue:
             ...
+        except mex.FlowControlReturn as e:
+            raise mex.FlowControlReturn(e.value, e.frames+1)
         c = self.getV(self.cnd)
         while c:
             try:
@@ -197,6 +207,8 @@ class DoWhile(Instruction):
                 break
             except mex.FlowControlContinue:
                 continue
+            except mex.FlowControlReturn as e:
+                raise mex.FlowControlReturn(e.value, e.frames+1)
             c = self.getV(self.cnd)
         symb_table.pop()
 
@@ -228,6 +240,9 @@ class For(Instruction):
                 break
             except mex.FlowControlContinue:
                 continue
+            except mex.FlowControlReturn as e:
+                symb_table.pop()
+                raise e
         symb_table.pop()
 
     def __str__(self):
@@ -257,7 +272,7 @@ class Fun(Instruction):
             try:
                 i.exec()
             except mex.FlowControlReturn as r:
-                return r.value
+                return r.value, r.frames
         return types.Nil()
 
     def str_header(self):
@@ -341,8 +356,11 @@ class FunCall(Instruction):
                 symb_table.assign(k, v)
         for k, v in assigned:
             symb_table.assign(k, v)
-        ret_val = f.call()
-        symb_table.pop()
+        ret_val, frames = f.call()
+        if type(ret_val) == str:
+            ret_val = symb_table.get(ret_val)
+        #print(symb_table, "\n---\n")
+        symb_table.pop(frames)
         symb_table.assign(SymbTable.RETURN_NAME, ret_val)
 
     def __str__(self):
@@ -521,6 +539,120 @@ class LAnd(Expr):
 
     def __str__(self):
         return f"AND {self.src1}, {self.src2}, {self.dst}"
+
+class Lte(Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("<=", s1, s2, {Int, Float, String, Bool})
+        r = v1 <= v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"LTE {self.src1}, {self.src2}, {self.dst}"
+
+class Gte(Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types(">=", s1, s2, {Int, Float, String, Bool})
+        r = v1 >= v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"GTE {self.src1}, {self.src2}, {self.dst}"
+
+class Gt(Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types(">", s1, s2, {Int, Float, String, Bool})
+        r = v1 > v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"GT {self.src1}, {self.src2}, {self.dst}"
+
+class Lt(Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("<", s1, s2, {Int, Float, String, Bool})
+        r = v1 < v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"LT {self.src1}, {self.src2}, {self.dst}"
+
+class Eq(Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("==", s1, s2, {Int, Float, String, Bool})
+        r = v1 == v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"EQ {self.src1}, {self.src2}, {self.dst}"
+
+class Neq(Expr):
+    
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("!=", s1, s2, {Int, Float, String, Bool})
+        r = v1 != v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"NEQ {self.src1}, {self.src2}, {self.dst}"
 
 """
 class (Expr):

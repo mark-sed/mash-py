@@ -57,8 +57,9 @@ class FlowControlReturn(FlowControl):
     """
     Return
     """
-    def __init__(self, value):
+    def __init__(self, value, frames=1):
         self.value = value
+        self.frames = frames
 
 def warning(msg):
     print(f"Warning: {msg}", file=stderr)

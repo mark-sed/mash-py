@@ -59,8 +59,9 @@ class SymbTable(Mash):
     def push(self):
         self.tbls.append(Frame())
 
-    def pop(self):
-        return self.tbls.pop()
+    def pop(self, amount=1):
+        for _ in range(amount):
+            self.tbls.pop()
 
     def clear_all(self):
         self.initialize()
@@ -114,10 +115,11 @@ class SymbTable(Mash):
             pass
             self.error("NOT IMPLEMENTED!!")
         else:
-            for t in reversed(self.tbls):
-                if symb in t:
-                    t[symb] = value
-                    return
+            #if symb[0] != "@":
+            #    for t in reversed(self.tbls):
+            #        if symb in t:
+            #            t[symb] = value
+            #            return
             self.tbls[-1][symb] = value
 
     def get(self, symb):
@@ -154,6 +156,9 @@ class SymbTable(Mash):
         return (False, s)
 
     def __str__(self):
-        return str([str(x) for x in self.tbls])
+        ts = []
+        for c, x in enumerate(self.tbls):
+            ts.append(str(c)+": ["+str(x)+"]")
+        return "\n".join(ts)
 
 symb_table = SymbTable(analyzer=True)

@@ -209,47 +209,48 @@ class ConstTransformer(Transformer):
         return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "OR")
 
     def expr_and(self, items):
-        return self._help_expr_bin(items, lambda a, b: a and b, ir.LAnd, "AND")
-"""
-    def expr_not(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a and b, ir.LAnd, "AND")
 
     def expr_lte(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a <= b, ir.Lte, "LTE")
 
     def expr_gte(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a >= b, ir.Gte, "GTE")
 
     def expr_gt(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a > b, ir.Gt, "GT")
 
     def expr_lt(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a < b, ir.Lt, "LT")
 
     def expr_eq(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a == b, ir.Eq, "EQ")
 
     def expr_neq(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_log(items, lambda a, b: a != b, ir.Neq, "NEQ")
+
+"""
+    def expr_not(self, items):
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_in(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_fdiv(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_idiv(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_mod(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_exp(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_inc(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 
     def expr_dec(self, items):
-        return self._help_expr_bin(items, lambda a, b: a b, ir.)
+        return self._help_expr_(items, lambda a, b: a b, ir.)
 """
