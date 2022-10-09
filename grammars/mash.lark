@@ -123,7 +123,7 @@ const : SIGNED_FLOAT  -> float
 
 // Ternary if
 ternary_if : _expr "?" (_expr|lambda) ":" (_expr|lambda)
-           | "if" "(" _expr ")" (_expr|lambda) "else" (_expr|lambda)
+           //| "if" "(" _expr ")" (_expr|lambda) "else" (_expr|lambda) // Is the same as normal if
 
 // Member
 member : _expr "[" _expr "]"

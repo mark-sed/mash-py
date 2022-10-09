@@ -129,29 +129,57 @@ class ConstTransformer(Transformer):
                 args.append(x.value)
         return Token("fun_call_args", args)
 
-    def _help_expr_bin(self, items, op, Cls):
+    def _help_expr_bin(self, items, op, Cls, post):
+        i1 = items[0]
+        i2 = items[1]
+
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1, i2])
+        
+        if type(i2) == Tree and len(i2.data) > 5 and i2.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1, i2])
+
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_"+post, [i1, i2])
+            
+        if type(i2) == Tree and i2.data == "fun_call":
+            return Tree("EXPR_"+post, [i1, i2])
+            
         # Evaluating const expr
-        if (items[0].type == "SIGNED_INT" or items[0].type == "SIGNED_FLOAT") and (items[1].type == "SIGNED_INT" 
-                or items[1].type == "SIGNED_FLOAT"):
-            if(items[0].type == "SIGNED_FLOAT" or items[1].type == "SIGNED_FLOAT"):
-                return Token("SIGNED_FLOAT", ir.Float(op(items[0].value.value, items[1].value.value)))
+        if (i1.type == "SIGNED_INT" or i1.type == "SIGNED_FLOAT") and (i2.type == "SIGNED_INT" 
+                or i2.type == "SIGNED_FLOAT"):
+            if(i1.type == "SIGNED_FLOAT" or i2.type == "SIGNED_FLOAT"):
+                return Token("SIGNED_FLOAT", ir.Float(op(i1.value.value, i2.value.value)))
             else:
-                return Token("SIGNED_INT", ir.Int(op(items[0].value.value, items[1].value.value)))
+                return Token("SIGNED_INT", ir.Int(op(i1.value.value, i2.value.value)))
         # Generating code
         insts = []
         srcs = [0, 0]
         for i in range(0, 2):
             if items[i].type == "CODE":
                 insts += items[i].value
-                # Expr code
-                #if issubclass(type(items[i].value[-1]), ir.Expr):
                 srcs[i] = items[i].value[-1].dst
             else:
                 srcs[i] = items[i].value
         insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
         return Token("CODE", insts)
 
-    def _help_expr_log(self, items, op, Cls):
+    def _help_expr_log(self, items, op, Cls, post):
+        i1 = items[0]
+        i2 = items[1]
+
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1, i2])
+        
+        if type(i2) == Tree and len(i2.data) > 5 and i2.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1, i2])
+
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_"+post, [i1, i2])
+            
+        if type(i2) == Tree and i2.data == "fun_call":
+            return Tree("EXPR_"+post, [i1, i2])
+
         if type(items[0].value) == ir.Bool and type(items[1].value) == ir.Bool:
             r = ir.Bool(op(items[0].value.value, items[0].value.value))
             return Token(str(r), r)
@@ -169,19 +197,19 @@ class ConstTransformer(Transformer):
         return Token("CODE", insts)
 
     def expr_mul(self, items):
-        return self._help_expr_bin(items, lambda a, b: a*b, ir.Mul)
+        return self._help_expr_bin(items, lambda a, b: a*b, ir.Mul, "MUL")
 
     def expr_add(self, items):
-        return self._help_expr_bin(items, lambda a, b: a+b, ir.Add)
+        return self._help_expr_bin(items, lambda a, b: a+b, ir.Add, "ADD")
 
     def expr_sub(self, items):
-        return self._help_expr_bin(items, lambda a, b: a-b, ir.Sub)
+        return self._help_expr_bin(items, lambda a, b: a-b, ir.Sub, "SUB")
 
     def expr_or(self, items):
-        return self._help_expr_log(items, lambda a, b: a or b, ir.LOr)
+        return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "OR")
 
     def expr_and(self, items):
-        return self._help_expr_bin(items, lambda a, b: a and b, ir.LAnd)
+        return self._help_expr_bin(items, lambda a, b: a and b, ir.LAnd, "AND")
 """
     def expr_not(self, items):
         return self._help_expr_bin(items, lambda a, b: a b, ir.)

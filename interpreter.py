@@ -29,6 +29,63 @@ class Interpreter(Mash):
         self._last_id += 1
         return f"@i_{self._last_id}"
 
+    def gen_cond(self, tree):
+        """
+        Generates code for conditions (for if, while and do while)
+        """
+        insts = []
+        cnd = None
+        if type(tree[0]) == Token and tree[0].type == "CODE":
+            insts += tree[0].value
+            cnd = insts[-1].dst
+        else:
+            if type(tree[0]) == Tree:
+                rval, gen = self.generate_expr(tree[0])
+                insts += gen
+                cnd = rval
+            else:
+                if tree[0].type in Interpreter.CONSTS:
+                    cnd = tree[0].value
+                else:
+                    s, m = self.symb_table.exists(tree[0].value)
+                    if not s:
+                        raise mex.UndefinedReference(m)
+                    cnd = tree[0].value
+        return (cnd, insts)
+
+    def generate_expr(self, root):
+        """
+        Genrates instructions for expressions
+        @return List of instructions and variable or value containing the result
+        """
+        if type(root) == Token:
+            return (root.value, [])
+        else:
+            if len(root.data) > 5 and root.data[0:5] == "EXPR_":
+                lr, left = self.generate_expr(root.children[0])
+                rr, right = self.generate_expr(root.children[1])
+                iname = root.data[5:]
+                opres = self.uniq_var()
+                symb_table.assign(opres, None)
+                if iname == "ADD":
+                    return (opres, left+right+[ir.Add(lr, rr, opres)])
+                elif iname == "MUL":
+                    return (opres, left+right+[ir.Mul(lr, rr, opres)])
+                elif iname == "SUB":
+                    return (opres, left+right+[ir.Sub(lr, rr, opres)])
+                elif iname == "OR":
+                    return (opres, left+right+[ir.LOr(lr, rr, opres)])
+                elif iname == "AND":
+                    return (opres, left+right+[ir.LAnd(lr, rr, opres)])
+                else:
+                    raise mex.Unimplemented("Runtime expression '"+iname+"'")
+            elif root.data == "fun_call":
+                opres = self.uniq_var()
+                symb_table.assign(SymbTable.RETURN_NAME, None)
+                symb_table.assign(opres, SymbTable.RETURN_NAME)
+                return (opres, self.generate_ir(root, True)+[ir.AssignVar(opres, SymbTable.RETURN_NAME)])
+                
+
     def generate_ir(self, root, silent=False):
         """
         Generates internal IR from parse tree
@@ -93,7 +150,8 @@ class Interpreter(Mash):
                     if tree.data == "fun_call":
                         return self.generate_ir(tree, True)+[ir.AssignVar(root.children[0].value, SymbTable.RETURN_NAME)]
                     elif root.data == "assignment":
-                        assign = self.generate_ir(tree)
+                        assign = self.generate_ir(tree, True)
+                        self.symb_table.assign(root.children[0].value, assign[-1].dst)
                         return assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
                     else:
                         raise mex.Unimplemented("Assignment not implemented for such value")
@@ -118,25 +176,15 @@ class Interpreter(Mash):
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
-                cnd = None
+                cnd, insts = self.gen_cond(tree)
                 tr = None
                 fl = ir.Nop()
-                # Condition check
-                if type(tree[0]) == Token and tree[0].type == "CODE":
-                    insts += tree[0].value
-                    cnd = insts[-1].dst
-                else:
-                    s, m = self.symb_table.exists(tree[0].value)
-                    if not s:
-                        self.error(m)
-                    cnd = tree[0].value
                 # True branch
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.push()
                 tr = self.generate_ir(tree[1])
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.pop()
-                
                 if root.data == "elif" and len(root.children) > 1:
                     fl = self.generate_ir(Tree("elif", root.children[1:]))
                 # False branch
@@ -153,19 +201,7 @@ class Interpreter(Mash):
             # While loop
             elif root.data == "while":
                 tree = root.children[0].children
-                cnd = None
-                # Condition check
-                if type(tree[0]) == Token and tree[0].type == "CODE":
-                    insts += tree[0].value
-                    cnd = insts[-1].dst
-                elif (type(tree[0]) == Token and tree[0].type == "VAR_NAME") or (type(tree[0]) == Token and tree[0].type == "scope_name"):
-                    s, m = self.symb_table.exists(tree[0].value)
-                    if not s:
-                        # TODO: Change to an exception 
-                        raise mex.UndefinedReference(m)
-                    cnd = tree[0].value
-                else:
-                    cnd = tree[0].value
+                cnd, insts = self.gen_cond(tree)
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.push()
                 t = self.generate_ir(tree[1])
@@ -218,12 +254,18 @@ class Interpreter(Mash):
                 body = self.generate_ir(tree[2])
                 symb_table.pop()
                 insts.append(ir.Fun(name, args, body))
+            # Return
             elif root.data == "return":
                 if len(root.children) == 0:
                     value = types.Nil()
                 else:
                     value = root.children[0].value
                 insts.append(ir.Return(value))
+            # Expression that could not be constructed at parse time
+            elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
+                resvar, insts = self.generate_expr(root)
+                if not silent:
+                    return insts+[ir.Print(resvar)]
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []
