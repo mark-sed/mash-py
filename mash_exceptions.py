@@ -53,5 +53,12 @@ class FlowControlContinue(FlowControl):
     Continue
     """
 
+class FlowControlReturn(FlowControl):
+    """
+    Return
+    """
+    def __init__(self, value):
+        self.value = value
+
 def warning(msg):
     print(f"Warning: {msg}", file=stderr)

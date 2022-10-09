@@ -15,6 +15,7 @@ _stmt : _stmts
 _stmts : import
        | _rvalue
        | FLOW_CTRL
+       | return
        | INTERNAL
        | assignment
        | op_assign
@@ -26,7 +27,7 @@ _stmts : import
 import : "import" VAR_NAME
 
 // Value assignment excluding standalone variable (nil assignment)
-assignment : scope_name "=" _rvalue
+assignment : scope_name "=" (_rvalue|assignment)
            | VAR_NAME "=" INTERNAL
 
 // Operation and assignment over 1 variable
@@ -136,9 +137,9 @@ _definition : lambda
            | class
 
 // Function call
-fun_call : scope_name "(" arg_list_call ")" _END?
-         | member "(" arg_list_call ")" _END?
-         | fun_call "(" arg_list_call ")" _END?
+fun_call : scope_name "(" fun_call_args ")" _END?
+         | member "(" fun_call_args ")" _END?
+         | fun_call "(" fun_call_args ")" _END?
 
 // Lambda function definition
 lambda : "fun" VAR_NAME? "(" fun_args ")" "=" (_rvalue|INTERNAL)
@@ -153,9 +154,7 @@ constructor : VAR_NAME "(" fun_args ")" code_block
 code_block : "{" _stmt "}"
 
 // Code allowed in function body
-fun_code_block : "{" _stmt _END "return" _rvalue? _END? "}"
-               | "{" _END? "return" _rvalue? _END? "}"
-               | code_block
+fun_code_block : code_block
 
 // Constructs allowed in class body
 class_content : constructor
@@ -202,15 +201,18 @@ var_list : scope_name
          | var_list "," scope_name
 
 // List of arguments allowed in function call
-arg_list_call : (_expr|lambda)
-              | arg_list_call "," (_expr|lambda)
-              | arg_list_call "," arg_list_call_exp
+fun_call_args : _arg_list_call
               | arg_list_call_exp
+              | _arg_list_call "," arg_list_call_exp
               |
+
+_arg_list_call : (_expr|lambda)
+              | _arg_list_call "," (_expr|lambda)
 
 arg_list_call_exp : VAR_NAME "=" (_expr|lambda)
                   | arg_list_call_exp "," VAR_NAME "=" (_expr|lambda)
 
+// Function call
 fun_args : _arg_list_ndef
          | arg_list
          | _arg_list_ndef "," arg_list
@@ -244,6 +246,8 @@ do_while : "do" _END* (code_block|_stmts) _END* "while" "(" _expr ")" _END?
 // For loop
 for : "for" "(" VAR_NAME ":" _expr ")" _END* (code_block|_stmts) _END?
 
+return : "return" _rvalue?
+
 // Internal implementation comment
 INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
 
@@ -262,7 +266,7 @@ DOT : /(?<!\.)\.(?!\.)/
 SCOPE : "::"
 
 // Flow control
-FLOW_CTRL : ("continue" | "break" | "return")
+FLOW_CTRL : ("continue" | "break")
 
 // Statement _END
 _END : NEWLINE

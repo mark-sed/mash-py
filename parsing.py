@@ -114,6 +114,21 @@ class ConstTransformer(Transformer):
                 args.append((x.value, None))
         return Token("fun_args", args)
 
+    def arg_list_call_exp(self, items):
+        if len(items) > 2:
+            return Token("arg_list_call_exp", items[0].value+[(items[1].value, items[2].value)])
+        else:
+            return Token("arg_list_call_exp", [(items[0].value, items[1].value)])
+
+    def fun_call_args(self, items):
+        args = []
+        for x in items:
+            if x.type == "arg_list_call_exp":
+                args += x.value
+            else:
+                args.append(x.value)
+        return Token("fun_call_args", args)
+
     def _help_expr_bin(self, items, op, Cls):
         # Evaluating const expr
         if (items[0].type == "SIGNED_INT" or items[0].type == "SIGNED_FLOAT") and (items[1].type == "SIGNED_INT" 

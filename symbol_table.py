@@ -42,6 +42,8 @@ class SymbTable(Mash):
     """
     Symbolic table
     """
+    RETURN_NAME = "@ret"
+
     GLOB_TBL = Frame({
         #"print?1": {ir.Print("@0")}
     })

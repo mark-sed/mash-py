@@ -1,10 +1,9 @@
 from lark.lexer import Token
 from lark.tree import Tree
 from sys import stderr
-from symtable import SymbolTable
 from mash import Mash
 import mash_exceptions as mex
-from symbol_table import symb_table
+from symbol_table import symb_table, SymbTable
 import ir
 import parsing
 import mash_types as types
@@ -30,7 +29,7 @@ class Interpreter(Mash):
         self._last_id += 1
         return f"@i_{self._last_id}"
 
-    def generate_ir(self, root):
+    def generate_ir(self, root, silent=False):
         """
         Generates internal IR from parse tree
         """
@@ -43,20 +42,26 @@ class Interpreter(Mash):
                     self.symb_table.declare(root.value, ir.Nil())
                     return [ir.AssignVar(root.value, ir.Nil())]
                 else:
-                    return [ir.Print(root.value)]
+                    if not silent:
+                        return [ir.Print(root.value)]
             # Printing
             elif root.type == "scope_name":
                 exists, msg = self.symb_table.exists(root.value)
                 if exists:
-                    return [ir.Print(root.value)]
+                    if not silent:
+                        return [ir.Print(root.value)]
                 else:
                     self.error(msg)
             # Generated code
             elif root.type == "CODE":
-                return root.value+[ir.Print(root.value[-1].dst)]
+                if not silent:
+                    return root.value+[ir.Print(root.value[-1].dst)]
+                else:
+                    return root.value
             # Const print
             elif root.type in Interpreter.CONSTS:
-                return [ir.Print(root.value)]
+                if not silent:
+                    return [ir.Print(root.value)]
             elif root.value == "break":
                 return [ir.Break()]
             elif root.value == "continue":
@@ -65,33 +70,51 @@ class Interpreter(Mash):
             insts = []
             if root.data == "assignment":
                 tree = root.children[1]
-                if tree.type in Interpreter.CONSTS:
-                    self.symb_table.assign(root.children[0].value, root.children[1].value)
-                    return [ir.AssignVar(root.children[0].value, root.children[1].value)]
-                elif tree.type == "CODE":
-                    last_dst = tree.value[-1].dst
-                    self.symb_table.assign(root.children[0].value, last_dst)
-                    return tree.value+[ir.AssignVar(root.children[0].value, last_dst)]
-                elif tree.type == "CALC":
-                    subtree = tree.value
-                    for i in subtree:
-                        if i.type == "CODE":
-                            insts += i.value
-                        else:
-                            if i.type in Interpreter.CONSTS:
-                                self.symb_table.assign(root.children[0].value, i.value)
-                                insts += [ir.AssignVar(root.children[0].value, i.value)]
+                if type(tree) == Token:
+                    if tree.type in Interpreter.CONSTS:
+                        self.symb_table.assign(root.children[0].value, root.children[1].value)
+                        return [ir.AssignVar(root.children[0].value, root.children[1].value)]
+                    elif tree.type == "CODE":
+                        last_dst = tree.value[-1].dst
+                        self.symb_table.assign(root.children[0].value, last_dst)
+                        return tree.value+[ir.AssignVar(root.children[0].value, last_dst)]
+                    elif tree.type == "CALC":
+                        subtree = tree.value
+                        for i in subtree:
+                            if i.type == "CODE":
+                                insts += i.value
+                            else:
+                                if i.type in Interpreter.CONSTS:
+                                    self.symb_table.assign(root.children[0].value, i.value)
+                                    insts += [ir.AssignVar(root.children[0].value, i.value)]
+                    else:
+                        raise mex.Unimplemented("Assignment not implemented for such value")
                 else:
-                    raise mex.Unimplemented("Assignment not implemented for such value")
+                    if tree.data == "fun_call":
+                        return self.generate_ir(tree, True)+[ir.AssignVar(root.children[0].value, SymbTable.RETURN_NAME)]
+                    elif root.data == "assignment":
+                        assign = self.generate_ir(tree)
+                        return assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
+                    else:
+                        raise mex.Unimplemented("Assignment not implemented for such value")
             # Block of code
             elif root.data == "code_block":
                 symb_table.push()
                 for tree in root.children:
                     insts += self.generate_ir(tree)
                 symb_table.pop()
+            # Block of function code
             elif root.data == "fun_code_block":
                 for tree in root.children:
                     insts += self.generate_ir(tree)
+            # Function call
+            elif root.data == "fun_call":
+                tree = root.children
+                name = tree[0].value
+                args = tree[1].value
+                insts.append(ir.FunCall(name, args))
+                if not silent:
+                    insts.append(ir.Print(SymbTable.RETURN_NAME))
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
@@ -165,7 +188,6 @@ class Interpreter(Mash):
                 elif (type(tree[1]) == Token and tree[1].type == "VAR_NAME") or (type(tree[1]) == Token and tree[1].type == "scope_name"):
                     s, m = self.symb_table.exists(tree[1].value)
                     if not s:
-                        # TODO: Change to an exception 
                         raise mex.UndefinedReference(m)
                     cnd = tree[1].value
                 else:
@@ -196,6 +218,12 @@ class Interpreter(Mash):
                 body = self.generate_ir(tree[2])
                 symb_table.pop()
                 insts.append(ir.Fun(name, args, body))
+            elif root.data == "return":
+                if len(root.children) == 0:
+                    value = types.Nil()
+                else:
+                    value = root.children[0].value
+                insts.append(ir.Return(value))
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []

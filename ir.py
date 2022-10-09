@@ -1,4 +1,4 @@
-from symbol_table import symb_table
+from symbol_table import symb_table, SymbTable
 from mash import Mash
 import mash_exceptions as mex
 from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString
@@ -253,7 +253,12 @@ class Fun(Instruction):
         symb_table.define_fun(self.name, self.min_args, self.max_args, self)
 
     def call(self):
-        pass
+        for i in self.body:
+            try:
+                i.exec()
+            except mex.FlowControlReturn as r:
+                return r.value
+        return types.Nil()
 
     def str_header(self):
         args = []
@@ -261,7 +266,7 @@ class Fun(Instruction):
             if v is None:
                 args.append(str(k))
             else:
-                args.append(f"{k} = {v}")
+                args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         return f"FUN {self.name}({args_s})"
 
@@ -274,9 +279,81 @@ class Fun(Instruction):
             if v is None:
                 args.append(str(k))
             else:
-                args.append(f"{k} = {v}")
+                args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         return f"FUN {self.name}({args_s}) {{\n{t}\n}}"
+
+class FunCall(Instruction):
+    """
+    Function call
+    """
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+        self.pos_args = []
+        self.named_args = []
+        for i in self.args:
+            if type(i) != tuple:
+                self.pos_args.append(i)
+            else:
+                self.named_args.append(i)
+
+    def exec(self):
+        fl = symb_table.get(self.name)
+        if type(fl) != list:
+            raise mex.TypeError("'"+self.name+"' is not callable")
+        f = None
+        for i in fl:
+            # Find matching function signature
+            if i.max_args >= len(self.args):
+                f = i
+                break
+        if f is None:
+            raise mex.UndefinedReference(str(self))
+        assigned = []
+        for i, a in enumerate(f.args):
+            v = a[1]
+            a = a[0]
+            if i >= len(self.pos_args):
+                if v is None:
+                    raise mex.TypeError(f"Function call to '{self.name}' is missing required positional argument '{a}'")
+                else:
+                    break
+            passed = self.pos_args[i]
+            value = passed
+            if type(passed) == str: 
+                # Variable
+                value = symb_table.get(passed)
+            assigned.append((a, value))
+
+        for k, v in self.named_args:
+            for a, b in f.args:
+                if b is not None:
+                    assigned.append((k, v))
+                    break
+            else:
+                raise mex.TypeError(f"Argument named '{k}' in function call to '{self.name}' not found")
+        # Push new frame and arguments
+        symb_table.push()
+        # Set default args
+        for k, v in f.args:
+            if v is not None:
+                symb_table.assign(k, v)
+        for k, v in assigned:
+            symb_table.assign(k, v)
+        ret_val = f.call()
+        symb_table.pop()
+        symb_table.assign(SymbTable.RETURN_NAME, ret_val)
+
+    def __str__(self):
+        args = []
+        for k in self.args:
+            if type(k) != tuple:
+                args.append(str(k))
+            else:
+                args.append(f"{k[0]} = {str(k[1])}")
+        args_s = ", ".join(args)
+        return f"{self.name}({args_s})"
 
 class Keyword(Instruction):
     """
@@ -302,6 +379,19 @@ class Continue(Keyword):
 
     def __str__(self):
         return "continue"
+
+class Return(Keyword):
+    """
+    Return
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def exec(self):
+        raise mex.FlowControlReturn(self.value)
+
+    def __str__(self):
+        return "return "+str(self.value)
         
 class Expr(IR):
     """
@@ -347,8 +437,8 @@ class Add(Expr):
         v1 = s1.get_value()
         v2 = s2.get_value()
         if issubclass(type(s1), String) or issubclass(type(s2), String):
-            v1 = str(v1)
-            v2 = str(v2)
+            v1 = str(s1)
+            v2 = str(s2)
         else:
             self.check_types("+", s1, s2, {Int, Float, String, RString, FString, List})
         r = v1+v2

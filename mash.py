@@ -93,6 +93,15 @@ if __name__ == "__main__":
     initializer = Initializer(argparser)
     try:
         initializer.interpret()
+    except mex.FlowControlReturn:
+        print("Error: 'return' outside of a function.")
+        exit(1)
+    except mex.FlowControlBreak:
+        print("Error: 'break' outside of a loop.")
+        exit(1)
+    except mex.FlowControlContinue:
+        print("Error: 'continue' outside of a loop.")
+        exit(1)
     except mex.MashException as e:
         print("Error: {}.".format(e))
         exit(1)
