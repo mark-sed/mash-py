@@ -91,7 +91,7 @@ class SymbTable(Mash):
             # Redefinition or ambiguous redef
             for i, f in enumerate(fprev):
                 # Check if argument amount ranges overlap
-                if f.min_args <= max_args and f.max_args >= min_args:
+                if f.min_args <= max_args and f.max_args >= min_args and f.max_args != max_args:
                     raise mex.AmbiguousRedefinition(f"function '{name}'")
                 elif f.max_args == max_args:
                     # Overridden

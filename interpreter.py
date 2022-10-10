@@ -107,12 +107,11 @@ class Interpreter(Mash):
         if type(root) == Token:
             # Variable declaration or print
             if root.type == "VAR_NAME":
-                if not self.symb_table.exists(root.value):
-                    self.symb_table.declare(root.value, ir.Nil())
-                    return [ir.AssignVar(root.value, ir.Nil())]
-                else:
-                    if not silent:
-                        return [ir.Print(root.value)]
+                self.symb_table.assign(root.value, ir.Nil())
+                insts = [ir.SetIfNotSet(root.value, ir.Nil())]
+                if not silent:
+                    insts += [ir.Print(root.value)]
+                return insts
             # Printing
             elif root.type == "scope_name":
                 exists, msg = self.symb_table.exists(root.value)
@@ -279,6 +278,9 @@ class Interpreter(Mash):
                     else:
                         value = root.children[0].value
                     insts.append(ir.Return(value))
+            # Silent expr
+            elif root.data == "silent_expr":
+                insts += self.generate_ir(root.children[0], True)
             # Expression that could not be constructed at parse time
             elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
                 resvar, insts = self.generate_expr(root)

@@ -78,7 +78,24 @@ class Print(Instruction):
         print(self.get(self.value), end="")
 
     def __str__(self):
-        return f"PRINT {self.value}, {self.dst}"
+        return f"PRINT {self.value}"
+
+class SetIfNotSet(Instruction):
+    """
+    If variable is not yet set, then this declares it,
+    if it is set, then it prints it
+    """
+    def __init__(self, dst, value=Nil()):
+        self.dst = dst
+        self.value = value
+
+    def exec(self):
+        s, _ = symb_table.exists(self.dst)
+        if not s:
+            symb_table.assign(self.dst, self.value)
+
+    def __str__(self):
+        return f"SETIFNOTSET {self.value}, {self.dst}"
 
 class ToString(Instruction):
     """
@@ -273,7 +290,7 @@ class Fun(Instruction):
                 i.exec()
             except mex.FlowControlReturn as r:
                 return r.value, r.frames
-        return types.Nil()
+        return types.Nil(), 1
 
     def str_header(self):
         args = []

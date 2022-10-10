@@ -27,11 +27,11 @@ _stmts : import
 import : "import" VAR_NAME
 
 // Value assignment excluding standalone variable (nil assignment)
-assignment : scope_name "=" (_rvalue|assignment)
+assignment : scope_name "=" (_expr|lambda|assignment)
            | VAR_NAME "=" INTERNAL
 
 // Operation and assignment over 1 variable
-op_assign : scope_name ASSIGN_OP _rvalue
+op_assign : scope_name ASSIGN_OP (_expr|lambda)
 
 // Different assignments
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^=")
