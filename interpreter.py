@@ -181,6 +181,39 @@ class Interpreter(Mash):
                 tree = root.children
                 name = tree[0].value
                 args = tree[1].value
+                for i, a in enumerate(args):
+                    if type(a) == list:
+                        # Expression in positional argument
+                        insts += a
+                        args[i] = insts[-1].dst
+                    elif type(a) == tuple and type(a[1]) == list:
+                        # Expression in named argument
+                        insts += a[1]
+                        args[i] = (a[0], insts[-1].dst)
+                    elif type(a) == Tree and a.data == "fun_call":
+                        # Function call
+                        insts += self.generate_ir(a, True)
+                        retv = self.uniq_var()
+                        symb_table.assign(retv, SymbTable.RETURN_NAME)
+                        insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
+                        args[i] = retv
+                    elif type(a) == Tree and len(a.data) > 5 and a.data[:5] == "EXPR_":
+                        # Expression nor parsable in the transformer
+                        retv, insts = self.generate_expr(a)
+                        symb_table.assign(retv, None)
+                        args[i] = retv
+                    elif type(a) == tuple and type(a[1]) == Tree and a[1].data == "fun_call":
+                        # Function call to named arg
+                        insts += self.generate_ir(a[1], True)
+                        retv = self.uniq_var()
+                        symb_table.assign(retv, SymbTable.RETURN_NAME)
+                        insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
+                        args[i] = (a[0], retv)
+                    elif type(a) == tuple and type(a[1]) == Tree and len(a[1].data) > 5 and a[1].data[:5] == "EXPR_":
+                        # Expression nor parsable in the transformer (for named arg)
+                        retv, insts = self.generate_expr(a[1])
+                        symb_table.assign(retv, None)
+                        args[i] = (a[0], retv)
                 insts.append(ir.FunCall(name, args))
                 if not silent:
                     insts.append(ir.Print(SymbTable.RETURN_NAME))

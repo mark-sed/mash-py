@@ -115,18 +115,26 @@ class ConstTransformer(Transformer):
         return Token("fun_args", args)
 
     def arg_list_call_exp(self, items):
+        i1 = items[0].value if type(items[0]) == Token else items[0]
+        i2 = items[1].value if type(items[1]) == Token else items[1]
+        i3 = items[2] if len(items) > 2 else None
+        if i3 is not None and type(i3) == Token:
+            i3 = i3.value
         if len(items) > 2:
-            return Token("arg_list_call_exp", items[0].value+[(items[1].value, items[2].value)])
+            return Token("arg_list_call_exp", i1+[(i2, i3)])
         else:
-            return Token("arg_list_call_exp", [(items[0].value, items[1].value)])
+            return Token("arg_list_call_exp", [(i1, i2)])
 
     def fun_call_args(self, items):
         args = []
         for x in items:
-            if x.type == "arg_list_call_exp":
-                args += x.value
+            if type(x) == Token:
+                if x.type == "arg_list_call_exp":
+                    args += x.value
+                else:
+                    args.append(x.value)
             else:
-                args.append(x.value)
+                args.append(x)
         return Token("fun_call_args", args)
 
     def _help_expr_bin(self, items, op, Cls, post):
