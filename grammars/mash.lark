@@ -16,7 +16,6 @@ _stmts : import
        | _rvalue
        | FLOW_CTRL
        | return
-       | INTERNAL
        | assignment
        | op_assign
        | _definition
@@ -141,11 +140,12 @@ fun_call : scope_name "(" fun_call_args ")" _END?
          | member "(" fun_call_args ")" _END?
          | fun_call "(" fun_call_args ")" _END?
 
-// Lambda function definition
-lambda : "fun" VAR_NAME? "(" fun_args ")" "=" (_rvalue|INTERNAL)
-
 // Function definition
 function : "fun" VAR_NAME "(" fun_args ")" fun_code_block
+         | "fun" VAR_NAME "(" fun_args ")" INTERNAL
+
+// Lambda function definition
+lambda : "fun" VAR_NAME? "(" fun_args ")" "=" _rvalue
 
 // Class constructor
 constructor : VAR_NAME "(" fun_args ")" code_block
@@ -176,13 +176,16 @@ space_conent : import
 
 // Namespace definition
 space : "space" VAR_NAME? "{" _END? space_conent _END? "}"
+      | "space" VAR_NAME INTERNAL
+      | "space" VAR_NAME INTERNAL "{" _END? space_conent _END? "}"
 
 // Class definition
-class : "class" VAR_NAME "{" _END? class_content _END? "}"
+class : "class" VAR_NAME INTERNAL? "{" _END? class_content _END? "}"
       | "class" VAR_NAME ":" var_list "{" _END? class_content _END? "}"
+      | "class" VAR_NAME INTERNAL
 
 // Variable name
-VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
+VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
 // Variable in some scope
 scope_name : _space_name
@@ -249,7 +252,7 @@ for : "for" "(" VAR_NAME ":" _expr ")" _END* (code_block|_stmts) _END?
 return : "return" _rvalue?
 
 // Internal implementation comment
-INTERNAL : /#[ \t]*\[![ \t]*internal[ \t]*!\][ \t]*/
+INTERNAL : "internal"
 
 // One line comment
 INL_COMMENT : /#[^\n]*/

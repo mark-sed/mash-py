@@ -130,10 +130,15 @@ class Interpreter(Mash):
             elif root.type in Interpreter.CONSTS:
                 if not silent:
                     return [ir.Print(root.value)]
+            # Break
             elif root.value == "break":
                 return [ir.Break()]
+            # Continue
             elif root.value == "continue":
                 return [ir.Continue()]
+            # internal
+            elif root.value == "internal":
+                return [ir.Internal()]
         else:
             insts = []
             if root.data == "assignment":
@@ -348,7 +353,7 @@ class Interpreter(Mash):
         for i in code:
             i.exec()
 
-def interpret(opts, code):
+def interpret(opts, code, libmash_code):
     """
     Interpret mash code
     """
@@ -358,7 +363,18 @@ def interpret(opts, code):
     debug("Parser finished", opts)
     if opts.parse_only:
         return
+
+    if not opts.no_libmash:
+        debug("Parsing of libmash started", opts)
+        parser = Parser(libmash_code, opts)
+        libmash_tree = parser.parse()
+        debug("Parsing of libmash finished", opts)
+
+    debug("Code generation started", opts)
     interpreter = Interpreter(opts, symb_table)
+    if not opts.no_libmash:
+        lib_code = interpreter.interpret_top_level(parsing.ConstTransformer(symb_table).transform(libmash_tree))
+    debug("Libmash code generated", opts)
     ir_code = interpreter.interpret_top_level(parsing.ConstTransformer(symb_table).transform(tree))
     debug("IR generation done", opts)
     if opts.code_only:
@@ -366,6 +382,8 @@ def interpret(opts, code):
             print(i)
         return
     debug("Running IR", opts)
+    if not opts.no_libmash:
+        interpreter.interpret(lib_code)
     interpreter.interpret(ir_code)
     debug("Finished running IR", opts)
     

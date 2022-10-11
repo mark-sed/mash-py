@@ -1,8 +1,9 @@
+from typing import Type
 from symbol_table import symb_table, SymbTable
-from mash import Mash
 import mash_exceptions as mex
 from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString
 import mash_types as types
+import libmash
 
 class IR:
     """
@@ -268,6 +269,13 @@ class For(Instruction):
             t = "\n".join(str(i) for i in t)
         return f"FOR ({self.i} : {self.l}) {{\n{t}\n}}"
 
+class Internal(IR):
+    """
+    Internal implementation
+    """
+    def __str__(self):
+        return "internal"
+
 class Fun(Instruction):
     """
     Function
@@ -279,18 +287,47 @@ class Fun(Instruction):
         self.min_args = len(self.req_args)
         self.max_args = len(self.args)
         self.body = body
+        self.internal = False
+        if len(self.body) > 0 and type(self.body[0]) == Internal:
+            self.internal = True
+            try:
+                self.body = getattr(libmash, name+"_"+str(len(args)))
+            except AttributeError:
+                raise mex.UndefinedReference(self.str_header())
 
     def exec(self):
         # Exec is for definition
         symb_table.define_fun(self.name, self.min_args, self.max_args, self)
 
+    def wrap_internal(self, v):
+        """
+        Wraps value returned by internal function into IR value if not yet wrapped
+        """
+        if   type(v) == int: return types.Int(v)
+        elif type(v) == float: return types.Float(v)
+        elif type(v) == str: return types.String(v)
+        elif type(v) == list: return types.List(v)
+        elif type(v) == bool: return types.Bool(v)
+        elif v is None: return types.Nil()
+        else: return v
+
     def call(self):
-        for i in self.body:
+        if self.internal:
+            assign_args = []
+            for a, _ in self.args:
+                assign_args.append(symb_table.get(a).get_value())
             try:
-                i.exec()
-            except mex.FlowControlReturn as r:
-                return r.value, r.frames
-        return types.Nil(), 1
+                rval = self.wrap_internal(self.body(*assign_args))
+            except TypeError:
+                raise mex.TypeError("Incorrect argument type in function call to '"+self.str_header()+"'")
+            return rval, 1
+        else:
+            for i in self.body:
+                try:
+                    i.exec()
+                except mex.FlowControlReturn as r:
+                    return r.value, r.frames
+            return types.Nil(), 1
 
     def str_header(self):
         args = []
@@ -300,9 +337,11 @@ class Fun(Instruction):
             else:
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
-        return f"FUN {self.name}({args_s})"
+        return f"fun {self.name}({args_s})"+" internal" if self.internal else ""
 
     def __str__(self):
+        if self.internal:
+            return self.str_header()
         t = self.body
         if type(self.body) == list:
             t = "\n".join(str(i) for i in t)
@@ -313,7 +352,7 @@ class Fun(Instruction):
             else:
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
-        return f"FUN {self.name}({args_s}) {{\n{t}\n}}"
+        return f"fun {self.name}({args_s}) {{\n{t}\n}}"
 
 class FunCall(Instruction):
     """
@@ -348,7 +387,7 @@ class FunCall(Instruction):
             a = a[0]
             if i >= len(self.pos_args):
                 if v is None:
-                    raise mex.TypeError(f"Function call to '{self.name}' is missing required positional argument '{a}'")
+                    raise mex.TypeError(f"Function call to '{f.str_header()}' is missing required positional argument '{a}'")
                 else:
                     break
             passed = self.pos_args[i]

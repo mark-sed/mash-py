@@ -43,6 +43,8 @@ class Initializer():
         self.argparser = argparser
         self.add_arguments(argparser)
         self.opts = self.argparser.parse_args()
+        # TODO: Change it so that the lib is not read from a file and parsed?
+        self.libmash_path = "libmash.ms"
         # --version
         if self.opts.print_version:
             print_version()
@@ -57,12 +59,17 @@ class Initializer():
                 # File passed in
                 with open(self.opts.mash_file, 'r', encoding='utf-8') as mash_file:
                     self.code = mash_file.read()
+        if not self.opts.no_libmash:
+            with open(self.libmash_path, 'r', encoding='utf-8') as mashlib_file:
+                self.libmash_code = mashlib_file.read()
+        else:
+            self.libmash_code = None
 
     def interpret(self):
         """
         Starts code interpretation
         """
-        interpreter.interpret(self.opts, self.code)
+        interpreter.interpret(self.opts, self.code, self.libmash_code)
 
     def add_arguments(self, argparser):
         """
@@ -80,6 +87,8 @@ class Initializer():
                                 help='File with Mash code.')
         argparser.add_argument('--parse-only', action='store_true', dest='parse_only',
                                 help='Runs only the parser.')
+        argparser.add_argument('--no-libmash', action='store_true', default=False, dest='no_libmash',
+                                help='Does not include libmash.')
 
     def error(self, msg):
         """
