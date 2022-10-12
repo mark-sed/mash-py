@@ -1,6 +1,12 @@
 import mash_exceptions as mex
 from symbol_table import symb_table
 
+def type_name(o):
+    try:
+        return o.type_name()
+    except Exception:
+        return o.__class__.__name__
+
 class Value():
     """
     Values
@@ -10,6 +16,9 @@ class Value():
 
     def __str__(self):
         return str(self.get_value())
+
+    def type_name(self):
+        return self.__class__.__name__
 
     def fstr(self):
         return self.__str__()
@@ -116,7 +125,12 @@ class Nil(Value):
     def get_value(self):
         return None
 
+    def type_name(self):
+        return "NilType"
+
     def __str__(self):
         return "nil"
+
+    
 
 IMPLICIT_TO_BOOL = {Int, Float, Nil}

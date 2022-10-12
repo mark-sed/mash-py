@@ -36,7 +36,7 @@ op_assign : scope_name ASSIGN_OP (_expr|lambda)
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^=")
 
 // List
-list : _expr "," _expr ".." _expr -> range_step
+list : _expr "," _expr ".." _expr -> range
      | _expr ".." _expr -> range
      | "[" _list_vals "]"
      | "[" (_expr|lambda) ":" list_assig "]"  // List comprehension

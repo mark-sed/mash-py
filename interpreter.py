@@ -1,3 +1,4 @@
+from termios import VLNEXT
 from lark.lexer import Token
 from lark.tree import Tree
 from sys import stderr
@@ -97,6 +98,81 @@ class Interpreter(Mash):
                 symb_table.assign(opres, SymbTable.RETURN_NAME)
                 return (opres, self.generate_ir(root, True)+[ir.AssignVar(opres, SymbTable.RETURN_NAME)])
                 
+    def op_assign(self, dst, value, op):
+        """
+        Returns correct operation or assignment based on used operator
+        E.g.: a = 4 vs a += 4
+        """
+        if op == "=":
+            self.symb_table.assign(dst, value)
+            return ir.AssignVar(dst, value)
+        elif op == "+=":
+            return ir.Add(dst, value, dst)
+        elif op == "-=":
+            return ir.Sub(dst, value, dst)
+        elif op == "*=":
+            return ir.Mul(dst, value, dst)
+            """
+            elif op == "/=":
+                return ir.FDiv(dst, value, dst)
+            elif op == "//=":
+                return ir.IDiv(dst, value, dst)
+            elif op == "%=":
+                return ir.Mod(dst, value, dst)
+            elif op == "^=":
+                return ir.Exp(dst, value, dst)
+            """
+        else:
+            raise mex.Unimplemented("Assignment operator "+str(op))
+
+    def generate_fun(self, root):
+        insts = []
+        tree = root.children
+        name = tree[0].value
+        args = tree[1].value
+        for i, a in enumerate(args):
+            if type(a) == list:
+                # Expression in positional argument
+                insts += a
+                args[i] = insts[-1].dst
+            elif type(a) == tuple and type(a[1]) == list:
+                # Expression in named argument
+                insts += a[1]
+                args[i] = (a[0], insts[-1].dst)
+            elif type(a) == Tree and a.data == "fun_call":
+                # Function call
+                insts += self.generate_ir(a, True)
+                retv = self.uniq_var()
+                symb_table.assign(retv, SymbTable.RETURN_NAME)
+                insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
+                args[i] = retv
+            elif type(a) == Tree and len(a.data) > 5 and a.data[:5] == "EXPR_":
+                # Expression nor parsable in the transformer
+                retv, insts = self.generate_expr(a)
+                symb_table.assign(retv, None)
+                args[i] = retv
+            elif type(a) == tuple and type(a[1]) == Tree and a[1].data == "fun_call":
+                # Function call to named arg
+                insts += self.generate_ir(a[1], True)
+                retv = self.uniq_var()
+                symb_table.assign(retv, SymbTable.RETURN_NAME)
+                insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
+                args[i] = (a[0], retv)
+            elif type(a) == tuple and type(a[1]) == Tree and len(a[1].data) > 5 and a[1].data[:5] == "EXPR_":
+                # Expression nor parsable in the transformer (for named arg)
+                retv, insts = self.generate_expr(a[1])
+                symb_table.assign(retv, None)
+                args[i] = (a[0], retv)
+        insts.append(ir.FunCall(name, args))
+        return insts
+
+    def multi_call(self, root):
+        if type(root.children[0]) == Tree:
+            v = root.children[0]
+            # Function call over returned value
+            return self.multi_call(v)+[ir.FunCall(SymbTable.RETURN_NAME, root.children[1].value)]
+        else:
+            return self.generate_fun(root)
 
     def generate_ir(self, root, silent=False):
         """
@@ -120,6 +196,18 @@ class Interpreter(Mash):
                         return [ir.Print(root.value)]
                 else:
                     self.error(msg)
+            # Generated calculation
+            elif root.type == "CALC":
+                insts = []
+                subtree = root.value
+                for i in subtree:
+                    if i.type == "CODE":
+                        insts += i.value
+                    else:
+                        if i.type in Interpreter.CONSTS:
+                            if not silent:
+                                insts.append(ir.Print(i.value))
+                return insts
             # Generated code
             elif root.type == "CODE":
                 if not silent:
@@ -141,16 +229,18 @@ class Interpreter(Mash):
                 return [ir.Internal()]
         else:
             insts = []
-            if root.data == "assignment":
+            if root.data == "assignment" or root.data == "op_assign":
                 tree = root.children[1]
+                op = "="
+                if root.data == "op_assign":
+                    tree = root.children[2]
+                    op = root.children[1].value
                 if type(tree) == Token:
                     if tree.type in Interpreter.CONSTS:
-                        self.symb_table.assign(root.children[0].value, root.children[1].value)
-                        return [ir.AssignVar(root.children[0].value, root.children[1].value)]
+                        insts.append(self.op_assign(root.children[0].value, tree.value, op))
                     elif tree.type == "CODE":
                         last_dst = tree.value[-1].dst
-                        self.symb_table.assign(root.children[0].value, last_dst)
-                        return tree.value+[ir.AssignVar(root.children[0].value, last_dst)]
+                        insts += tree.value+[self.op_assign(root.children[0].value, last_dst, op)]
                     elif tree.type == "CALC":
                         subtree = tree.value
                         for i in subtree:
@@ -158,17 +248,20 @@ class Interpreter(Mash):
                                 insts += i.value
                             else:
                                 if i.type in Interpreter.CONSTS:
-                                    self.symb_table.assign(root.children[0].value, i.value)
-                                    insts += [ir.AssignVar(root.children[0].value, i.value)]
+                                    insts.append(self.op_assign(root.children[0].value, i.value, op))
+                    elif tree.type == "VAR_NAME":
+                        insts.append(self.op_assign(root.children[0].value, tree.value, op))
                     else:
                         raise mex.Unimplemented("Assignment not implemented for such value")
                 else:
                     if tree.data == "fun_call":
-                        return self.generate_ir(tree, True)+[ir.AssignVar(root.children[0].value, SymbTable.RETURN_NAME)]
-                    elif root.data == "assignment":
+                        return self.generate_ir(tree, True)+[self.op_assign(root.children[0].value, SymbTable.RETURN_NAME, op)]
+                    elif tree.data == "assignment":
+                        if root.data == "op_assign":
+                            raise mex.SyntaxError("Assignment cannot be chained with compound assignment")
                         assign = self.generate_ir(tree, True)
                         self.symb_table.assign(root.children[0].value, assign[-1].dst)
-                        return assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
+                        insts += assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
                     else:
                         raise mex.Unimplemented("Assignment not implemented for such value")
             # Block of code
@@ -183,43 +276,7 @@ class Interpreter(Mash):
                     insts += self.generate_ir(tree)
             # Function call
             elif root.data == "fun_call":
-                tree = root.children
-                name = tree[0].value
-                args = tree[1].value
-                for i, a in enumerate(args):
-                    if type(a) == list:
-                        # Expression in positional argument
-                        insts += a
-                        args[i] = insts[-1].dst
-                    elif type(a) == tuple and type(a[1]) == list:
-                        # Expression in named argument
-                        insts += a[1]
-                        args[i] = (a[0], insts[-1].dst)
-                    elif type(a) == Tree and a.data == "fun_call":
-                        # Function call
-                        insts += self.generate_ir(a, True)
-                        retv = self.uniq_var()
-                        symb_table.assign(retv, SymbTable.RETURN_NAME)
-                        insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
-                        args[i] = retv
-                    elif type(a) == Tree and len(a.data) > 5 and a.data[:5] == "EXPR_":
-                        # Expression nor parsable in the transformer
-                        retv, insts = self.generate_expr(a)
-                        symb_table.assign(retv, None)
-                        args[i] = retv
-                    elif type(a) == tuple and type(a[1]) == Tree and a[1].data == "fun_call":
-                        # Function call to named arg
-                        insts += self.generate_ir(a[1], True)
-                        retv = self.uniq_var()
-                        symb_table.assign(retv, SymbTable.RETURN_NAME)
-                        insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
-                        args[i] = (a[0], retv)
-                    elif type(a) == tuple and type(a[1]) == Tree and len(a[1].data) > 5 and a[1].data[:5] == "EXPR_":
-                        # Expression nor parsable in the transformer (for named arg)
-                        retv, insts = self.generate_expr(a[1])
-                        symb_table.assign(retv, None)
-                        args[i] = (a[0], retv)
-                insts.append(ir.FunCall(name, args))
+                insts += self.multi_call(root)
                 if not silent:
                     insts.append(ir.Print(SymbTable.RETURN_NAME))
             # If statement or elif part
@@ -332,6 +389,7 @@ class Interpreter(Mash):
         """
         Interprets top level tree
         """
+        self.symb_table.analyzer = True
         self.ir = []
         # declaration or print
         for i in root.children:
@@ -348,7 +406,6 @@ class Interpreter(Mash):
         Interprets passed in ir
         @param code IR code to be interpreted
         """
-        self.symb_table.clear_all()
         self.symb_table.analyzer = False
         for i in code:
             i.exec()
@@ -382,6 +439,7 @@ def interpret(opts, code, libmash_code):
             print(i)
         return
     debug("Running IR", opts)
+    symb_table.clear_all()
     if not opts.no_libmash:
         interpreter.interpret(lib_code)
     interpreter.interpret(ir_code)

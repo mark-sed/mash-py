@@ -44,17 +44,13 @@ class SymbTable(Mash):
     """
     RETURN_NAME = "@ret"
 
-    GLOB_TBL = Frame({
-        #"print?1": {ir.Print("@0")}
-    })
-
     def __init__(self, analyzer=False):
         self.initialize()
         self.analyzer = analyzer
 
     def initialize(self):
         self.tbls = []
-        self.tbls.append(SymbTable.GLOB_TBL)
+        self.tbls.append(Frame())
 
     def push(self):
         self.tbls.append(Frame())
@@ -131,6 +127,8 @@ class SymbTable(Mash):
         for t in reversed(self.tbls):
             if s in t:
                 if not nested:
+                    if type(t[s]) == str:
+                        raise mex.UndefinedReference(symb)
                     return t[s]
                 else:
                     # TODO: Add when classes and spaces added

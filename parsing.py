@@ -5,6 +5,7 @@ import ir
 import mash_types as types
 from mash import Mash
 from debugging import info, debug
+import mash_exceptions as mex
 
 class Parser(Mash):
     """
@@ -89,11 +90,14 @@ class ConstTransformer(Transformer):
         v = []
         code = []
         for x in items:
-            if x.type == "CODE":
-                code += x.value
-                v.append(code[-1].dst)
+            if type(x) == Token:
+                if x.type == "CODE":
+                    code += x.value
+                    v.append(code[-1].dst)
+                else:
+                    v.append(x.value)
             else:
-                v.append(x.value)
+                raise mex.Unimplemented("Function calls inside of lists")
         if len(code) == 0:
             return Token("list", types.List(v))
         else:

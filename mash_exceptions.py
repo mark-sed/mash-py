@@ -8,7 +8,7 @@ class UndefinedReference(MashException):
     Undefined reference to a symbol
     """
     def __init__(self, msg, *args: object):
-        super().__init__("Undefined reference to '"+msg+"'", *args)
+        super().__init__("Undefined reference: "+msg, *args)
 
 class Unimplemented(MashException):
     """
@@ -29,14 +29,21 @@ class Redefinition(MashException):
     Symbol redefinition
     """
     def __init__(self, msg, *args: object):
-        super().__init__("Redefinition of '"+msg+"'", *args)
+        super().__init__("Redefinition: "+msg, *args)
+
+class SyntaxError(MashException):
+    """
+    Syntax error
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Syntax error: "+msg, *args)
 
 class AmbiguousRedefinition(MashException):
     """
     Ambiguous redefinition
     """
     def __init__(self, msg, *args: object):
-        super().__init__("Ambiguous redefinition of "+msg+"", *args)
+        super().__init__("Ambiguous redefinition of '"+msg+"'", *args)
 
 class FlowControl(MashException):
     """

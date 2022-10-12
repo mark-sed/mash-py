@@ -30,6 +30,8 @@ def wrap(v):
         return String(v)
     elif type(v) == bool:
         return Bool(v)
+    elif type(v) == list:
+        return List(v)
     elif v is None:
         return Nil(v)
     else:
@@ -76,7 +78,15 @@ class Print(Instruction):
         self.value = value
 
     def exec(self):
-        print(self.get(self.value), end="")
+        v = self.get(self.value)
+        if type(v) == list:
+            # Function/s (there can be multiple)
+            details = ""
+            if len(v) > 1:
+                details = f" with {len(v)} signatures"
+            print(f"<function '{v[0].name}'{details}>", end="")
+        else:
+            print(v, end="")
 
     def __str__(self):
         return f"PRINT {self.value}"
@@ -249,7 +259,7 @@ class For(Instruction):
 
     def exec(self):
         symb_table.push()
-        for a in self.l.get_value():
+        for a in self.getV(self.l):
             symb_table.assign(self.i, a)
             try:
                 for i in self.t:
@@ -372,7 +382,10 @@ class FunCall(Instruction):
     def exec(self):
         fl = symb_table.get(self.name)
         if type(fl) != list:
-            raise mex.TypeError("'"+self.name+"' is not callable")
+            if self.name[0] == "@":
+                raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
+            else:
+                raise mex.TypeError("'"+self.name+"' is not callable")
         f = None
         for i in fl:
             # Find matching function signature
@@ -380,7 +393,10 @@ class FunCall(Instruction):
                 f = i
                 break
         if f is None:
-            raise mex.UndefinedReference(str(self))
+            if self.name[0] == "@":
+                raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
+            else:
+                raise mex.UndefinedReference(str(self))
         assigned = []
         for i, a in enumerate(f.args):
             v = a[1]
@@ -473,7 +489,7 @@ class Expr(IR):
     """
     def check_types(self, op, s1, s2, allowed):
         if not ((type(s1) in allowed) and (type(s2) in allowed)):
-            raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'.")
+            raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'")
 
 class Mul(Expr):
     """
