@@ -81,10 +81,7 @@ class Print(Instruction):
         v = self.get(self.value)
         if type(v) == list:
             # Function/s (there can be multiple)
-            details = ""
-            if len(v) > 1:
-                details = f" with {len(v)} signatures"
-            print(f"<function '{v[0].name}'{details}>", end="")
+            print(v[0].fstr(), end="")
         else:
             print(v, end="")
 
@@ -348,6 +345,13 @@ class Fun(Instruction):
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         return f"fun {self.name}({args_s})"+" internal" if self.internal else ""
+
+    def fstr(self):
+        details = ""
+        v = symb_table.get(self.name)
+        if len(v) > 1:
+            details = f" with {len(v)} signatures"
+        return f"<function '{self.name}'{details}>"
 
     def __str__(self):
         if self.internal:

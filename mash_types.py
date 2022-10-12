@@ -83,7 +83,11 @@ class List(Value):
                 if(symb_table.analyzer):
                     v.append(x)
                 else:
-                    v.append(symb_table.get(x).fstr())
+                    value = symb_table.get(x)
+                    if type(value) == list:
+                        v.append(value[0].fstr())
+                    else:
+                        v.append(value.fstr())
             else:
                 v.append(x.fstr())
         return "["+", ".join(v)+"]"
