@@ -449,6 +449,26 @@ class FunCall(Instruction):
         args_s = ", ".join(args)
         return f"{self.name}({args_s})"
 
+class Member(Instruction):
+    """
+    Member operator
+    """
+
+    def __init__(self, src, index, dst):
+        self.src = src
+        self.dst = dst
+        self.index = index
+
+    def exec(self):
+        s1 = self.get(self.src)
+        if type(s1) == list:
+            raise mex.TypeError("Functions are not subscriptable")
+        v = s1._at(self.get(self.index))
+        symb_table.assign(self.dst, v)
+
+    def __str__(self):
+        return f"AT {self.src}, {self.index}, {self.dst}"
+
 class Keyword(Instruction):
     """
     Keyword instruction

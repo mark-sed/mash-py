@@ -24,6 +24,13 @@ class TypeError(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Type error: "+msg, *args)
 
+class IndexError(MashException):
+    """
+    Index/member error
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Index error: "+msg, *args)
+
 class Redefinition(MashException):
     """
     Symbol redefinition

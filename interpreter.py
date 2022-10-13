@@ -30,7 +30,25 @@ class Interpreter(Mash):
         self._last_id += 1
         return f"@i_{self._last_id}"
 
-    def gen_cond(self, tree):
+    def generate_subexpr(self, src):
+        """
+        Subexpression code generation and evaluation
+        """
+        insts = []
+        dst = None
+        if type(src) == Token:
+            if src.type in Interpreter.CONSTS or type(src.value) == str:
+                dst = src.value
+            elif src.type == "CODE":
+                insts += src.value
+                dst = insts[-1].dst
+            else:
+                raise mex.Unimplemented("Subexpression")
+        else:
+            raise mex.Unimplemented("Subexpression")
+        return (dst, insts)
+
+    def generate_cond(self, tree):
         """
         Generates code for conditions (for if, while and do while)
         """
@@ -282,7 +300,7 @@ class Interpreter(Mash):
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
-                cnd, insts = self.gen_cond(tree)
+                cnd, insts = self.generate_cond(tree)
                 tr = None
                 fl = ir.Nop()
                 # True branch
@@ -307,7 +325,7 @@ class Interpreter(Mash):
             # While loop
             elif root.data == "while":
                 tree = root.children[0].children
-                cnd, insts = self.gen_cond(tree)
+                cnd, insts = self.generate_cond(tree)
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.push()
                 t = self.generate_ir(tree[1])
@@ -381,6 +399,16 @@ class Interpreter(Mash):
                 resvar, insts = self.generate_expr(root)
                 if not silent:
                     return insts+[ir.Print(resvar)]
+            # Member []
+            elif root.data == "member":
+                src, extra_insts = self.generate_subexpr(root.children[0])
+                insts += extra_insts
+                index, extra_insts = self.generate_subexpr(root.children[1])
+                insts += extra_insts
+                dst = self.uniq_var()
+                insts.append(ir.Member(src, index, dst))
+                if not silent:
+                    insts.append(ir.Print(dst))
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []

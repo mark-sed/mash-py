@@ -20,6 +20,9 @@ class Value():
     def type_name(self):
         return self.__class__.__name__
 
+    def _at(self, index):
+        raise mex.TypeError(f"Type {self.type_name} is not subscriptable")
+
     def fstr(self):
         return self.__str__()
 
@@ -44,6 +47,13 @@ class String(Value):
 
     def __str__(self):
         return self.value
+
+    def _at(self, index):
+        if type(index) != Int:
+            raise mex.TypeError("String index must be an Int")
+        if index.get_value() >= len(self.value):
+            raise mex.IndexError(f"Indxe {index.get_value()} is out of range for length {len(self.value)}")
+        return String(self.value[index.get_value()])
 
     def fstr(self):
         return "\""+self.original+"\""
@@ -75,6 +85,13 @@ class List(Value):
     """
     def __init__(self, value):
         self.value = value
+
+    def _at(self, index):
+        if type(index) != Int:
+            raise mex.TypeError("List index must be an Int")
+        if index.get_value() >= len(self.value):
+            raise mex.IndexError(f"Indxe {index.get_value()} is out of range for length {len(self.value)}")
+        return self.value[index.get_value()]
 
     def __str__(self):
         v = []
