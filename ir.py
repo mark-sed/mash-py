@@ -469,6 +469,28 @@ class Member(Instruction):
     def __str__(self):
         return f"AT {self.src}, {self.index}, {self.dst}"
 
+class Slice(Instruction):
+    """
+    Slice operator
+    """
+
+    def __init__(self, src, i1, i2, step, dst):
+        self.src = src
+        self.dst = dst
+        self.i1 = i1
+        self.i2 = i2
+        self.step = step
+
+    def exec(self):
+        s1 = self.get(self.src)
+        if type(s1) == list:
+            raise mex.TypeError("Functions cannot be sliced")
+        v = s1._slice(self.get(self.i1), self.get(self.i2), self.get(self.step))
+        symb_table.assign(self.dst, v)
+
+    def __str__(self):
+        return f"SLICE {self.src}, {self.i1}, {self.i2}, {self.step}, {self.dst}"
+
 class Keyword(Instruction):
     """
     Keyword instruction

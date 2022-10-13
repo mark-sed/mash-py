@@ -23,6 +23,9 @@ class Value():
     def _at(self, index):
         raise mex.TypeError(f"Type {self.type_name} is not subscriptable")
 
+    def _slice(self, i1, i2, step):
+        raise mex.TypeError(f"Type {self.type_name} cannot be sliced")
+
     def fstr(self):
         return self.__str__()
 
@@ -54,6 +57,16 @@ class String(Value):
         if index.get_value() >= len(self.value):
             raise mex.IndexError(f"Indxe {index.get_value()} is out of range for length {len(self.value)}")
         return String(self.value[index.get_value()])
+
+    def _slice(self, i1, i2, step):
+        i1 = i1 if i1 is not None else Int(0)
+        i2 = i2 if i2 is not None else Int(len(self.value))
+        step = step if step is not None else Int(1)
+        if type(i1) != Int or type(i2) != Int or type(step) != Int:
+            raise mex.TypeError("String slice indices must be Ints")
+        if step.get_value() == 0:
+            raise mex.ValueError("Slice step cannot be 0")
+        return String(self.value[i1.get_value():i2.get_value():step.get_value()])
 
     def fstr(self):
         return "\""+self.original+"\""
@@ -92,6 +105,16 @@ class List(Value):
         if index.get_value() >= len(self.value):
             raise mex.IndexError(f"Indxe {index.get_value()} is out of range for length {len(self.value)}")
         return self.value[index.get_value()]
+
+    def _slice(self, i1, i2, step):
+        i1 = i1 if i1 is not None else Int(0)
+        i2 = i2 if i2 is not None else Int(len(self.value))
+        step = step if step is not None else Int(1)
+        if type(i1) != Int or type(i2) != Int or type(step) != Int:
+            raise mex.TypeError("String slice indices must be Ints")
+        if step.get_value() == 0:
+            raise mex.ValueError("Slice step cannot be 0")
+        return String(self.value[i1.get_value():i2.get_value():step.get_value()])
 
     def __str__(self):
         v = []

@@ -45,7 +45,14 @@ class Interpreter(Mash):
             else:
                 raise mex.Unimplemented("Subexpression")
         else:
-            raise mex.Unimplemented("Subexpression")
+            if src.data == "fun_call":
+                insts += self.multi_call(src)
+                dst = self.uniq_var()
+                insts.append(ir.AssignVar(dst, SymbTable.RETURN_NAME))
+            elif len(src.data) > 5 and src.data[0:5] == "EXPR_":
+                dst, insts = self.generate_expr(src)
+            else:
+                raise mex.Unimplemented("Subexpression")
         return (dst, insts)
 
     def generate_cond(self, tree):
@@ -407,6 +414,29 @@ class Interpreter(Mash):
                 insts += extra_insts
                 dst = self.uniq_var()
                 insts.append(ir.Member(src, index, dst))
+                if not silent:
+                    insts.append(ir.Print(dst))
+            # Subrange
+            elif root.data == "slice":
+                src, extra_insts = self.generate_subexpr(root.children[0])
+                insts += extra_insts
+                indices = []
+                a = 1
+                was_value = False
+                while a < len(root.children):
+                    i = root.children[a]
+                    if type(i) == Tree or (type(i) == Token and i.type != "MEM_SEP"):
+                        index, extra_insts = self.generate_subexpr(i)
+                        insts += extra_insts
+                        indices.append(index)
+                        was_value = True
+                    elif not was_value:
+                        indices.append(None)
+                    a += 1
+                dst = self.uniq_var()
+                # Pad missing
+                indices += [None] * (3 - len(indices))
+                insts.append(ir.Slice(src, *indices, dst))
                 if not silent:
                     insts.append(ir.Print(dst))
             return insts

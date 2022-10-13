@@ -61,15 +61,7 @@ _rvalue : silent_expr
 silent_expr : "~" _expr
 
 // Expressions using operators
-_expr : const
-     | list
-     | dict
-     | scope_name
-     | fun_call
-     | member
-     | ternary_if
-     | "(" _expr ")"
-     | expr_or
+_expr : expr_or
      | expr_and
      | expr_not
      | expr_lte
@@ -88,6 +80,14 @@ _expr : const
      | expr_exp
      | expr_inc
      | expr_dec
+     | ternary_if
+     | fun_call
+     | member
+     | scope_name
+     | const
+     | list
+     | dict
+     | "(" _expr ")"
 
 expr_or : _expr ("||"|"or") _expr
 expr_and : _expr ("&&"|"and") _expr
@@ -126,8 +126,10 @@ ternary_if : _expr "?" (_expr|lambda) ":" (_expr|lambda)
 
 // Member
 member : _expr "[" _expr "]"
-       | _expr "[" _expr? ":" _expr? "]"
-       | _expr "[" _expr? ":" _expr? ":" _expr? "]"
+       | _expr "[" _expr? MEM_SEP _expr? "]" -> slice
+       | _expr "[" _expr? MEM_SEP _expr? MEM_SEP _expr? "]" -> slice
+
+MEM_SEP : ":"
 
 // Definitions
 _definition : lambda

@@ -31,6 +31,13 @@ class IndexError(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Index error: "+msg, *args)
 
+class ValueError(MashException):
+    """
+    Value error
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Value error: "+msg, *args)
+
 class Redefinition(MashException):
     """
     Symbol redefinition
