@@ -176,6 +176,32 @@ class ConstTransformer(Transformer):
         insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
         return Token("CODE", insts)
 
+    def _help_expr_un(self, items, op, Cls, post):
+        i1 = items[0]
+
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1])
+
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_"+post, [i1])
+            
+        # Evaluating const expr
+        if i1.type == "SIGNED_INT" or i1.type == "SIGNED_FLOAT":
+            if i1.type == "SIGNED_FLOAT":
+                return Token("SIGNED_FLOAT", ir.Float(op(i1.value.value)))
+            else:
+                return Token("SIGNED_INT", ir.Int(op(i1.value.value)))
+        # Generating code
+        insts = []
+        srcs = None
+        if items[0].type == "CODE":
+            insts += items[0].value
+            srcs = items[0].value[-1].dst
+        else:
+            srcs = items[0].value
+        insts.append(Cls(srcs))
+        return Token("CODE", insts)
+
     def _help_expr_log(self, items, op, Cls, post):
         i1 = items[0]
         i2 = items[1]
@@ -193,7 +219,7 @@ class ConstTransformer(Transformer):
             return Tree("EXPR_"+post, [i1, i2])
 
         if type(items[0].value) == ir.Bool and type(items[1].value) == ir.Bool:
-            r = ir.Bool(op(items[0].value.value, items[0].value.value))
+            r = ir.Bool(op(items[0].value.value, items[1].value.value))
             return Token(str(r), r)
         # Generating code
         insts = []
@@ -208,6 +234,27 @@ class ConstTransformer(Transformer):
         insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
         return Token("CODE", insts)
 
+    def _help_expr_log_un(self, items, op, Cls, post):
+        i1 = items[0]
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1])
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_"+post, [i1])
+        if type(items[0].value) == ir.Bool:
+            r = ir.Bool(op(items[0].value.value))
+            return Token(str(r), r)
+        # Generating code
+        insts = []
+        src = None
+        if items[0].type == "CODE":
+            insts += items[0].value
+            # Expr code
+            src = items[0].value[-1].dst
+        else:
+            src = items[0].value
+        insts.append(Cls(src, self.uniq_var()))
+        return Token("CODE", insts)
+
     def expr_mul(self, items):
         return self._help_expr_bin(items, lambda a, b: a*b, ir.Mul, "MUL")
 
@@ -216,6 +263,18 @@ class ConstTransformer(Transformer):
 
     def expr_sub(self, items):
         return self._help_expr_bin(items, lambda a, b: a-b, ir.Sub, "SUB")
+
+    def expr_fdiv(self, items):
+        return self._help_expr_bin(items, lambda a, b: a / b, ir.FDiv, "FDIV")
+
+    def expr_idiv(self, items):
+        return self._help_expr_bin(items, lambda a, b: a // b, ir.IDiv, "IDIV")
+
+    def expr_mod(self, items):
+        return self._help_expr_bin(items, lambda a, b: a % b, ir.Mod, "MOD")
+
+    def expr_exp(self, items):
+        return self._help_expr_bin(items, lambda a, b: a ^ b, ir.Exp, "EXP")
 
     def expr_or(self, items):
         return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "OR")
@@ -241,28 +300,40 @@ class ConstTransformer(Transformer):
     def expr_neq(self, items):
         return self._help_expr_log(items, lambda a, b: a != b, ir.Neq, "NEQ")
 
-"""
-    def expr_not(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
-
     def expr_in(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
+        i1 = items[0]
+        i2 = items[1]
 
-    def expr_fdiv(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_IN", [i1, i2])
+        
+        if type(i2) == Tree and len(i2.data) > 5 and i2.data[0:5] == "EXPR_":
+            return Tree("EXPR_IN", [i1, i2])
 
-    def expr_idiv(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_IN", [i1, i2])
+            
+        if type(i2) == Tree and i2.data == "fun_call":
+            return Tree("EXPR_IN", [i1, i2])
 
-    def expr_mod(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
+        # Generating code
+        insts = []
+        srcs = [0, 0]
+        for i in range(0, 2):
+            if items[i].type == "CODE":
+                insts += items[i].value
+                # Expr code
+                srcs[i] = items[i].value[-1].dst
+            else:
+                srcs[i] = items[i].value
+        insts.append(ir.In(srcs[0], srcs[1], self.uniq_var()))
+        return Token("CODE", insts)
 
-    def expr_exp(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
+    def expr_not(self, items):
+        return self._help_expr_log_un(items, lambda a: not a, ir.LNot, "NOT")
 
     def expr_inc(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
+        return self._help_expr_un(items, lambda a: a + 1, ir.Inc, "INC")
 
     def expr_dec(self, items):
-        return self._help_expr_(items, lambda a, b: a b, ir.)
-"""
+        return self._help_expr_un(items, lambda a: a - 1, ir.Dec, "DEC")

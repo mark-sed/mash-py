@@ -23,6 +23,9 @@ class Value():
     def _at(self, index):
         raise mex.TypeError(f"Type {self.type_name} is not subscriptable")
 
+    def _in(self, x):
+        raise mex.TypeError(f"Type {self.type_name()} does not support operator 'in'")
+
     def _slice(self, i1, i2, step):
         raise mex.TypeError(f"Type {self.type_name} cannot be sliced")
 
@@ -67,6 +70,9 @@ class String(Value):
         if step.get_value() == 0:
             raise mex.ValueError("Slice step cannot be 0")
         return String(self.value[i1.get_value():i2.get_value():step.get_value()])
+
+    def _in(self, x):
+        return x.get_value() in self.value
 
     def fstr(self):
         return "\""+self.original+"\""
@@ -115,6 +121,16 @@ class List(Value):
         if step.get_value() == 0:
             raise mex.ValueError("Slice step cannot be 0")
         return String(self.value[i1.get_value():i2.get_value():step.get_value()])
+
+    def _in(self, x):
+        v = x.get_value() if type(x) != list else x
+        for i in self.value:
+            if type(i) == str:
+                i = symb_table.get(i)
+            a = i.get_value() if type(i) != list else i
+            if a == v:
+                return True
+        return False
 
     def __str__(self):
         v = []

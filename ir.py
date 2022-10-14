@@ -604,6 +604,108 @@ class Sub(Expr):
     def __str__(self):
         return f"SUB {self.src1}, {self.src2}, {self.dst}"
 
+class FDiv(Expr):
+    """
+    Float division
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("/", s1, s2, {Int, Float})
+        r = v1/v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"FDIV {self.src1}, {self.src2}, {self.dst}"
+
+class IDiv(Expr):
+    """
+    Int division
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("//", s1, s2, {Int, Float})
+        r = v1//v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"IDIV {self.src1}, {self.src2}, {self.dst}"
+
+class Mod(Expr):
+    """
+    Int division
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("%", s1, s2, {Int, Float})
+        r = v1 % v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"MOD {self.src1}, {self.src2}, {self.dst}"
+
+class Exp(Expr):
+    """
+    Exponentiation
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        v1 = s1.get_value()
+        v2 = s2.get_value()
+        self.check_types("^", s1, s2, {Int, Float})
+        r = v1 ** v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"EXP {self.src1}, {self.src2}, {self.dst}"
+
+class In(Expr):
+    """
+    In collection
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        r = s2._in(s1)
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"IN {self.src1}, {self.src2}, {self.dst}"
+
 class LOr(Expr):
     """
     Logical OR
@@ -657,6 +759,25 @@ class LAnd(Expr):
 
     def __str__(self):
         return f"AND {self.src1}, {self.src2}, {self.dst}"
+
+class LNot(Expr):
+    
+    def __init__(self, src1, dst):
+        self.dst = dst
+        self.src1 = src1
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        v1 = s1.get_value()
+        if type(s1) in types.IMPLICIT_TO_BOOL:
+            v1 = bool(v1)
+            s1 = types.Bool(v1)
+        self.check_types("not", s1, Bool(True), {Bool})
+        r = not v1
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"NOT {self.src1}, {self.dst}"
 
 class Lte(Expr):
     
@@ -771,6 +892,36 @@ class Neq(Expr):
 
     def __str__(self):
         return f"NEQ {self.src1}, {self.src2}, {self.dst}"
+
+class Inc(Expr):
+    
+    def __init__(self, dst):
+        self.dst = dst
+
+    def exec(self):
+        s1 = self.get(self.dst)
+        v1 = s1.get_value()
+        self.check_types("++", s1, Int(1), {Int, Float})
+        r = v1 + 1
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"INC {self.dst}"
+
+class Dec(Expr):
+    
+    def __init__(self, dst):
+        self.dst = dst
+
+    def exec(self):
+        s1 = self.get(self.dst)
+        v1 = s1.get_value()
+        self.check_types("--", s1, Int(1), {Int, Float})
+        r = v1 - 1
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"DEC {self.dst}"
 
 """
 class (Expr):
