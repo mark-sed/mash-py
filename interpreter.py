@@ -233,10 +233,12 @@ class Interpreter(Mash):
                 return insts
             # Generated code
             elif root.type == "CODE":
-                if not silent:
-                    return root.value+[ir.Print(root.value[-1].dst)]
-                else:
+                if silent:
                     return root.value
+                else:
+                    if len(root.value) == 1 and (type(root.value[0]) == ir.Inc or type(root.value[0]) == ir.Dec):
+                        return root.value
+                    return root.value+[ir.Print(root.value[-1].dst)]
             # Const print
             elif root.type in Interpreter.CONSTS:
                 if not silent:

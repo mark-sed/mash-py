@@ -106,8 +106,8 @@ expr_fdiv : _expr "/" _expr
 expr_idiv : _expr "//" _expr
 expr_mod : _expr "%" _expr
 expr_exp : _expr "^" _expr
-expr_inc : _expr "++"
-expr_dec : _expr "--"
+expr_inc : scope_name"++"
+expr_dec : scope_name"--"
 
 // Constants
 const : SIGNED_FLOAT  -> float

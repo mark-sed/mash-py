@@ -588,7 +588,11 @@ class Expr(IR):
     Expression
     """
     def check_types(self, op, s1, s2, allowed):
-        if not ((type(s1) in allowed) and (type(s2) in allowed)):
+        if type(s1) == list:
+            s1 = s1[0].fstr()
+        if type(s2) == list:
+            s2 = s2[0].fstr()
+        if (type(s1) == str or type(s2) == str) or not ((type(s1) in allowed) and (type(s2) in allowed)):
             raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'")
 
 class Mul(Expr):
@@ -603,9 +607,9 @@ class Mul(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("*", s1, s2, {Int, Float})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("*", s1, s2, {Int, Float})
         r = v1*v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -624,13 +628,13 @@ class Add(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        v1 = s1.get_value()
-        v2 = s2.get_value()
+        self.check_types("+", s1, s2, {Int, Float, String, RString, FString, List, Dict})
         if issubclass(type(s1), String) or issubclass(type(s2), String):
             v1 = str(s1)
             v2 = str(s2)
         else:
-            self.check_types("+", s1, s2, {Int, Float, String, RString, FString, List})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
         r = v1+v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -649,9 +653,9 @@ class Sub(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("-", s1, s2, {Int, Float})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("-", s1, s2, {Int, Float})
         r = v1-v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -670,9 +674,9 @@ class FDiv(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("/", s1, s2, {Int, Float})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("/", s1, s2, {Int, Float})
         r = v1/v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -691,9 +695,9 @@ class IDiv(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("//", s1, s2, {Int, Float})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("//", s1, s2, {Int, Float})
         r = v1//v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -712,9 +716,9 @@ class Mod(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("%", s1, s2, {Int, Float})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("%", s1, s2, {Int, Float})
         r = v1 % v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -733,9 +737,9 @@ class Exp(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("^", s1, s2, {Int, Float})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("^", s1, s2, {Int, Float})
         r = v1 ** v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -772,14 +776,16 @@ class LOr(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        v1 = s1.get_value()
-        v2 = s2.get_value()
         if type(s1) in types.IMPLICIT_TO_BOOL:
             v1 = bool(v1)
             s1 = types.Bool(v1)
+        else:
+            v1 = s1.get_value()
         if type(s2) in types.IMPLICIT_TO_BOOL:
             v2 = bool(v2)
             s2 = types.Bool(v2)
+        else:
+            v2 = s2.get_value()
         self.check_types("or", s1, s2, {Bool})
         r = v1 or v2
         symb_table.assign(self.dst, wrap(r))
@@ -799,14 +805,16 @@ class LAnd(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        v1 = s1.get_value()
-        v2 = s2.get_value()
         if type(s1) in types.IMPLICIT_TO_BOOL:
             v1 = bool(v1)
             s1 = types.Bool(v1)
+        else:
+            v1 = s1.get_value()
         if type(s2) in types.IMPLICIT_TO_BOOL:
             v2 = bool(v2)
             s2 = types.Bool(v2)
+        else:
+            v2 = s2.get_value()
         self.check_types("and", s1, s2, {Bool})
         r = v1 and v2
         symb_table.assign(self.dst, wrap(r))
@@ -822,10 +830,11 @@ class LNot(Expr):
 
     def exec(self):
         s1 = self.get(self.src1)
-        v1 = s1.get_value()
         if type(s1) in types.IMPLICIT_TO_BOOL:
             v1 = bool(v1)
             s1 = types.Bool(v1)
+        else:
+            v1 = s1.get_value()
         self.check_types("not", s1, Bool(True), {Bool})
         r = not v1
         symb_table.assign(self.dst, wrap(r))
@@ -843,9 +852,9 @@ class Lte(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("<=", s1, s2, {Int, Float, String, Bool})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("<=", s1, s2, {Int, Float, String, Bool})
         r = v1 <= v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -862,9 +871,9 @@ class Gte(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types(">=", s1, s2, {Int, Float, String, Bool})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types(">=", s1, s2, {Int, Float, String, Bool})
         r = v1 >= v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -881,9 +890,9 @@ class Gt(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types(">", s1, s2, {Int, Float, String, Bool})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types(">", s1, s2, {Int, Float, String, Bool})
         r = v1 > v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -898,12 +907,11 @@ class Lt(Expr):
         self.src2 = src2
 
     def exec(self):
-        print(symb_table)
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("<", s1, s2, {Int, Float, String, Bool})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("<", s1, s2, {Int, Float, String, Bool})
         r = v1 < v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -920,9 +928,9 @@ class Eq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict})
         r = v1 == v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -939,9 +947,9 @@ class Neq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
+        self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict})
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict})
         r = v1 != v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -955,8 +963,8 @@ class Inc(Expr):
 
     def exec(self):
         s1 = self.get(self.dst)
-        v1 = s1.get_value()
         self.check_types("++", s1, Int(1), {Int, Float})
+        v1 = s1.get_value()
         r = v1 + 1
         symb_table.assign(self.dst, wrap(r))
 
@@ -970,8 +978,8 @@ class Dec(Expr):
 
     def exec(self):
         s1 = self.get(self.dst)
-        v1 = s1.get_value()
         self.check_types("--", s1, Int(1), {Int, Float})
+        v1 = s1.get_value()
         r = v1 - 1
         symb_table.assign(self.dst, wrap(r))
 
