@@ -146,8 +146,6 @@ class SymbTable(Mash):
         if type(symb) == list:
             s = symb[0]
             nested = True
-        if not self.analyzer:
-            print(s, symb_table)
         if s in f:
             if not nested:
                 if type(f[s]) == str:

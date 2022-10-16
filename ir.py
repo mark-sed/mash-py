@@ -105,6 +105,30 @@ class SetIfNotSet(Instruction):
     def __str__(self):
         return f"SETIFNOTSET {self.value}, {self.dst}"
 
+class SetOrPrint(Instruction):
+    """
+    If variable is not yet set, then this declares it,
+    if it is set, then it prints it
+    """
+    def __init__(self, dst, value=Nil()):
+        self.dst = dst
+        self.value = value
+
+    def exec(self):
+        s, _ = symb_table.exists(self.dst)
+        if not s:
+            symb_table.assign(self.dst, self.value)
+        else:
+            v = self.get(self.dst)
+            if type(v) == list:
+                # Function/s (there can be multiple)
+                print(v[0].fstr(), end="")
+            else:
+                print(v, end="")
+
+    def __str__(self):
+        return f"SETORPRINT {self.value}, {self.dst}"
+
 class ToString(Instruction):
     """
     Convert value to a string
@@ -351,7 +375,8 @@ class Fun(Instruction):
         v = symb_table.get(self.name)
         if len(v) > 1:
             details = f" with {len(v)} signatures"
-        return f"<function '{self.name}'{details}>"
+        n = "".join(self.name)
+        return f"<function '{n}'{details}>"
 
     def __str__(self):
         if self.internal:
@@ -366,7 +391,8 @@ class Fun(Instruction):
             else:
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
-        return f"fun {self.name}({args_s}) {{\n{t}\n}}"
+        n = "".join(self.name)
+        return f"fun {n}({args_s}) {{\n{t}\n}}"
 
 class FunCall(Instruction):
     """
@@ -389,7 +415,7 @@ class FunCall(Instruction):
             if self.name[0] == "@":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
-                raise mex.TypeError("'"+self.name+"' is not callable")
+                raise mex.TypeError("'"+"".self.name+"' is not callable")
         f = None
         for i in fl:
             # Find matching function signature
@@ -423,7 +449,8 @@ class FunCall(Instruction):
                     assigned.append((k, v))
                     break
             else:
-                raise mex.TypeError(f"Argument named '{k}' in function call to '{self.name}' not found")
+                n = "".join(self.name)
+                raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
         # Push new frame and arguments
         symb_table.push()
         # Set default args
@@ -447,7 +474,8 @@ class FunCall(Instruction):
             else:
                 args.append(f"{k[0]} = {str(k[1])}")
         args_s = ", ".join(args)
-        return f"{self.name}({args_s})"
+        n = "".join(self.name)
+        return f"{n}({args_s})"
 
 class Member(Instruction):
     """
@@ -870,6 +898,7 @@ class Lt(Expr):
         self.src2 = src2
 
     def exec(self):
+        print(symb_table)
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
         v1 = s1.get_value()
@@ -948,24 +977,3 @@ class Dec(Expr):
 
     def __str__(self):
         return f"DEC {self.dst}"
-
-"""
-class (Expr):
-    
-    def __init__(self, src1, src2, dst):
-        self.dst = dst
-        self.src1 = src1
-        self.src2 = src2
-
-    def exec(self):
-        s1 = self.get(self.src1)
-        s2 = self.get(self.src2)
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        self.check_types("", s1, s2, {Int, Float})
-        r = v1 v2
-        symb_table.assign(self.dst, wrap(r))
-
-    def __str__(self):
-        return f" {self.src1}, {self.src2}, {self.dst}"
-"""

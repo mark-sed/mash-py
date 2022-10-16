@@ -172,7 +172,7 @@ class Dict(Value):
             a = i.get_value() if type(i) != list else i
             if a == v:
                 return k
-        return False
+        raise mex.KeyError(str(index))
 
     def _in(self, x):
         v = x.get_value() if type(x) != list else x

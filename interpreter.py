@@ -1,4 +1,3 @@
-from termios import VLNEXT
 from lark.lexer import Token
 from lark.tree import Tree
 from sys import stderr
@@ -207,9 +206,10 @@ class Interpreter(Mash):
             # Variable declaration or print
             if root.type == "VAR_NAME":
                 self.symb_table.assign(root.value, ir.Nil())
-                insts = [ir.SetIfNotSet(root.value, ir.Nil())]
                 if not silent:
-                    insts += [ir.Print(root.value)]
+                    insts = [ir.SetOrPrint(root.value, ir.Nil())]
+                else:
+                    insts += [ir.SetIfNotSet(root.value, ir.Nil())]
                 return insts
             # Printing
             elif root.type == "scope_name":
@@ -285,6 +285,9 @@ class Interpreter(Mash):
                         assign = self.generate_ir(tree, True)
                         self.symb_table.assign(root.children[0].value, assign[-1].dst)
                         insts += assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
+                    elif tree.data == "member":
+                        insts += self.generate_ir(tree, True)
+                        insts.append(self.op_assign(root.children[0].value, insts[-1].dst, op))
                     else:
                         raise mex.Unimplemented("Assignment not implemented for such value")
             # Block of code
