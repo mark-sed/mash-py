@@ -1,4 +1,5 @@
 from ftplib import all_errors
+from xml.dom.pulldom import IGNORABLE_WHITESPACE
 from mash import Mash
 import mash_exceptions as mex
 
@@ -24,12 +25,6 @@ class Var(Symbol):
     def __str__(self):
         return f"{self.name} = {self.value}"
 
-class Fun(Symbol):
-    """
-    Function
-    """
-    ...
-
 class Frame(dict):
     """
     Frame for symbol table
@@ -51,6 +46,7 @@ class SymbTable(Mash):
     def initialize(self):
         self.tbls = []
         self.tbls.append(Frame())
+        self.spaces = []
 
     def push(self):
         self.tbls.append(Frame())
@@ -58,6 +54,17 @@ class SymbTable(Mash):
     def pop(self, amount=1):
         for _ in range(amount):
             self.tbls.pop()
+
+    def push_space(self, name):
+        spc = Frame()
+        self.declare(name, spc)
+        self.spaces.append((name, spc))
+
+    def pop_space(self):
+        self.spaces.pop()
+
+    def in_space(self):
+        return len(self.spaces) > 0
 
     def clear_all(self):
         self.initialize()
@@ -69,7 +76,10 @@ class SymbTable(Mash):
         """
         if self.exists_top(symb):
             raise mex.Redefinition(symb)
-        self.tbls[-1][symb] = value
+        if self.in_space():
+            self.spaces[-1][1][symb] = value
+        else:
+            self.tbls[-1][symb] = value
 
     def define_fun(self, name, min_args, max_args, irfun):
         """
@@ -82,7 +92,10 @@ class SymbTable(Mash):
             pass
 
         if fprev is None:
-            self.tbls[-1][name] = [irfun]
+            if self.in_space():
+                self.spaces[-1][1][name] = [irfun]
+            else:
+                self.tbls[-1][name] = [irfun]
         else:
             # Redefinition or ambiguous redef
             for i, f in enumerate(fprev):
@@ -91,10 +104,16 @@ class SymbTable(Mash):
                     raise mex.AmbiguousRedefinition(f"function '{name}'")
                 elif f.max_args == max_args:
                     # Overridden
-                    self.tbls[-1][name][i] = irfun
+                    if self.in_space():
+                        self.spaces[-1][1][name][i] = irfun
+                    else:
+                        self.tbls[-1][name][i] = irfun
                     break
             else:
-                self.tbls[-1][name].append(irfun)
+                if self.in_space():
+                    self.spaces[-1][1][name].append(irfun)
+                else:
+                    self.tbls[-1][name].append(irfun)
 
     def assign(self, symb, value):
         """
@@ -116,42 +135,58 @@ class SymbTable(Mash):
             #        if symb in t:
             #            t[symb] = value
             #            return
-            self.tbls[-1][symb] = value
+            if self.in_space():
+                self.spaces[-1][1][symb] = value
+            else:
+                self.tbls[-1][symb] = value
 
-    def get(self, symb):
+    def get_in(self, f, symb):
         nested = False
         s = symb
         if type(symb) == list:
             s = symb[0]
             nested = True
+        if not self.analyzer:
+            print(s, symb_table)
+        if s in f:
+            if not nested:
+                if type(f[s]) == str:
+                    raise mex.UndefinedReference(str(symb))
+                return f[s]
+            else:
+                if type(f[s]) != Frame:
+                    if type(f[s]) == list or type(f[s]) == str:
+                        return f[s]
+                    raise mex.TypeError(f"Cannot scope type {type(f[s])}")
+                return self.get_in(f[s], symb[2:])
+
+    def get(self, symb):
+        if self.in_space():
+            a = self.get_in(self.spaces[-1][1], symb)
+            if a is not None:
+                return a
         for t in reversed(self.tbls):
-            if s in t:
-                if not nested:
-                    if type(t[s]) == str:
-                        raise mex.UndefinedReference(symb)
-                    return t[s]
-                else:
-                    # TODO: Add when classes and spaces added
-                    self.error("NOT IMPLEMENTED!!")
+            a = self.get_in(t, symb)
+            if a is not None:
+                return a
+        if type(symb) == list:
+            raise mex.UndefinedReference("".join(symb))
         raise mex.UndefinedReference(symb)
 
     def exists_top(self, symb):
-        return symb in self.tbls[-1]
+        if type(symb) == list:
+            raise mex.Unimplemented("Scoped name exitsts")
+        if self.in_space():
+            return symb in self.spaces[-1][1]
+        else:    
+            return symb in self.tbls[-1]
 
     def exists(self, symb):
-        nested = False
-        s = symb
-        if type(symb) == list:
-            s = symb[0]
-            nested = True
-        for t in reversed(self.tbls):
-            if s in t:
-                if not nested:
-                    return (True, "")
-                else:
-                    # TODO: Add when classes and spaces added
-                    self.error("NOT IMPLEMENTED!!")
-        return (False, s)
+        try:
+            self.get(symb)
+        except mex.UndefinedReference:
+            return False, str(symb)
+        return True, ""
 
     def __str__(self):
         ts = []

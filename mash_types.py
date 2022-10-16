@@ -29,6 +29,9 @@ class Value():
     def _slice(self, i1, i2, step):
         raise mex.TypeError(f"Type {self.type_name} cannot be sliced")
 
+    def __eq__(self, other):
+        return self.get_value() == other.get_value()
+
     def fstr(self):
         return self.__str__()
 
@@ -73,6 +76,9 @@ class String(Value):
 
     def _in(self, x):
         return x.get_value() in self.value
+
+    def __eq__(self, other):
+        return self.value == other.value
 
     def fstr(self):
         return "\""+self.original+"\""
@@ -132,6 +138,9 @@ class List(Value):
                 return True
         return False
 
+    def __eq__(self, other):
+        return self.value == other.value
+
     def __str__(self):
         v = []
         for x in self.value:
@@ -147,6 +156,62 @@ class List(Value):
             else:
                 v.append(x.fstr())
         return "["+", ".join(v)+"]"
+
+class Dict(Value):
+    """
+    Dictionary
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def _at(self, index):
+        v = index.get_value() if type(index) != list else index
+        for i, k in self.value:
+            if type(i) == str:
+                i = symb_table.get(i)
+            a = i.get_value() if type(i) != list else i
+            if a == v:
+                return k
+        return False
+
+    def _in(self, x):
+        v = x.get_value() if type(x) != list else x
+        for i, _ in self.value:
+            if type(i) == str:
+                i = symb_table.get(i)
+            a = i.get_value() if type(i) != list else i
+            if a == v:
+                return True
+        return False
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __str__(self):
+        if len(self.value) == 0:
+            return "{,}"
+        v = []
+        for x, y in self.value:
+            if type(x) == str:
+                if not symb_table.analyzer:
+                    x = symb_table.get(x)
+                    if type(x) == list:
+                        x = x[0].fstr()
+                    else:
+                        x = x.fstr()
+            else:
+                x = x.fstr()
+            if type(y) == str:
+                if not symb_table.analyzer:
+                    y = symb_table.get(y)
+                    if type(y) == list:
+                        y = y[0].fstr()
+                    else:
+                        y = y.fstr()
+            else:
+                y = y.fstr()
+            v.append(x+": "+y)
+        return "{"+", ".join(v)+"}"
 
 class Float(Value):
     """

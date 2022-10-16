@@ -141,6 +141,36 @@ class ConstTransformer(Transformer):
                 args.append(x)
         return Token("fun_call_args", args)
 
+    def dict(self, items):
+        v = []
+        code = []
+        i = 0
+        while i < len(items):
+            x = items[i]
+            y = items[i+1]
+            if type(x) == Token:
+                if x.type == "CODE":
+                    code += x.value
+                    x = code[-1].dst
+                else:
+                    x = x.value
+            else:
+                raise mex.Unimplemented("Function calls inside of lists")
+            if type(y) == Token:
+                if y.type == "CODE":
+                    code += y.value
+                    y = code[-1].dst
+                else:
+                    y = y.value
+            else:
+                raise mex.Unimplemented("Function calls inside of lists")
+            i += 2
+            v.append((x, y))
+        if len(code) == 0:
+            return Token("dict", types.Dict(v))
+        else:
+            return Token("CALC", [Token("CODE", code), Token("dict", types.Dict(v))])
+
     def _help_expr_bin(self, items, op, Cls, post):
         i1 = items[0]
         i2 = items[1]

@@ -1,7 +1,7 @@
 from typing import Type
 from symbol_table import symb_table, SymbTable
 import mash_exceptions as mex
-from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString
+from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString, Dict
 import mash_types as types
 import libmash
 
@@ -491,6 +491,32 @@ class Slice(Instruction):
     def __str__(self):
         return f"SLICE {self.src}, {self.i1}, {self.i2}, {self.step}, {self.dst}"
 
+class SpacePush(Instruction):
+    """
+    Starts namespace
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def exec(self):
+        symb_table.push_space(self.name)
+
+    def __str__(self):
+        return f"SPCPUSH {self.name}"
+
+class SpacePop(Instruction):
+    """
+    Ends namespace
+    """
+    def __init__(self):
+        ...
+
+    def exec(self):
+        symb_table.push()
+
+    def __str__(self):
+        return "SPCPOP"
+
 class Keyword(Instruction):
     """
     Keyword instruction
@@ -867,7 +893,7 @@ class Eq(Expr):
         s2 = self.get(self.src2)
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("==", s1, s2, {Int, Float, String, Bool})
+        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict})
         r = v1 == v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -886,7 +912,7 @@ class Neq(Expr):
         s2 = self.get(self.src2)
         v1 = s1.get_value()
         v2 = s2.get_value()
-        self.check_types("!=", s1, s2, {Int, Float, String, Bool})
+        self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict})
         r = v1 != v2
         symb_table.assign(self.dst, wrap(r))
 

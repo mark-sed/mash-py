@@ -16,7 +16,7 @@ class Interpreter(Mash):
     Mash interpreter
     """
 
-    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "nil", "true", "false", "string", "list"}
+    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "nil", "true", "false", "string", "list", "dict"}
 
     def __init__(self, opts, symb_table):
         self.opts = opts
@@ -137,16 +137,14 @@ class Interpreter(Mash):
             return ir.Sub(dst, value, dst)
         elif op == "*=":
             return ir.Mul(dst, value, dst)
-            """
-            elif op == "/=":
-                return ir.FDiv(dst, value, dst)
-            elif op == "//=":
-                return ir.IDiv(dst, value, dst)
-            elif op == "%=":
-                return ir.Mod(dst, value, dst)
-            elif op == "^=":
-                return ir.Exp(dst, value, dst)
-            """
+        elif op == "/=":
+            return ir.FDiv(dst, value, dst)
+        elif op == "//=":
+            return ir.IDiv(dst, value, dst)
+        elif op == "%=":
+            return ir.Mod(dst, value, dst)
+        elif op == "^=":
+            return ir.Exp(dst, value, dst)
         else:
             raise mex.Unimplemented("Assignment operator "+str(op))
 
@@ -299,6 +297,14 @@ class Interpreter(Mash):
             elif root.data == "fun_code_block":
                 for tree in root.children:
                     insts += self.generate_ir(tree)
+            # Space
+            elif root.data == "space":
+                symb_table.push_space(root.children[0].value)
+                insts.append(ir.SpacePush(root.children[0].value))
+                for tree in root.children[1:]:
+                    insts += self.generate_ir(tree)
+                insts.append(ir.SpacePop())
+                symb_table.pop_space()
             # Function call
             elif root.data == "fun_call":
                 insts += self.multi_call(root)
