@@ -1,29 +1,5 @@
-from ftplib import all_errors
-from xml.dom.pulldom import IGNORABLE_WHITESPACE
 from mash import Mash
 import mash_exceptions as mex
-
-class Symbol:
-
-    def key(self):
-        return "!!!ERROR"
-
-class Var(Symbol):
-    """
-    Variable
-    """
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def key(self):
-        return self.name
-
-    def fstr(self):
-        return self.value.fstr()
-
-    def __str__(self):
-        return f"{self.name} = {self.value}"
 
 class Frame(dict):
     """
@@ -32,6 +8,22 @@ class Frame(dict):
 
     def __str__(self):
         return ", ".join(["{"+str(k)+": "+str(v)+"}" if type(v) != list else k+": "+str([i.str_header() for i in v]) for k, v in self.items()])
+
+class SpaceFrame(Frame):
+    """
+    Name space
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+class ClassFrame(Frame):
+    """
+    Class
+    """
+
+    def __init__(self, name):
+        self.name = name
 
 class SymbTable(Mash):
     """
@@ -44,27 +36,42 @@ class SymbTable(Mash):
         self.analyzer = analyzer
 
     def initialize(self):
-        self.tbls = []
-        self.tbls.append(Frame())
-        self.spaces = []
+        self.frames = [Frame()]
+        self.prefix = []
+        self.index = 0
+        self.fun_depth = 0
+
+    def inc_depth(self):
+        self.fun_depth += 1
+
+    def dec_depth(self):
+        self.fun_depth -= 1
 
     def push(self):
-        self.tbls.append(Frame())
+        self.index += 1
+        self.frames.insert(self.index, Frame())
 
     def pop(self, amount=1):
         for _ in range(amount):
-            self.tbls.pop()
+            self.frames.pop()
+            self.index -= 1
+
+    def top(self):
+        return self.frames[self.index]
+
+    def scope(self):
+        if self.fun_depth > 0:
+            return reversed(self.frames[1:])
+        return reversed(self.frames)
+
+    def in_struct(self):
+        ...
 
     def push_space(self, name):
-        spc = Frame()
-        self.declare(name, spc)
-        self.spaces.append((name, spc))
-
+        ...
+        
     def pop_space(self):
-        self.spaces.pop()
-
-    def in_space(self):
-        return len(self.spaces) > 0
+        ...
 
     def clear_all(self):
         self.initialize()
@@ -76,108 +83,41 @@ class SymbTable(Mash):
         """
         if self.exists_top(symb):
             raise mex.Redefinition(symb)
-        if self.in_space():
-            self.spaces[-1][1][symb] = value
-        else:
-            self.tbls[-1][symb] = value
+        self.top()[symb] = value
 
     def define_fun(self, name, min_args, max_args, irfun):
         """
         Function re/definition
         """
-        fprev = None
-        try:
-            fprev = self.get(name)
-        except mex.UndefinedReference as e:
-            pass
-
-        if fprev is None:
-            if self.in_space():
-                self.spaces[-1][1][name] = [irfun]
-            else:
-                self.tbls[-1][name] = [irfun]
-        else:
-            # Redefinition or ambiguous redef
-            for i, f in enumerate(fprev):
-                # Check if argument amount ranges overlap
-                if f.min_args <= max_args and f.max_args >= min_args and f.max_args != max_args:
-                    raise mex.AmbiguousRedefinition(f"function '{name}'")
-                elif f.max_args == max_args:
-                    # Overridden
-                    if self.in_space():
-                        self.spaces[-1][1][name][i] = irfun
-                    else:
-                        self.tbls[-1][name][i] = irfun
-                    break
-            else:
-                if self.in_space():
-                    self.spaces[-1][1][name].append(irfun)
-                else:
-                    self.tbls[-1][name].append(irfun)
+        ...
 
     def assign(self, symb, value):
         """
         Assigns value to a variable.
         """
-        # In non-analyzer mode, values are to be copied
-        if not self.analyzer:
-            if type(value) == str:
-                # TODO: Make sure that Int, Float, String, Bool are copied
-                #       They should be, because Expr creates a new object
-                value = self.get(value)
-
         if type(symb) == list:
-            pass
-            self.error("NOT IMPLEMENTED!!")
+            # Also handle global
+            raise mex.Unimplemented("Assignment to scope var")
         else:
-            #if symb[0] != "@":
-            #    for t in reversed(self.tbls):
-            #        if symb in t:
-            #            t[symb] = value
-            #            return
-            if self.in_space():
-                self.spaces[-1][1][symb] = value
-            else:
-                self.tbls[-1][symb] = value
-
-    def get_in(self, f, symb):
-        nested = False
-        s = symb
-        if type(symb) == list:
-            s = symb[0]
-            nested = True
-        if s in f:
-            if not nested:
-                if type(f[s]) == str:
-                    raise mex.UndefinedReference(str(symb))
-                return f[s]
-            else:
-                if type(f[s]) != Frame:
-                    if type(f[s]) == list or type(f[s]) == str:
-                        return f[s]
-                    raise mex.TypeError(f"Cannot scope type {type(f[s])}")
-                return self.get_in(f[s], symb[2:])
+            for f in self.scope():
+                if symb in f:
+                    f[symb] = value
+                    return
+            self.top()[symb] = value
 
     def get(self, symb):
-        if self.in_space():
-            a = self.get_in(self.spaces[-1][1], symb)
-            if a is not None:
-                return a
-        for t in reversed(self.tbls):
-            a = self.get_in(t, symb)
-            if a is not None:
-                return a
         if type(symb) == list:
-            raise mex.UndefinedReference("".join(symb))
-        raise mex.UndefinedReference(symb)
+            raise mex.Unimplemented("Scope var get")
+        else:
+            for f in self.scope():
+                if symb in f:
+                    return f[symb]
+            raise mex.UndefinedReference(symb)
 
     def exists_top(self, symb):
         if type(symb) == list:
-            raise mex.Unimplemented("Scoped name exitsts")
-        if self.in_space():
-            return symb in self.spaces[-1][1]
-        else:    
-            return symb in self.tbls[-1]
+            raise mex.Unimplemented("Scope exists")
+        return symb in self.top()
 
     def exists(self, symb):
         try:
@@ -193,3 +133,96 @@ class SymbTable(Mash):
         return "\n".join(ts)
 
 symb_table = SymbTable(analyzer=True)
+
+"""
+fun f() {
+    space A {
+        a
+    }
+    space B {
+        space C {
+            
+        }
+    }
+    A::a = 4
+    f() <-
+}
+
+[
+    f() : Fun
+] <-
+[
+    A : [
+        a : Nil()
+    ]
+    B : [
+        C : [
+
+        ]
+    ]
+]
+[
+    A : [
+        a : 4
+    ]
+    B : [
+        C : [
+            
+        ]
+    ]
+]
+
+"""
+
+"""
+fun a() {
+    fun b() {
+        "1"
+    }
+    fun c() {
+        a = "2"
+        b()
+    }
+    c()
+}
+a()
+
+[
+    a : Fun
+]
+[
+    b : Fun
+    c : Fun
+]
+[
+    a : Int(2)
+
+]
+
+In a function call, the frame pointer has to be moved the the frame in which function appears.
+After return the previous frame index has to be restored (stack of indexes)
+
+b = "hi"
+if(x) {
+    fun b() {
+        a = 4
+    }
+    if(y) {
+        a = 6
+        b() <-
+        a # HAS TO BE 6, NOT 4!
+    }
+}
+
+[
+    b : String(hi)
+]
+[
+    b : Fun
+]
+[
+    a : Int
+]
+
+If construct frame is pushed, then it should be always added to a list, but if function is called, then 
+"""

@@ -171,7 +171,7 @@ fun_code_block : code_block
 //_space_conent : import 
 //             | VAR_NAME 
 //             | assignment
-//            | _definition
+//             | _definition
 //             | _END
 //             | _space_conent _END+ _space_conent _END*
 //             |
@@ -190,20 +190,23 @@ class : "class" VAR_NAME INTERNAL? "{" _END? _stmt _END? "}"
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
 // Variable in some scope
-scope_name : _space_name
-           | _dot_name
-           | fun_call
-           | VAR_NAME
+scope_name : SCOPE _scope_no_glob //-> glob_var
+           | _scope_no_glob
+
+_scope_no_glob : _space_name
+               | _dot_name
+               | fun_call
+               | VAR_NAME
 
 // Class member selection
-_dot_name : scope_name DOT VAR_NAME
+_dot_name : _scope_no_glob DOT VAR_NAME
 
 // Space member selection
-_space_name : scope_name SCOPE VAR_NAME
+_space_name : _scope_no_glob SCOPE VAR_NAME
 
 // List of variables/ids
-var_list : scope_name
-         | var_list "," scope_name
+var_list : _scope_no_glob
+         | var_list "," _scope_no_glob
 
 // List of arguments allowed in function call
 fun_call_args : _arg_list_call

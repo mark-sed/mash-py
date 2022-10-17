@@ -453,6 +453,7 @@ class FunCall(Instruction):
                 raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
         # Push new frame and arguments
         symb_table.push()
+        symb_table.inc_depth()
         # Set default args
         for k, v in f.args:
             if v is not None:
@@ -464,6 +465,7 @@ class FunCall(Instruction):
             ret_val = symb_table.get(ret_val)
         #print(symb_table, "\n---\n")
         symb_table.pop(frames)
+        symb_table.dec_depth()
         symb_table.assign(SymbTable.RETURN_NAME, ret_val)
 
     def __str__(self):
