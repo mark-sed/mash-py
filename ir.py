@@ -410,7 +410,8 @@ class FunCall(Instruction):
                 self.named_args.append(i)
 
     def exec(self):
-        fl = symb_table.get(self.name)
+        frame = symb_table.get_frame(self.name)
+        fl = frame[self.name]
         if type(fl) != list:
             if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
@@ -451,6 +452,9 @@ class FunCall(Instruction):
             else:
                 n = "".join(self.name)
                 raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
+        # Move stack of frame top to the callee frame
+        prev_top = symb_table.top()
+        symb_table.move_top(frame)
         # Push new frame and arguments
         symb_table.push(True)
         # Set default args
@@ -464,6 +468,7 @@ class FunCall(Instruction):
             ret_val = symb_table.get(ret_val)
         #print(symb_table, "\n---\n")
         symb_table.pop(frames)
+        symb_table.move_top(prev_top)
         symb_table.assign(SymbTable.RETURN_NAME, ret_val)
 
     def __str__(self):

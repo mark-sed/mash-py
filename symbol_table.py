@@ -73,8 +73,11 @@ class SymbTable(Mash):
 
     def pop(self, amount=1):
         for _ in range(amount):
-            self.frames.pop()
+            del self.frames[self.index]
             self.index -= 1
+
+    def move_top(self, f):
+        self.index = self.frames.index(f)
 
     def top(self):
         return self.frames[self.index]
@@ -96,8 +99,7 @@ class SymbTable(Mash):
         
     def pop_space(self):
         self.spaces.pop()
-        self.frames.pop()
-        self.index -= 1
+        self.pop()
 
     def clear_all(self):
         self.initialize()
@@ -117,12 +119,11 @@ class SymbTable(Mash):
         Function re/definition
         """
         fprev = None
-        try:
-            fprev = self.get(name)
-        except mex.UndefinedReference:
-            pass
+        fprevfr = self.get_frame(name, True)
+        if fprevfr is not None:
+            fprev = fprevfr[name]
 
-        if fprev is None:
+        if fprev is None or type(fprev) != list:
             self.assign(name, [irfun])
         else:
             # Redefinition or ambiguous redef
@@ -132,28 +133,22 @@ class SymbTable(Mash):
                     raise mex.AmbiguousRedefinition(f"function '{name}'")
                 elif f.max_args == max_args:
                     # Overridden
-                    if self.in_space():
-                        self.spaces[-1][1][name][i] = irfun
-                    else:
-                        self.tbls[-1][name][i] = irfun
+                    fprev[i] = irfun
                     break
             else:
-                if self.in_space():
-                    self.spaces[-1][1][name].append(irfun)
-                else:
-                    self.tbls[-1][name].append(irfun)
+                fprev.append(irfun)
 
-    def get_frame(self, symb):
+    def get_frame(self, symb, write=False):
         if type(symb) == list:
             ...
         else:
-            scope = self.frames[:]
+            scope = self.frames[:self.index+1]
             if self.fun_depth > 0:
-                scope = self.frames[1:]
+                scope = self.frames[1:self.index+1]
             for f in reversed(scope):
                 if symb in f:
                     return f
-                if f.shadowing:
+                if write and f.shadowing:
                     break
         return None
 
@@ -161,7 +156,12 @@ class SymbTable(Mash):
         """
         Assigns value to a variable.
         """
-        f = self.get_frame(symb)
+        if not self.analyzer:
+            if type(value) == str:
+                # TODO: Make sure that Int, Float, String, Bool are copied
+                #       They should be, because Expr creates a new object
+                value = self.get(value)
+        f = self.get_frame(symb, True)
         if f is None:
             self.top()[symb] = value
         else:
@@ -193,7 +193,7 @@ class SymbTable(Mash):
     def __str__(self):
         ts = ["Symbolic table:"]
         for c, x in enumerate(self.frames):
-            ts.append(str(c)+": {\n"+x.fstr(0)+"\n}")
+            ts.append(("--> " if self.index == c else "") + str(c)+": {\n"+x.fstr(0)+"\n}")
         ts.append("Spaces: "+str([x.name for x in self.spaces]))
         return "\n".join(ts)
 

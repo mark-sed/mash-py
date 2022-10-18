@@ -478,7 +478,7 @@ class Interpreter(Mash):
         self.symb_table.analyzer = False
         for i in code:
             i.exec()
-        print(symb_table)
+        #print(symb_table)
 
 def interpret(opts, code, libmash_code):
     """
