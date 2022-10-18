@@ -43,7 +43,7 @@ class SpaceFrame(Frame):
 
 class ClassFrame(Frame):
     """
-    Class
+    Class frame
     """
 
     def __init__(self, name):
@@ -64,19 +64,25 @@ class SymbTable(Mash):
     def initialize(self):
         self.frames = [Frame()]
         self.index = 0
-        self.fun_depth = 0
+        self.shadow_depth = 0
         self.spaces = []
 
     def push(self, shadowing=False):
         self.index += 1
+        if shadowing:
+            self.shadow_depth += 1
         self.frames.insert(self.index, Frame(shadowing))
 
     def pop(self, amount=1):
         for _ in range(amount):
+            if self.frames[self.index].shadowing:
+                self.shadow_depth -= 1
             del self.frames[self.index]
             self.index -= 1
 
     def move_top(self, f):
+        # No need to move shadow_depth, since this is only in case of function call, which is shadowing
+        # And the frame will be restored after return
         self.index = self.frames.index(f)
 
     def top(self):
@@ -94,6 +100,7 @@ class SymbTable(Mash):
             self.top()[name] = f
             self.spaces.append(f)
         self.frames.append(f)
+        self.shadow_depth += 1
         self.index += 1
         #print(f"\nAfter pushing space {name}:", self)
         
@@ -138,19 +145,38 @@ class SymbTable(Mash):
             else:
                 fprev.append(irfun)
 
-    def get_frame(self, symb, write=False):
-        if type(symb) == list:
-            ...
+    def search_scope(self, symb, scope, write, ret_top=False):
+        s = symb[0]
+        for f in reversed(scope):
+            if s in f:
+                if len(symb) == 1:
+                    return f
+                else:
+                    return self.search_scope(symb[2:], [f[s]], write, ret_top)
+            if write and f.shadowing:
+                break
+        if ret_top and len(symb) == 1:
+            return scope[-1]
+        return None
+
+    def get_frame(self, symb, write=False, ret_top=False):
+        if type(symb) != list:
+            symb = [symb]
+
+        if symb[0] == "@":
+            # Non-local var
+            write = False
+            symb = symb[1::]
+        elif symb[0] == "::":
+            # Global var
+            scope = self.frames[0:1]
+            return self.search_scope(symb[1:], scope, write, ret_top=ret_top)
+
+        if self.shadow_depth > 0:
+            scope = self.frames[1:self.index+1]
         else:
             scope = self.frames[:self.index+1]
-            if self.fun_depth > 0:
-                scope = self.frames[1:self.index+1]
-            for f in reversed(scope):
-                if symb in f:
-                    return f
-                if write and f.shadowing:
-                    break
-        return None
+        return self.search_scope(symb, scope, write, ret_top=ret_top)
 
     def assign(self, symb, value):
         """
@@ -161,9 +187,12 @@ class SymbTable(Mash):
                 # TODO: Make sure that Int, Float, String, Bool are copied
                 #       They should be, because Expr creates a new object
                 value = self.get(value)
-        f = self.get_frame(symb, True)
+        f = self.get_frame(symb, True, True)
         if f is None:
-            self.top()[symb] = value
+            raise mex.UndefinedReference("".join(symb))
+
+        if type(symb) == list:
+            f[symb[-1]] = value
         else:
             f[symb] = value
         #print(f"\nAfter assignment of {symb} = {value}:", self)
@@ -187,7 +216,7 @@ class SymbTable(Mash):
         try:
             self.get(symb)
         except mex.UndefinedReference:
-            return False, str(symb)
+            return False, "".join(symb)
         return True, ""
 
     def __str__(self):

@@ -10,13 +10,13 @@ class IR:
     Base class for all ir nodes
     """
     def getV(self, name):
-        if type(name) == str:
+        if type(name) == str or type(name) == list:
             return symb_table.get(name).get_value()
         elif issubclass(type(name), Value):
             return name.get_value()
 
     def get(self, name):
-        if type(name) == str:
+        if type(name) == str or type(name) == list:
             return symb_table.get(name)
         elif issubclass(type(name), Value):
             return name
@@ -73,8 +73,7 @@ class Print(Instruction):
     """
     Variable declaration and definition
     """
-    def __init__(self, value, dst=Nil()):
-        self.dst = dst
+    def __init__(self, value):
         self.value = value
 
     def exec(self):
@@ -411,12 +410,15 @@ class FunCall(Instruction):
 
     def exec(self):
         frame = symb_table.get_frame(self.name)
-        fl = frame[self.name]
+        if frame is None:
+            fl = None
+        else:
+            fl = frame[self.name]
         if type(fl) != list:
             if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
-                raise mex.TypeError("'"+"".self.name+"' is not callable")
+                raise mex.TypeError("'"+"".join(self.name)+"' is not callable")
         f = None
         for i in fl:
             # Find matching function signature
