@@ -191,6 +191,7 @@ VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|
 
 // Variable in some scope
 scope_name : SCOPE _scope_no_glob //-> glob_var
+           | NON_LOC _scope_no_glob //-> nonlocal_var
            | _scope_no_glob
 
 _scope_no_glob : _space_name
@@ -272,6 +273,8 @@ STRING : ESCAPED_STRING
 DOT : /(?<!\.)\.(?!\.)/
 
 SCOPE : "::"
+
+NON_LOC : "@"
 
 // Flow control
 FLOW_CTRL : ("continue" | "break")

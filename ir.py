@@ -368,7 +368,7 @@ class Fun(Instruction):
             else:
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
-        return f"fun {self.name}({args_s})"+" internal" if self.internal else ""
+        return f"fun {self.name}({args_s})"+(" internal" if self.internal else "")
 
     def fstr(self):
         details = ""
@@ -412,7 +412,7 @@ class FunCall(Instruction):
     def exec(self):
         fl = symb_table.get(self.name)
         if type(fl) != list:
-            if self.name[0] == "@":
+            if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
                 raise mex.TypeError("'"+"".self.name+"' is not callable")
@@ -423,7 +423,7 @@ class FunCall(Instruction):
                 f = i
                 break
         if f is None:
-            if self.name[0] == "@":
+            if self.name[0] == "$":
                 raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
             else:
                 raise mex.UndefinedReference(str(self))
@@ -452,8 +452,7 @@ class FunCall(Instruction):
                 n = "".join(self.name)
                 raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
         # Push new frame and arguments
-        symb_table.push()
-        symb_table.inc_depth()
+        symb_table.push(True)
         # Set default args
         for k, v in f.args:
             if v is not None:
@@ -465,7 +464,6 @@ class FunCall(Instruction):
             ret_val = symb_table.get(ret_val)
         #print(symb_table, "\n---\n")
         symb_table.pop(frames)
-        symb_table.dec_depth()
         symb_table.assign(SymbTable.RETURN_NAME, ret_val)
 
     def __str__(self):
@@ -542,7 +540,7 @@ class SpacePop(Instruction):
         ...
 
     def exec(self):
-        symb_table.push()
+        symb_table.pop_space()
 
     def __str__(self):
         return "SPCPOP"
@@ -779,12 +777,12 @@ class LOr(Expr):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
         if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1)
+            v1 = bool(v1.get_value())
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()
         if type(s2) in types.IMPLICIT_TO_BOOL:
-            v2 = bool(v2)
+            v2 = bool(v2.get_value())
             s2 = types.Bool(v2)
         else:
             v2 = s2.get_value()
@@ -808,12 +806,12 @@ class LAnd(Expr):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
         if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1)
+            v1 = bool(v1.get_value())
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()
         if type(s2) in types.IMPLICIT_TO_BOOL:
-            v2 = bool(v2)
+            v2 = bool(v2.get_value())
             s2 = types.Bool(v2)
         else:
             v2 = s2.get_value()
@@ -833,7 +831,7 @@ class LNot(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1)
+            v1 = bool(s1.get_value())
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()
