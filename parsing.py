@@ -384,6 +384,42 @@ class ConstTransformer(Transformer):
         insts.append(ir.In(srcs[0], srcs[1], self.uniq_var()))
         return Token("CODE", insts)
 
+    def ternary_if(self, items):
+        cnd = items[0]
+        t = items[1]
+        f = items[2]
+
+        if type(cnd) == Tree and len(cnd.data) > 5 and cnd.data[0:5] == "EXPR_":
+            return Tree("EXPR_TIF", [cnd, t, f])
+        
+        if type(t) == Tree and len(t.data) > 5 and t.data[0:5] == "EXPR_":
+            return Tree("EXPR_TIF", [cnd, t, f])
+
+        if type(f) == Tree and len(f.data) > 5 and f.data[0:5] == "EXPR_":
+            return Tree("EXPR_TIF", [cnd, t, f])
+
+        if type(cnd) == Tree and cnd.data == "fun_call":
+            return Tree("EXPR_TIF", [cnd, t, f])
+        
+        if type(t) == Tree and t.data == "fun_call":
+            return Tree("EXPR_TIF", [cnd, t, f])
+
+        if type(f) == Tree and f.data == "fun_call":
+            return Tree("EXPR_TIF", [cnd, t, f])
+
+        # Generating code
+        insts = []
+        srcs = [0, 0, 0]
+        for i in range(0, 3):
+            if items[i].type == "CODE":
+                insts += items[i].value
+                # Expr code
+                srcs[i] = items[i].value[-1].dst
+            else:
+                srcs[i] = items[i].value
+        insts.append(ir.TernaryIf(srcs[0], srcs[1], srcs[2], self.uniq_var()))
+        return Token("CODE", insts)
+
     def expr_not(self, items):
         return self._help_expr_log_un(items, lambda a: not a, ir.LNot, "NOT")
 

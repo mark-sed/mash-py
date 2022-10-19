@@ -93,7 +93,27 @@ class Interpreter(Mash):
         if type(root) == Token:
             return (root.value, [])
         else:
-            if len(root.data) > 5 and root.data[0:5] == "EXPR_":
+            if root.data == "EXPR_NOT" or root.data == "EXPR_INC" or root.data == "EXPR_DEC":
+                lr, left = self.generate_expr(root.children[0])
+                iname = root.data[5:]
+                opres = self.uniq_var()
+                symb_table.assign(opres, None)
+                if iname == "NOT":
+                    return (opres, left+[ir.LNot(lr, opres)])
+                elif iname == "DEC":
+                    return (opres, left+[ir.Dec(lr, opres)])
+                elif iname == "INC":
+                    return (opres, left+[ir.Inc(lr, opres)])
+                else:
+                    raise mex.Unimplemented(root.data)
+            elif root.data == "EXPR_TIF":
+                lr, left = self.generate_expr(root.children[0])
+                mr, mid = self.generate_expr(root.children[1])
+                rr, right = self.generate_expr(root.children[2])
+                opres = self.uniq_var()
+                symb_table.assign(opres, None)
+                return (opres, left+mid+right+[ir.TernaryIf(lr, mid, rr, opres)])
+            elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
                 lr, left = self.generate_expr(root.children[0])
                 rr, right = self.generate_expr(root.children[1])
                 iname = root.data[5:]
@@ -121,6 +141,8 @@ class Interpreter(Mash):
                     return (opres, left+right+[ir.Eq(lr, rr, opres)])
                 elif iname == "NEQ":
                     return (opres, left+right+[ir.Neq(lr, rr, opres)])
+                elif iname == "IN":
+                    return (opres, left+right+[ir.In(lr, rr, opres)])
                 else:
                     raise mex.Unimplemented("Runtime expression '"+iname+"'")
             elif root.data == "fun_call":
@@ -245,22 +267,15 @@ class Interpreter(Mash):
                 return insts
             # Generated code
             elif root.type == "CODE":
-                # Generation for nodes left by parser
-                if type(root.value) == list:
-                    insts = []
-                    for i in root.value:
-                        if type(i) == Tree or type(i) == Token:
-                            insts += self.generate_ir(i, silent)
-                        else:
-                            insts.append(i)
-                    return insts
-                else:
-                    if silent:
-                        return root.value
+                insts = []
+                for i in root.value:
+                    if type(i) == Tree or type(i) == Token:
+                        insts += self.generate_ir(i, silent)
                     else:
-                        if len(root.value) == 1 and (type(root.value[0]) == ir.Inc or type(root.value[0]) == ir.Dec):
-                            return root.value
-                        return root.value+[ir.Print(root.value[-1].dst)]
+                        insts.append(i)
+                if not silent:
+                    insts.append(ir.Print(root.value[-1].dst))
+                return insts
             # Const print
             elif root.type in Interpreter.CONSTS:
                 if not silent:

@@ -629,6 +629,26 @@ class Expr(IR):
         if (type(s1) == str or type(s2) == str) or not ((type(s1) in allowed) and (type(s2) in allowed)):
             raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'")
 
+class TernaryIf(Expr):
+    """
+    Ternary If
+    """
+    def __init__(self, cnd, t, f, dst):
+        self.cnd = cnd
+        self.t = t
+        self.f = f
+        self.dst = dst
+
+    def exec(self):
+        c = self.getV(self.cnd)
+        if c:
+            symb_table.assign(self.dst, self.t)
+        else:
+            symb_table.assign(self.dst, self.f)
+
+    def __str__(self):
+        return f"TIF {self.cnd}, {self.t}, {self.f}, {self.dst}"
+
 class Mul(Expr):
     """
     Multiplication
