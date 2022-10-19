@@ -196,10 +196,15 @@ class Interpreter(Mash):
         return insts
 
     def multi_call(self, root):
-        if type(root.children[0]) == Tree:
+        if type(root.children[0]) == Tree and root.children[0].data == "fun_call":
             v = root.children[0]
             # Function call over returned value
             return self.multi_call(v)+[ir.FunCall(SymbTable.RETURN_NAME, root.children[1].value)]
+        elif type(root.children[0]) == Tree and root.children[0].data == "member":
+            v = root.children[0]
+            ret, inst = self.generate_subexpr(v)
+            # Function call over member
+            return inst+[ir.FunCall(ret, root.children[1].value)]
         else:
             return self.generate_fun(root)
 
