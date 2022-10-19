@@ -10,13 +10,13 @@ class IR:
     Base class for all ir nodes
     """
     def getV(self, name):
-        if type(name) == str:
+        if type(name) == str or type(name) == list:
             return symb_table.get(name).get_value()
         elif issubclass(type(name), Value):
             return name.get_value()
 
     def get(self, name):
-        if type(name) == str:
+        if type(name) == str or type(name) == list:
             return symb_table.get(name)
         elif issubclass(type(name), Value):
             return name
@@ -73,8 +73,7 @@ class Print(Instruction):
     """
     Variable declaration and definition
     """
-    def __init__(self, value, dst=Nil()):
-        self.dst = dst
+    def __init__(self, value):
         self.value = value
 
     def exec(self):
@@ -368,7 +367,7 @@ class Fun(Instruction):
             else:
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
-        return f"fun {self.name}({args_s})"+" internal" if self.internal else ""
+        return f"fun {self.name}({args_s})"+(" internal" if self.internal else "")
 
     def fstr(self):
         details = ""
@@ -410,12 +409,16 @@ class FunCall(Instruction):
                 self.named_args.append(i)
 
     def exec(self):
-        fl = symb_table.get(self.name)
+        frame = symb_table.get_frame(self.name)
+        if frame is None:
+            fl = None
+        else:
+            fl = frame[self.name]
         if type(fl) != list:
-            if self.name[0] == "@":
+            if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
-                raise mex.TypeError("'"+"".self.name+"' is not callable")
+                raise mex.TypeError("'"+"".join(self.name)+"' is not callable")
         f = None
         for i in fl:
             # Find matching function signature
@@ -423,7 +426,7 @@ class FunCall(Instruction):
                 f = i
                 break
         if f is None:
-            if self.name[0] == "@":
+            if self.name[0] == "$":
                 raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
             else:
                 raise mex.UndefinedReference(str(self))
@@ -451,8 +454,11 @@ class FunCall(Instruction):
             else:
                 n = "".join(self.name)
                 raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
+        # Move stack of frame top to the callee frame
+        prev_top = symb_table.top()
+        symb_table.move_top(frame)
         # Push new frame and arguments
-        symb_table.push()
+        symb_table.push(True)
         # Set default args
         for k, v in f.args:
             if v is not None:
@@ -464,6 +470,7 @@ class FunCall(Instruction):
             ret_val = symb_table.get(ret_val)
         #print(symb_table, "\n---\n")
         symb_table.pop(frames)
+        symb_table.move_top(prev_top)
         symb_table.assign(SymbTable.RETURN_NAME, ret_val)
 
     def __str__(self):
@@ -540,7 +547,7 @@ class SpacePop(Instruction):
         ...
 
     def exec(self):
-        symb_table.push()
+        symb_table.pop_space()
 
     def __str__(self):
         return "SPCPOP"
@@ -777,12 +784,12 @@ class LOr(Expr):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
         if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1)
+            v1 = bool(v1.get_value())
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()
         if type(s2) in types.IMPLICIT_TO_BOOL:
-            v2 = bool(v2)
+            v2 = bool(v2.get_value())
             s2 = types.Bool(v2)
         else:
             v2 = s2.get_value()
@@ -806,12 +813,12 @@ class LAnd(Expr):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
         if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1)
+            v1 = bool(v1.get_value())
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()
         if type(s2) in types.IMPLICIT_TO_BOOL:
-            v2 = bool(v2)
+            v2 = bool(v2.get_value())
             s2 = types.Bool(v2)
         else:
             v2 = s2.get_value()
@@ -831,7 +838,7 @@ class LNot(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1)
+            v1 = bool(s1.get_value())
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()

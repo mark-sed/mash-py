@@ -27,7 +27,7 @@ class Interpreter(Mash):
         Generates unique id
         """
         self._last_id += 1
-        return f"@i_{self._last_id}"
+        return f"$i_{self._last_id}"
 
     def generate_subexpr(self, src):
         """
@@ -218,7 +218,7 @@ class Interpreter(Mash):
                     if not silent:
                         return [ir.Print(root.value)]
                 else:
-                    self.error(msg)
+                    raise mex.UndefinedReference(msg)
             # Generated calculation
             elif root.type == "CALC":
                 insts = []
@@ -478,6 +478,7 @@ class Interpreter(Mash):
         self.symb_table.analyzer = False
         for i in code:
             i.exec()
+        #print("\n\n"+str(symb_table))
 
 def interpret(opts, code, libmash_code):
     """
