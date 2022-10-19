@@ -172,7 +172,7 @@ class SymbTable(Mash):
             scope = self.frames[0:1]
             return self.search_scope(symb[1:], scope, write, ret_top=ret_top)
 
-        if self.shadow_depth > 0:
+        if self.shadow_depth > 0 and write:
             scope = self.frames[1:self.index+1]
         else:
             scope = self.frames[:self.index+1]

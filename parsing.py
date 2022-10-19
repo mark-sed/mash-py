@@ -94,6 +94,12 @@ class ConstTransformer(Transformer):
                 if x.type == "CODE":
                     code += x.value
                     v.append(code[-1].dst)
+                elif x.type == "CALC":
+                    code += x.value[0].value
+                    d = self.uniq_var()
+                    val = x.value[1].value.get_value()
+                    code.append(ir.AssignVar(d, types.List(val)))
+                    v.append(d)
                 else:
                     v.append(x.value)
             else:
@@ -152,6 +158,12 @@ class ConstTransformer(Transformer):
                 if x.type == "CODE":
                     code += x.value
                     x = code[-1].dst
+                elif x.type == "CALC":
+                    code += x.value[0].value
+                    d = self.uniq_var()
+                    val = x.value[1].value
+                    code.append(ir.AssignVar(d, val))
+                    x = d
                 else:
                     x = x.value
             else:
@@ -160,6 +172,12 @@ class ConstTransformer(Transformer):
                 if y.type == "CODE":
                     code += y.value
                     y = code[-1].dst
+                elif y.type == "CALC":
+                    code += y.value[0].value
+                    d = self.uniq_var()
+                    val = y.value[1].value
+                    code.append(ir.AssignVar(d, val))
+                    y = d
                 else:
                     y = y.value
             else:

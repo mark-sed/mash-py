@@ -55,6 +55,10 @@ class Instruction(IR):
         """
         print("MISSING CALL METHOD")
 
+    def update(self, v):
+        if issubclass(type(v), Value):
+            v.update()
+
 class AssignVar(Instruction):
     """
     Variable declaration and definition
@@ -64,6 +68,7 @@ class AssignVar(Instruction):
         self.value = value
 
     def exec(self):
+        self.update(self.value)
         symb_table.assign(self.dst, self.value)
 
     def __str__(self):
@@ -77,6 +82,7 @@ class Print(Instruction):
         self.value = value
 
     def exec(self):
+        self.update(self.value)
         v = self.get(self.value)
         if type(v) == list:
             # Function/s (there can be multiple)
@@ -116,8 +122,10 @@ class SetOrPrint(Instruction):
     def exec(self):
         s, _ = symb_table.exists(self.dst)
         if not s:
+            self.update(self.value)
             symb_table.assign(self.dst, self.value)
         else:
+            self.update(self.dst)
             v = self.get(self.dst)
             if type(v) == list:
                 # Function/s (there can be multiple)
@@ -142,6 +150,21 @@ class ToString(Instruction):
 
     def __str__(self):
         return f"TOSTR {self.value}, {self.dst}"
+
+class ListWrap(Instruction):
+    """
+    Wrap value as a list
+    """
+    def __init__(self, value, dst):
+        self.dst = dst
+        self.value = value
+
+    def exec(self):
+        v = self.get(self.value)
+        symb_table.assign(self.dst, List([v]))
+
+    def __str__(self):
+        return f"LISTWRAP {self.value}, {self.dst}"
 
 class Nop(Instruction):
     """
@@ -413,7 +436,11 @@ class FunCall(Instruction):
         if frame is None:
             fl = None
         else:
-            fl = frame[self.name]
+            if type(self.name) == list:
+                n = self.name[-1]
+            else:
+                n = self.name
+            fl = frame[n]
         if type(fl) != list:
             if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")

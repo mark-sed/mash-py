@@ -376,7 +376,19 @@ class Interpreter(Mash):
                 tree = root.children[0].children
                 i = tree[0].value
                 symb_table.assign(i, types.Nil())
-                l = tree[1].value
+                l = None
+                # list might be complex
+                if type(tree[1]) == Token and tree[1].type == "CODE":
+                    insts += tree[1].value
+                    l = insts[-1].dst
+                elif (type(tree[1]) == Token and tree[1].type == "VAR_NAME") or (type(tree[1]) == Token and tree[1].type == "scope_name"):
+                    s, m = self.symb_table.exists(tree[1].value)
+                    if not s:
+                        raise mex.UndefinedReference(m)
+                    l = tree[1].value
+                else:
+                    l = tree[1].value
+
                 if type(tree[2]) == Tree and tree[2].data != "code_block":
                     symb_table.push()
                 t = self.generate_ir(tree[2])

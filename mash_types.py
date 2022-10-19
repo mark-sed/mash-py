@@ -20,6 +20,9 @@ class Value():
     def type_name(self):
         return self.__class__.__name__
 
+    def update(self):
+        ...
+
     def _at(self, index):
         raise mex.TypeError(f"Type {self.type_name} is not subscriptable")
 
@@ -138,8 +141,18 @@ class List(Value):
                 return True
         return False
 
+    def update(self):
+        for c, x in enumerate(self.value):
+            if type(x) == str or type(x) == list:
+                self.value[c] = symb_table.get(x)
+            else:
+                x.update()
+
     def __eq__(self, other):
         return self.value == other.value
+
+    def fstr(self):
+        return str(self)
 
     def __str__(self):
         v = []
@@ -149,10 +162,7 @@ class List(Value):
                     v.append(x)
                 else:
                     value = symb_table.get(x)
-                    if type(value) == list:
-                        v.append(value[0].fstr())
-                    else:
-                        v.append(value.fstr())
+                    v.append(value.fstr())
             else:
                 v.append(x.fstr())
         return "["+", ".join(v)+"]"
@@ -186,6 +196,19 @@ class Dict(Value):
 
     def __eq__(self, other):
         return self.value == other.value
+
+    def update(self):
+        for c, i in enumerate(self.value):
+            k, v = i
+            if type(k) == str or type(k) == list:
+                k = symb_table.get(k)
+            else:
+                k.update()
+            if type(v) == str or type(v) == list:
+                v = symb_table.get(v)
+            else:
+                v.update()
+            self.value[c] = (k, v)
 
     def __str__(self):
         if len(self.value) == 0:
