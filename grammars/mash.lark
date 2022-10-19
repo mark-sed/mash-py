@@ -125,9 +125,16 @@ ternary_if : _expr "?" (_expr|lambda) ":" (_expr|lambda)
            //| "if" "(" _expr ")" (_expr|lambda) "else" (_expr|lambda) // Is the same as normal if
 
 // Member
-member : _expr "[" _expr "]"
-       | _expr "[" _expr? MEM_SEP _expr? "]" -> slice
-       | _expr "[" _expr? MEM_SEP _expr? MEM_SEP _expr? "]" -> slice
+member : _pmember
+       | _pslice -> slice
+       | _pslice -> slice
+
+_pmember : "(" _pmember ")"
+         | _expr "[" _expr "]"
+
+_pslice : "(" _pslice ")"
+        | _expr "[" _expr? MEM_SEP _expr? "]"
+        | _expr "[" _expr? MEM_SEP _expr? MEM_SEP _expr? "]"
 
 MEM_SEP : ":"
 
@@ -190,11 +197,15 @@ class : "class" VAR_NAME INTERNAL? "{" _END? _stmt _END? "}"
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
 // Variable in some scope
-scope_name : SCOPE _scope_no_glob //-> glob_var
-           | NON_LOC _scope_no_glob //-> nonlocal_var
-           | _scope_no_glob
+scope_name : _pscope_name
 
-_scope_no_glob : _space_name
+_pscope_name : "(" _pscope_name ")"
+             | SCOPE _scope_no_glob //-> glob_var
+             | NON_LOC _scope_no_glob //-> nonlocal_var
+             | _scope_no_glob
+
+_scope_no_glob : "(" _scope_no_glob ")"
+               | _space_name
                | _dot_name
                | fun_call
                | VAR_NAME
