@@ -112,7 +112,7 @@ class Interpreter(Mash):
                 rr, right = self.generate_expr(root.children[2])
                 opres = self.uniq_var()
                 symb_table.assign(opres, None)
-                return (opres, left+mid+right+[ir.TernaryIf(lr, mid, rr, opres)])
+                return (opres, left+mid+right+[ir.TernaryIf(lr, mr, rr, opres)])
             elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
                 lr, left = self.generate_expr(root.children[0])
                 rr, right = self.generate_expr(root.children[1])
@@ -125,6 +125,14 @@ class Interpreter(Mash):
                     return (opres, left+right+[ir.Mul(lr, rr, opres)])
                 elif iname == "SUB":
                     return (opres, left+right+[ir.Sub(lr, rr, opres)])
+                elif iname == "FDIV":
+                    return (opres, left+right+[ir.FDiv(lr, rr, opres)])
+                elif iname == "IDIV":
+                    return (opres, left+right+[ir.IDiv(lr, rr, opres)])
+                elif iname == "MOD":
+                    return (opres, left+right+[ir.Mod(lr, rr, opres)])
+                elif iname == "EXP":
+                    return (opres, left+right+[ir.Exp(lr, rr, opres)])
                 elif iname == "OR":
                     return (opres, left+right+[ir.LOr(lr, rr, opres)])
                 elif iname == "AND":
