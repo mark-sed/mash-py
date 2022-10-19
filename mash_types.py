@@ -24,13 +24,13 @@ class Value():
         ...
 
     def _at(self, index):
-        raise mex.TypeError(f"Type {self.type_name} is not subscriptable")
+        raise mex.TypeError(f"Type {self.type_name()} is not subscriptable")
 
     def _in(self, x):
         raise mex.TypeError(f"Type {self.type_name()} does not support operator 'in'")
 
     def _slice(self, i1, i2, step):
-        raise mex.TypeError(f"Type {self.type_name} cannot be sliced")
+        raise mex.TypeError(f"Type {self.type_name()} cannot be sliced")
 
     def __eq__(self, other):
         return self.get_value() == other.get_value()

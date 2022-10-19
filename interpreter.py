@@ -48,6 +48,13 @@ class Interpreter(Mash):
                 insts += self.multi_call(src)
                 dst = self.uniq_var()
                 insts.append(ir.AssignVar(dst, SymbTable.RETURN_NAME))
+            elif src.data == "member":
+                s, extra_insts = self.generate_subexpr(src.children[0])
+                insts += extra_insts
+                index, extra_insts = self.generate_subexpr(src.children[1])
+                insts += extra_insts
+                dst = self.uniq_var()
+                insts.append(ir.Member(s, index, dst))
             elif len(src.data) > 5 and src.data[0:5] == "EXPR_":
                 dst, insts = self.generate_expr(src)
             else:
