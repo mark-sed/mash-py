@@ -245,12 +245,22 @@ class Interpreter(Mash):
                 return insts
             # Generated code
             elif root.type == "CODE":
-                if silent:
-                    return root.value
+                # Generation for nodes left by parser
+                if type(root.value) == list:
+                    insts = []
+                    for i in root.value:
+                        if type(i) == Tree or type(i) == Token:
+                            insts += self.generate_ir(i, silent)
+                        else:
+                            insts.append(i)
+                    return insts
                 else:
-                    if len(root.value) == 1 and (type(root.value[0]) == ir.Inc or type(root.value[0]) == ir.Dec):
+                    if silent:
                         return root.value
-                    return root.value+[ir.Print(root.value[-1].dst)]
+                    else:
+                        if len(root.value) == 1 and (type(root.value[0]) == ir.Inc or type(root.value[0]) == ir.Dec):
+                            return root.value
+                        return root.value+[ir.Print(root.value[-1].dst)]
             # Const print
             elif root.type in Interpreter.CONSTS:
                 if not silent:
@@ -430,6 +440,11 @@ class Interpreter(Mash):
                     elif root.children[0].type == "CODE":
                         insts += root.children[0].value
                         value = insts[-1].dst
+                    elif root.children[0].type == "CALC":
+                        for i in root.children[0].value:
+                            if type(i) == Token or type(i) == Tree:
+                                insts += self.generate_ir(i, True)
+                        value = insts[-1].dst
                     else:
                         value = root.children[0].value
                     insts.append(ir.Return(value))
@@ -488,6 +503,11 @@ class Interpreter(Mash):
         for i in root.children:
             # i.data, i.children
             self.ir += self.generate_ir(i)
+        # Parsing nodes passed down from the parser into instructions
+        for c, i in enumerate(self.ir):
+            if type(i) == Tree or type(i) == Token:
+                gen = self.generate_ir(i, True)
+                self.ir[c:c+1] = gen
         if self.opts.verbose:
             debug("Generated code:", self.opts)
             for i in self.ir:

@@ -6,6 +6,7 @@ import mash_types as types
 from mash import Mash
 from debugging import info, debug
 import mash_exceptions as mex
+from symbol_table import SymbTable
 
 class Parser(Mash):
     """
@@ -103,7 +104,9 @@ class ConstTransformer(Transformer):
                 else:
                     v.append(x.value)
             else:
-                raise mex.Unimplemented("Function calls inside of lists")
+                d = self.uniq_var()
+                code += [items[0], ir.AssignVar(d, SymbTable.RETURN_NAME)]
+                v.append(d)
         if len(code) == 0:
             return Token("list", types.List(v))
         else:
@@ -167,7 +170,9 @@ class ConstTransformer(Transformer):
                 else:
                     x = x.value
             else:
-                raise mex.Unimplemented("Function calls inside of lists")
+                d = self.uniq_var()
+                code += [items[0], ir.AssignVar(d, SymbTable.RETURN_NAME)]
+                x = d
             if type(y) == Token:
                 if y.type == "CODE":
                     code += y.value
@@ -181,7 +186,9 @@ class ConstTransformer(Transformer):
                 else:
                     y = y.value
             else:
-                raise mex.Unimplemented("Function calls inside of lists")
+                d = self.uniq_var()
+                code += [items[0], ir.AssignVar(d, SymbTable.RETURN_NAME)]
+                y = d
             i += 2
             v.append((x, y))
         if len(code) == 0:

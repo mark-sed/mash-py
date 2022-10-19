@@ -157,12 +157,20 @@ class List(Value):
     def __str__(self):
         v = []
         for x in self.value:
-            if type(x) == str:
+            if type(x) == str or type(x) == list:
                 if(symb_table.analyzer):
                     v.append(x)
                 else:
+                    if type(x) == list:
+                        # Fun
+                        if len(x) > 0 and type(x[0]) != str:
+                            v.append(x[0].fstr())
+                            continue
                     value = symb_table.get(x)
-                    v.append(value.fstr())
+                    if type(value) == list:
+                        v.append(value[0].fstr())
+                    else:
+                        v.append(value.fstr())
             else:
                 v.append(x.fstr())
         return "["+", ".join(v)+"]"
