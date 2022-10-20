@@ -424,8 +424,17 @@ class Interpreter(Mash):
                 l = None
                 # list might be complex
                 if type(tree[1]) == Token and tree[1].type == "CODE":
-                    insts += tree[1].value
-                    l = insts[-1].dst
+                        insts += tree[1].value
+                        l = insts[-1].dst
+                elif type(tree[1]) == Tree:
+                    if tree[1].data == "fun_call":
+                        insts += self.multi_call(tree[1])
+                        l = SymbTable.RETURN_NAME
+                    elif len(tree[1].data) > 5 and tree[1].data[0:5] == "EXPR_":
+                        l, extra = self.generate_expr(tree[1])
+                        insts += extra
+                    else:
+                        raise mex.Unimplemented("Such expression in for loop")
                 elif (type(tree[1]) == Token and tree[1].type == "VAR_NAME") or (type(tree[1]) == Token and tree[1].type == "scope_name"):
                     s, m = self.symb_table.exists(tree[1].value)
                     if not s:
