@@ -61,9 +61,13 @@ fun rshift(a, count) internal
  */
 fun zip(l1, l2) internal  # Change from internal to [[x, y] : x = l1, y = l2]
 
+/** Space for functions using random number generator */
+space Rnd {
 /**
  * Shuffles elements in a list, not changing the passed in list
  * @param l List to be shuffled
  * @return Copy of passed in list with randomly shuffled elements
  */
 fun shuffle(l) internal
+
+}

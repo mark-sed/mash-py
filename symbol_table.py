@@ -159,7 +159,19 @@ class SymbTable(Mash):
             return scope[-1]
         return None
 
-    def get_frame(self, symb, write=False, ret_top=False):
+    def search_scope_list(self, symb, scope, write):
+        s = symb[0]
+        for f in reversed(scope):
+            if s in f:
+                if len(symb) == 1:
+                    return [f]
+                else:
+                    return [f]+self.search_scope_list(symb[2:], [f[s]], write)
+            if write and f.shadowing:
+                break
+        return scope[-1]
+
+    def get_frame(self, symb, write=False, ret_top=False, flist=False):
         if type(symb) != list:
             symb = [symb]
 
@@ -170,12 +182,16 @@ class SymbTable(Mash):
         elif symb[0] == "::":
             # Global var
             scope = self.frames[0:1]
+            if flist:
+                return self.search_scope_list(symb[1:], scope, write)
             return self.search_scope(symb[1:], scope, write, ret_top=ret_top)
 
         if self.shadow_depth > 0 and write:
             scope = self.frames[1:self.index+1]
         else:
             scope = self.frames[:self.index+1]
+        if flist:
+            return self.search_scope_list(symb, scope, write)
         return self.search_scope(symb, scope, write, ret_top=ret_top)
 
     def assign(self, symb, value):

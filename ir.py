@@ -441,6 +441,8 @@ class FunCall(Instruction):
             else:
                 n = self.name
             fl = frame[n]
+        if fl is None:
+            raise mex.UndefinedReference("".join(self.name))
         if type(fl) != list:
             if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
@@ -483,7 +485,15 @@ class FunCall(Instruction):
                 raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
         # Move stack of frame top to the callee frame
         prev_top = symb_table.top()
-        symb_table.move_top(frame)
+        if frame in symb_table.frames:
+            symb_table.move_top(frame)
+        else:
+            lframe = symb_table.get_frame(self.name, flist=True)
+            # There is a chance that the function is nested and then
+            # we need to get the lowest level frame
+            for frm in reversed(lframe):
+                if frm in symb_table.frames:
+                    symb_table.move_top(frm)
         # Push new frame and arguments
         symb_table.push(True)
         # Set default args
