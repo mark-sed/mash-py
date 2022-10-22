@@ -49,6 +49,9 @@ class Class(Value):
         self.name = name
         self.frame = frame
         self.attr = {}
+        for v, k in self.frame.items():
+            if type(v) == list:
+                self.attr[k] = v
 
     def __contains__(self, key):
         return self.attr.__contains__(key)

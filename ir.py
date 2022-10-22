@@ -1,5 +1,5 @@
 from typing import Type
-from symbol_table import symb_table, SymbTable, ClassFrame
+from symbol_table import symb_table, SymbTable, ClassFrame, Frame, SpaceFrame
 import mash_exceptions as mex
 from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString, Dict
 import mash_types as types
@@ -583,7 +583,24 @@ class FunCall(Instruction):
                 self.named_args.append(i)
 
     def exec(self):
-        frame = symb_table.get_frame(self.name)
+        lframe = None
+        method_call = False
+        if type(self.name) == list and len(self.name) > 2 and self.name[-2] == ".":
+            method_call = True
+            frame = symb_table.get_frame(self.name, flist=True)
+            if frame is not None:
+                i = len(frame)
+                while i >= 0:
+                    i -= 1
+                    frm = frame[i]
+                    if not issubclass(type(frm), Frame):
+                        continue
+                    if frm in symb_table.frames:
+                        lframe = frm
+                frame = frame[-1].frame
+        else:
+            frame = symb_table.get_frame(self.name)
+
         if frame is None:
             fl = None
         else:
@@ -600,7 +617,9 @@ class FunCall(Instruction):
             else:
                 raise mex.TypeError("'"+"".join(self.name)+"' is not callable")
         f = None
+        new_obj = False
         if type(fl) == ClassFrame:
+            new_obj = True
             if n not in fl:
                 raise mex.Unimplemented("Implicit constructors")
                 ... # TODO: implicit constructor
@@ -624,8 +643,10 @@ class FunCall(Instruction):
                 else:
                     raise mex.UndefinedReference(str(self))
         assigned = []
-        if type(fl) == ClassFrame:
+        if new_obj:
             assigned = [(f.args[0][0], fl.instance())]
+        elif method_call:
+            assigned = [(f.args[0][0], self.name[-3])]
         for i, a in enumerate(f.args[1:]):
             v = a[1]
             a = a[0]
@@ -651,7 +672,9 @@ class FunCall(Instruction):
                 raise mex.TypeError(f"Argument named '{k}' in function call to '{n}' not found")
         # Move stack of frame top to the callee frame
         prev_top = symb_table.top()
-        if frame in symb_table.frames:
+        if lframe is not None:
+            symb_table.move_top(lframe)
+        elif frame in symb_table.frames:
             symb_table.move_top(frame)
         else:
             lframe = symb_table.get_frame(self.name, flist=True)

@@ -181,8 +181,12 @@ class SymbTable(Mash):
             if s in f:
                 if (space_find and type(f[s]) == SpaceFrame) or obj_find or (not space_find and not obj_find):
                     if len(symb) <= 2:
+                        if obj_find:
+                            return f.attr
                         return f
                     else:
+                        if obj_find:
+                            return self.search_scope(symb[1:], [f[s].attr], write, ret_top)
                         return self.search_scope(symb[1:], [f[s]], write, ret_top)
             if write and (obj_find or f.shadowing):
                 break
@@ -208,8 +212,12 @@ class SymbTable(Mash):
             if s in f:
                 if (space_find and type(f[s]) == SpaceFrame) or obj_find or (not space_find and not obj_find):
                     if len(symb) <= 2:
+                        if obj_find:
+                            return [f.attr]
                         return [f]
                     else:
+                        if obj_find:
+                            return [f.attr]+self.search_scope_list(symb[1:], [f[s]], write)
                         return [f]+self.search_scope_list(symb[1:], [f[s]], write)
             if write and (obj_find or f.shadowing):
                 break
@@ -276,6 +284,7 @@ class SymbTable(Mash):
             raise mex.UndefinedReference(symb)
         elif type(f) == bool:
             return
+        
         if type(symb) == list:
             return f[symb[-1]]
         return f[symb]

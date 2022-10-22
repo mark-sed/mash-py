@@ -36,7 +36,7 @@ class Interpreter(Mash):
         insts = []
         dst = None
         if type(src) == Token:
-            if src.type in Interpreter.CONSTS or type(src.value) == str:
+            if src.type in Interpreter.CONSTS or type(src.value) == str or type(src.value) == list:
                 dst = src.value
             elif src.type == "CODE":
                 insts += src.value
