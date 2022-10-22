@@ -164,30 +164,30 @@ class SymbTable(Mash):
                 fprev.append(irfun)
 
     def search_scope(self, symb, scope, write, ret_top=False):
-        space_find = False
         obj_find = False
+        move_am = 1
         if symb[0] == ".":
             s = symb[1]
+            move_am = 2
             obj_find = True
             if self.analyzer:
                 return False
         elif symb[0] == "::":
             s = symb[1]
-            space_find = True
+            move_am = 2
         else:
             s = symb[0]
 
         for f in reversed(scope):
             if s in f:
-                if (space_find and type(f[s]) == SpaceFrame) or obj_find or (not space_find and not obj_find):
-                    if len(symb) <= 2:
-                        if obj_find:
-                            return f.attr
-                        return f
-                    else:
-                        if obj_find:
-                            return self.search_scope(symb[1:], [f[s].attr], write, ret_top)
-                        return self.search_scope(symb[1:], [f[s]], write, ret_top)
+                if len(symb) <= 2:
+                    if obj_find:
+                        return f.attr
+                    return f
+                else:
+                    if obj_find:
+                        return self.search_scope(symb[move_am:], [f[s].attr], write, ret_top)
+                    return self.search_scope(symb[move_am:], [f[s]], write, ret_top)
             if write and (obj_find or f.shadowing):
                 break
         if ret_top and len(symb) <= 2:
@@ -195,30 +195,30 @@ class SymbTable(Mash):
         return None
 
     def search_scope_list(self, symb, scope, write):
-        space_find = False
         obj_find = False
+        move_am = 1
         if symb[0] == ".":
             s = symb[1]
+            move_am = 2
             obj_find = True
             if self.analyzer:
                 return False
         elif symb[0] == "::":
             s = symb[1]
-            space_find = True
+            move_am = 2
         else:
             s = symb[0]
         
         for f in reversed(scope):
             if s in f:
-                if (space_find and type(f[s]) == SpaceFrame) or obj_find or (not space_find and not obj_find):
-                    if len(symb) <= 2:
-                        if obj_find:
-                            return [f.attr]
-                        return [f]
-                    else:
-                        if obj_find:
-                            return [f.attr]+self.search_scope_list(symb[1:], [f[s]], write)
-                        return [f]+self.search_scope_list(symb[1:], [f[s]], write)
+                if len(symb) <= 2:
+                    if obj_find:
+                        return [f.attr]
+                    return [f]
+                else:
+                    if obj_find:
+                        return [f.attr]+self.search_scope_list(symb[move_am:], [f[s]], write)
+                    return [f]+self.search_scope_list(symb[move_am:], [f[s]], write)
             if write and (obj_find or f.shadowing):
                 break
         if type(scope[-1]) != list:
