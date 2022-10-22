@@ -633,7 +633,7 @@ class FunCall(Instruction):
                     raise mex.UndefinedReference(f"Arguments do not match any class '{self.name}' constructors")
         else:
             for i in fl:
-                # Find matching function signature
+                # Find closest matching function signature
                 if i.max_args >= len(self.args):
                     f = i
                     break
@@ -657,7 +657,7 @@ class FunCall(Instruction):
                     break
             passed = self.pos_args[i]
             value = passed
-            if type(passed) == str: 
+            if type(passed) == str or type(passed) == list: 
                 # Variable
                 value = symb_table.get(passed)
             assigned.append((a, value))
@@ -837,7 +837,7 @@ class Return(Keyword):
         self.value = value
 
     def exec(self):
-        raise mex.FlowControlReturn(self.value)
+        raise mex.FlowControlReturn(self.get(self.value))
 
     def __str__(self):
         return "return "+str(self.value)

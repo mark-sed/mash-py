@@ -149,7 +149,7 @@ class SymbTable(Mash):
             fprev = fprevfr[name]
 
         if fprev is None or type(fprev) != list:
-            self.assign(name, [irfun])
+            self.assign(name, [irfun], fun_arg=True)
         else:
             # Redefinition or ambiguous redef
             for i, f in enumerate(fprev):
@@ -161,7 +161,13 @@ class SymbTable(Mash):
                     fprev[i] = irfun
                     break
             else:
-                fprev.append(irfun)
+                # Insert so that the list is ascending based on amount of arguments
+                for i, f in enumerate(fprev):
+                    if max_args <= f.max_args:
+                        fprev.insert(i, irfun)
+                        break
+                else:
+                    fprev.append(irfun)
 
     def search_scope(self, symb, scope, write, ret_top=False):
         obj_find = False
@@ -248,12 +254,12 @@ class SymbTable(Mash):
             return self.search_scope_list(symb, scope, write)
         return self.search_scope(symb, scope, write, ret_top=ret_top)
 
-    def assign(self, symb, value):
+    def assign(self, symb, value, fun_arg=False):
         """
         Assigns value to a variable.
         """
-        if not self.analyzer:
-            if type(value) == str:
+        if not self.analyzer and not fun_arg:
+            if type(value) == str or type(value) == list:
                 # TODO: Make sure that Int, Float, String, Bool are copied
                 #       They should be, because Expr creates a new object
                 value = self.get(value)

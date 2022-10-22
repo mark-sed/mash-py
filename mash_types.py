@@ -173,7 +173,7 @@ class List(Value):
     def _in(self, x):
         v = x.get_value() if type(x) != list else x
         for i in self.value:
-            if type(i) == str:
+            if type(i) == str or type(i) == list:
                 i = symb_table.get(i)
             a = i.get_value() if type(i) != list else i
             if a == v:
@@ -237,7 +237,7 @@ class Dict(Value):
     def _in(self, x):
         v = x.get_value() if type(x) != list else x
         for i, _ in self.value:
-            if type(i) == str:
+            if type(i) == str or type(i) == list:
                 i = symb_table.get(i)
             a = i.get_value() if type(i) != list else i
             if a == v:
@@ -277,7 +277,7 @@ class Dict(Value):
                         x = x.fstr()
             else:
                 x = x.fstr()
-            if type(y) == str:
+            if type(y) == str or type(y) == list:
                 if not symb_table.analyzer:
                     y = symb_table.get(y)
                     if type(y) == list:

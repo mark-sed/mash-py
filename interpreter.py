@@ -320,7 +320,7 @@ class Interpreter(Mash):
                             else:
                                 if i.type in Interpreter.CONSTS:
                                     insts.append(self.op_assign(root.children[0].value, i.value, op))
-                    elif tree.type == "VAR_NAME":
+                    elif tree.type == "VAR_NAME" or tree.type == "scope_name":
                         insts.append(self.op_assign(root.children[0].value, tree.value, op))
                     else:
                         raise mex.Unimplemented("Assignment not implemented for such value")
