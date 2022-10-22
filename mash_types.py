@@ -1,5 +1,4 @@
 import mash_exceptions as mex
-from symbol_table import symb_table
 
 def type_name(o):
     try:
@@ -40,6 +39,40 @@ class Value():
 
     def fstr(self):
         return self.__str__()
+
+class Class(Value):
+    """
+    Class type
+    """
+    def __init__(self, name, frame):
+        self.value = name
+        self.name = name
+        self.frame = frame
+        self.attr = {}
+
+    def __contains__(self, key):
+        return self.attr.__contains__(key)
+
+    def __getitem__(self, key):
+        return self.attr[key]
+
+    def __setitem__(self, key, value):
+        return self.attr.__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self.attr.__delitem__(key)
+
+    def __iter__(self):
+        return self.attr.__iter__()
+    
+    def __len__(self):
+        return self.attr.__len__()
+
+    def __str__(self):
+        n = "".join(self.value)
+        return f"<{n} object>"
+
+from symbol_table import symb_table
 
 class String(Value):
     """

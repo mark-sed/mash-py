@@ -31,7 +31,6 @@ class Frame(dict):
         s.append("\n"+endspc+"]")
         return "".join(s)
 
-
 class SpaceFrame(Frame):
     """
     Name space
@@ -50,6 +49,9 @@ class ClassFrame(Frame):
         self.name = name
         super(ClassFrame, self).__init__(True)
 
+    def instance(self):
+        from mash_types import Class
+        return Class(self.name, self)
 
 class SymbTable(Mash):
     """
@@ -108,6 +110,22 @@ class SymbTable(Mash):
         self.spaces.pop()
         self.pop()
 
+    def push_class(self, name):
+        f = ClassFrame(name)
+        if self.in_space():
+            self.top()[name] = f
+            self.spaces.append(f)
+        else:
+            self.top()[name] = f
+            self.spaces.append(f)
+        self.frames.append(f)
+        self.shadow_depth += 1
+        self.index += 1
+        
+    def pop_class(self):
+        self.spaces.pop()
+        self.pop()
+
     def clear_all(self):
         self.initialize()
 
@@ -146,29 +164,57 @@ class SymbTable(Mash):
                 fprev.append(irfun)
 
     def search_scope(self, symb, scope, write, ret_top=False):
-        s = symb[0]
+        space_find = False
+        obj_find = False
+        if symb[0] == ".":
+            s = symb[1]
+            obj_find = True
+            if self.analyzer:
+                return False
+        elif symb[0] == "::":
+            s = symb[1]
+            space_find = True
+        else:
+            s = symb[0]
+
         for f in reversed(scope):
             if s in f:
-                if len(symb) == 1:
-                    return f
-                else:
-                    return self.search_scope(symb[2:], [f[s]], write, ret_top)
-            if write and f.shadowing:
+                if (space_find and type(f[s]) == SpaceFrame) or obj_find or (not space_find and not obj_find):
+                    if len(symb) <= 2:
+                        return f
+                    else:
+                        return self.search_scope(symb[1:], [f[s]], write, ret_top)
+            if write and (obj_find or f.shadowing):
                 break
-        if ret_top and len(symb) == 1:
+        if ret_top and len(symb) <= 2:
             return scope[-1]
         return None
 
     def search_scope_list(self, symb, scope, write):
-        s = symb[0]
+        space_find = False
+        obj_find = False
+        if symb[0] == ".":
+            s = symb[1]
+            obj_find = True
+            if self.analyzer:
+                return False
+        elif symb[0] == "::":
+            s = symb[1]
+            space_find = True
+        else:
+            s = symb[0]
+        
         for f in reversed(scope):
             if s in f:
-                if len(symb) == 1:
-                    return [f]
-                else:
-                    return [f]+self.search_scope_list(symb[2:], [f[s]], write)
-            if write and f.shadowing:
+                if (space_find and type(f[s]) == SpaceFrame) or obj_find or (not space_find and not obj_find):
+                    if len(symb) <= 2:
+                        return [f]
+                    else:
+                        return [f]+self.search_scope_list(symb[1:], [f[s]], write)
+            if write and (obj_find or f.shadowing):
                 break
+        if type(scope[-1]) != list:
+            return [scope[-1]]
         return scope[-1]
 
     def get_frame(self, symb, write=False, ret_top=False, flist=False):
@@ -203,11 +249,20 @@ class SymbTable(Mash):
                 # TODO: Make sure that Int, Float, String, Bool are copied
                 #       They should be, because Expr creates a new object
                 value = self.get(value)
-        f = self.get_frame(symb, True, True)
+        obj_access = False
+        if not self.analyzer and type(symb) == list and len(symb) > 2 and symb[-2] == ".":
+            obj_access = True
+            f = self.get_frame(symb, True, True, flist=True)
+        else:
+            f = self.get_frame(symb, True, True)
         if f is None:
             raise mex.UndefinedReference("".join(symb))
+        elif type(f) == bool:
+            return
 
-        if type(symb) == list:
+        if obj_access:
+            f[-1][symb[-1]] = value
+        elif type(symb) == list:
             f[symb[-1]] = value
         else:
             f[symb] = value
@@ -219,6 +274,8 @@ class SymbTable(Mash):
             if type(symb) == list:
                 raise mex.UndefinedReference("".join(symb))
             raise mex.UndefinedReference(symb)
+        elif type(f) == bool:
+            return
         if type(symb) == list:
             return f[symb[-1]]
         return f[symb]

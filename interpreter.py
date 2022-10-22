@@ -245,6 +245,7 @@ class Interpreter(Mash):
         debug(root, self.opts)
         # Declaration or print
         if type(root) == Token:
+            insts = []
             # Variable declaration or print
             if root.type == "VAR_NAME":
                 self.symb_table.assign(root.value, ir.Nil())
@@ -355,6 +356,14 @@ class Interpreter(Mash):
                     insts += self.generate_ir(tree)
                 insts.append(ir.SpacePop())
                 symb_table.pop_space()
+            # Class
+            elif root.data == "class":
+                symb_table.push_class(root.children[0].value)
+                insts.append(ir.ClassPush(root.children[0].value))
+                for tree in root.children[1:]:
+                    insts += self.generate_ir(tree)
+                insts.append(ir.ClassPop())
+                symb_table.pop_class()
             # Function call
             elif root.data == "fun_call":
                 insts += self.multi_call(root)
@@ -452,6 +461,18 @@ class Interpreter(Mash):
                 body = self.generate_ir(tree[2])
                 symb_table.pop()
                 insts.append(ir.Fun(name, args, body))
+            elif root.data == "constructor":
+                tree = root.children
+                name = tree[0].value
+                args = tree[1].value
+                # fun_code_block does not push the frame itself
+                symb_table.push()
+                # Push args
+                for k, v in args:
+                    symb_table.declare(k, v)
+                body = self.generate_ir(tree[2])
+                symb_table.pop()
+                insts.append(ir.Constructor(name, args, body))
             # Return
             elif root.data == "return":
                 if len(root.children) == 0:
@@ -469,7 +490,7 @@ class Interpreter(Mash):
                         value = insts[-1].dst
                     else:
                         value = root.children[0].value
-                    insts.append(ir.Return(value))
+                insts.append(ir.Return(value))
             # Silent expr
             elif root.data == "silent_expr":
                 insts += self.generate_ir(root.children[0], True)

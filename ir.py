@@ -1,5 +1,5 @@
 from typing import Type
-from symbol_table import symb_table, SymbTable
+from symbol_table import symb_table, SymbTable, ClassFrame
 import mash_exceptions as mex
 from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString, Dict
 import mash_types as types
@@ -104,7 +104,7 @@ class Print(Instruction):
             print(v, end="")
 
     def __str__(self):
-        return f"PRINT {self.value}"
+        return f"PRINT {ir_str(self.value)}"
 
 class SetIfNotSet(Instruction):
     """
@@ -121,7 +121,7 @@ class SetIfNotSet(Instruction):
             symb_table.assign(self.dst, self.value)
 
     def __str__(self):
-        return f"SETIFNOTSET {self.value}, {self.dst}"
+        return f"SETIFNOTSET {ir_str(self.value)}, {self.dst}"
 
 class SetOrPrint(Instruction):
     """
@@ -147,7 +147,7 @@ class SetOrPrint(Instruction):
                 print(v, end="")
 
     def __str__(self):
-        return f"SETORPRINT {self.value}, {self.dst}"
+        return f"SETORPRINT {ir_str(self.value)}, {self.dst}"
 
 class ToString(Instruction):
     """
@@ -162,7 +162,7 @@ class ToString(Instruction):
         symb_table.assign(self.dst, String(str(v)))
 
     def __str__(self):
-        return f"TOSTR {self.value}, {self.dst}"
+        return f"TOSTR {ir_str(self.value)}, {self.dst}"
 
 class ListWrap(Instruction):
     """
@@ -177,7 +177,7 @@ class ListWrap(Instruction):
         symb_table.assign(self.dst, List([v]))
 
     def __str__(self):
-        return f"LISTWRAP {self.value}, {self.dst}"
+        return f"LISTWRAP {ir_str(self.value)}, {self.dst}"
 
 class Nop(Instruction):
     """
@@ -494,6 +494,79 @@ class Fun(Instruction):
         n = "".join(self.name)
         return f"fun {n}({args_s}) {{\n{t}\n}}"
 
+class Constructor(Fun):
+    """
+    Class constructor
+    """
+    def __init__(self, name, args, body):
+        if len(args) < 1:
+            raise mex.TypeError("Constructor has to take at least one argument - the object itself")
+        super(Constructor, self).__init__(name, args, body)
+
+    def call(self):
+        if self.internal:
+            assign_args = []
+            for a, _ in self.args:
+                assign_args.append(symb_table.get(a).get_value())
+            try:
+                rval = self.wrap_internal(self.body(*assign_args))
+            except TypeError:
+                raise mex.TypeError("Incorrect argument type in function call to '"+self.str_header()+"'")
+            return self.args[0][1], 1
+        else:
+            for i in self.body:
+                try:
+                    i.exec()
+                except mex.FlowControlReturn as r:
+                    if type(r.value) != Nil:
+                        raise mex.TypeError("Constructor has to return nil")
+                    return r.value, r.frames
+            return symb_table.get(self.args[0][0]), 1
+
+    def str_header(self):
+        args = []
+        for k, v in self.args:
+            if v is None:
+                args.append(str(k))
+            else:
+                args.append(f"{k} = {str(v)}")
+        args_s = ", ".join(args)
+        return f"new {self.name}({args_s})"+(" internal" if self.internal else "")
+
+    def output(self, indent=0):
+        if self.internal:
+            return self.str_header()
+        t = self.body
+        if type(self.body) == list:
+            t = "\n".join(i.output(indent+1) for i in t)
+        args = []
+        for k, v in self.args:
+            if v is None:
+                args.append(str(k))
+            else:
+                args.append(f"{k} = {str(v)}")
+        args_s = ", ".join(args)
+        n = "".join(self.name)
+        spc = IR.SPCS*indent
+        return spc+f"new {n}({args_s}) {{\n{t}\n{spc}}}"
+
+    def __str__(self):
+        if self.internal:
+            return self.str_header()
+        t = self.body
+        if type(self.body) == list:
+            t = "\n".join(str(i) for i in t)
+        args = []
+        for k, v in self.args:
+            if v is None:
+                args.append(str(k))
+            else:
+                args.append(f"{k} = {str(v)}")
+        args_s = ", ".join(args)
+        n = "".join(self.name)
+        return f"new {n}({args_s}) {{\n{t}\n}}"
+
+
 class FunCall(Instruction):
     """
     Function call
@@ -521,24 +594,39 @@ class FunCall(Instruction):
             fl = frame[n]
         if fl is None:
             raise mex.UndefinedReference("".join(self.name))
-        if type(fl) != list:
+        if type(fl) != list and type(fl) != ClassFrame:
             if self.name[0] == "$":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
                 raise mex.TypeError("'"+"".join(self.name)+"' is not callable")
         f = None
-        for i in fl:
-            # Find matching function signature
-            if i.max_args >= len(self.args):
-                f = i
-                break
-        if f is None:
-            if self.name[0] == "$":
-                raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
+        if type(fl) == ClassFrame:
+            if n not in fl:
+                raise mex.Unimplemented("Implicit constructors")
+                ... # TODO: implicit constructor
             else:
-                raise mex.UndefinedReference(str(self))
+                for i in fl[n]:
+                    # Find matching function signature
+                    if i.max_args-1 >= len(self.args):
+                        f = i
+                        break
+                if f is None:
+                    raise mex.UndefinedReference(f"Arguments do not match any class '{self.name}' constructors")
+        else:
+            for i in fl:
+                # Find matching function signature
+                if i.max_args >= len(self.args):
+                    f = i
+                    break
+            if f is None:
+                if self.name[0] == "$":
+                    raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
+                else:
+                    raise mex.UndefinedReference(str(self))
         assigned = []
-        for i, a in enumerate(f.args):
+        if type(fl) == ClassFrame:
+            assigned = [(f.args[0][0], fl.instance())]
+        for i, a in enumerate(f.args[1:]):
             v = a[1]
             a = a[0]
             if i >= len(self.pos_args):
@@ -617,7 +705,7 @@ class Member(Instruction):
         symb_table.assign(self.dst, v)
 
     def __str__(self):
-        return f"AT {self.src}, {self.index}, {self.dst}"
+        return f"AT {ir_str(self.src)}, {ir_str(self.index)}, {self.dst}"
 
 class Slice(Instruction):
     """
@@ -639,7 +727,7 @@ class Slice(Instruction):
         symb_table.assign(self.dst, v)
 
     def __str__(self):
-        return f"SLICE {self.src}, {self.i1}, {self.i2}, {self.step}, {self.dst}"
+        return f"SLICE {ir_str(self.src)}, {ir_str(self.i1)}, {ir_str(self.i2)}, {ir_str(self.step)}, {self.dst}"
 
 class SpacePush(Instruction):
     """
@@ -666,6 +754,32 @@ class SpacePop(Instruction):
 
     def __str__(self):
         return "SPCPOP"
+
+class ClassPush(Instruction):
+    """
+    Starts class definition
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def exec(self):
+        symb_table.push_class(self.name)
+
+    def __str__(self):
+        return f"CLSPUSH {self.name}"
+
+class ClassPop(Instruction):
+    """
+    Ends class definition
+    """
+    def __init__(self):
+        ...
+
+    def exec(self):
+        symb_table.pop_class()
+
+    def __str__(self):
+        return "CLSPOP"
 
 class Keyword(Instruction):
     """
@@ -756,7 +870,7 @@ class Mul(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"MUL {self.src1}, {self.src2}, {self.dst}"
+        return f"MUL {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Add(Expr):
     """
@@ -781,7 +895,7 @@ class Add(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"ADD {self.src1}, {self.src2}, {self.dst}"
+        return f"ADD {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Sub(Expr):
     """
@@ -802,7 +916,7 @@ class Sub(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"SUB {self.src1}, {self.src2}, {self.dst}"
+        return f"SUB {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class FDiv(Expr):
     """
@@ -823,7 +937,7 @@ class FDiv(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"FDIV {self.src1}, {self.src2}, {self.dst}"
+        return f"FDIV {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class IDiv(Expr):
     """
@@ -844,7 +958,7 @@ class IDiv(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"IDIV {self.src1}, {self.src2}, {self.dst}"
+        return f"IDIV {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Mod(Expr):
     """
@@ -865,7 +979,7 @@ class Mod(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"MOD {self.src1}, {self.src2}, {self.dst}"
+        return f"MOD {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Exp(Expr):
     """
@@ -886,7 +1000,7 @@ class Exp(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"EXP {self.src1}, {self.src2}, {self.dst}"
+        return f"EXP {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class In(Expr):
     """
@@ -904,7 +1018,7 @@ class In(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"IN {self.src1}, {self.src2}, {self.dst}"
+        return f"IN {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class LOr(Expr):
     """
@@ -933,7 +1047,7 @@ class LOr(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"OR {self.src1}, {self.src2}, {self.dst}"
+        return f"OR {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class LAnd(Expr):
     """
@@ -962,7 +1076,7 @@ class LAnd(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"AND {self.src1}, {self.src2}, {self.dst}"
+        return f"AND {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class LNot(Expr):
     
@@ -982,7 +1096,7 @@ class LNot(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"NOT {self.src1}, {self.dst}"
+        return f"NOT {ir_str(self.src1)}, {self.dst}"
 
 class Lte(Expr):
     
@@ -1001,7 +1115,7 @@ class Lte(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"LTE {self.src1}, {self.src2}, {self.dst}"
+        return f"LTE {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Gte(Expr):
     
@@ -1020,7 +1134,7 @@ class Gte(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"GTE {self.src1}, {self.src2}, {self.dst}"
+        return f"GTE {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Gt(Expr):
     
@@ -1039,7 +1153,7 @@ class Gt(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"GT {self.src1}, {self.src2}, {self.dst}"
+        return f"GT {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Lt(Expr):
     
@@ -1058,7 +1172,7 @@ class Lt(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"LT {self.src1}, {self.src2}, {self.dst}"
+        return f"LT {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Eq(Expr):
     
@@ -1077,7 +1191,7 @@ class Eq(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"EQ {self.src1}, {self.src2}, {self.dst}"
+        return f"EQ {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Neq(Expr):
     
@@ -1096,7 +1210,7 @@ class Neq(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"NEQ {self.src1}, {self.src2}, {self.dst}"
+        return f"NEQ {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class Inc(Expr):
     

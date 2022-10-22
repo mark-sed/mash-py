@@ -157,7 +157,7 @@ function : "fun" VAR_NAME "(" fun_args ")" fun_code_block
 lambda : "fun" VAR_NAME? "(" fun_args ")" "=" _rvalue
 
 // Class constructor
-constructor : VAR_NAME "(" fun_args ")" code_block
+constructor : "new" VAR_NAME "(" fun_args ")" fun_code_block
 
 // Block of code
 code_block : "{" _stmt "}"
@@ -166,7 +166,8 @@ code_block : "{" _stmt "}"
 fun_code_block : code_block
 
 // Constructs allowed in class body
-//_class_content : constructor
+_class_content : _END* constructor _END* _class_content
+               | _stmt
 //              | VAR_NAME
 //              | assignment
 //              | _definition
@@ -189,8 +190,8 @@ space : "space" VAR_NAME "{" _END? _stmt _END? "}"
       | "space" VAR_NAME INTERNAL "{" _END? _stmt _END? "}"
 
 // Class definition
-class : "class" VAR_NAME INTERNAL? "{" _END? _stmt _END? "}"
-      | "class" VAR_NAME ":" var_list "{" _END? _stmt _END? "}"
+class : "class" VAR_NAME INTERNAL? "{" _END? _class_content _END? "}"
+      | "class" VAR_NAME ":" var_list "{" _END? _class_content _END? "}"
       | "class" VAR_NAME INTERNAL
 
 // Variable name
