@@ -67,22 +67,22 @@ class Interpreter(Mash):
         """
         insts = []
         cnd = None
-        if type(tree[0]) == Token and tree[0].type == "CODE":
-            insts += tree[0].value
+        if type(tree) == Token and tree.type == "CODE":
+            insts += tree.value
             cnd = insts[-1].dst
         else:
-            if type(tree[0]) == Tree:
-                rval, gen = self.generate_expr(tree[0])
+            if type(tree) == Tree:
+                rval, gen = self.generate_expr(tree)
                 insts += gen
                 cnd = rval
             else:
-                if tree[0].type in Interpreter.CONSTS:
-                    cnd = tree[0].value
+                if tree.type in Interpreter.CONSTS:
+                    cnd = tree.value
                 else:
-                    s, m = self.symb_table.exists(tree[0].value)
+                    s, m = self.symb_table.exists(tree.value)
                     if not s:
                         raise mex.UndefinedReference(m)
-                    cnd = tree[0].value
+                    cnd = tree.value
         return (cnd, insts)
 
     def generate_expr(self, root):
@@ -281,7 +281,7 @@ class Interpreter(Mash):
                         insts += self.generate_ir(i, silent)
                     else:
                         insts.append(i)
-                if not silent:
+                if not silent and not (len(insts) == 1 and (type(insts[0]) == ir.Inc or type(insts[0]) == ir.Dec)):
                     insts.append(ir.Print(root.value[-1].dst))
                 return insts
             # Const print
@@ -363,7 +363,7 @@ class Interpreter(Mash):
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
-                cnd, insts = self.generate_cond(tree)
+                cnd, insts = self.generate_cond(tree[0])
                 tr = None
                 fl = ir.Nop()
                 # True branch
@@ -388,13 +388,14 @@ class Interpreter(Mash):
             # While loop
             elif root.data == "while":
                 tree = root.children[0].children
-                cnd, insts = self.generate_cond(tree)
+                cnd, cnd_insts = self.generate_cond(tree[0])
+                insts += cnd_insts
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.push()
                 t = self.generate_ir(tree[1])
                 if type(tree[1]) == Tree and tree[1].data != "code_block":
                     symb_table.pop()
-                insts.append(ir.While(cnd, t))
+                insts.append(ir.While(cnd, cnd_insts, t))
             # Do while loop
             elif root.data == "do_while":
                 tree = root.children[0].children
@@ -403,19 +404,8 @@ class Interpreter(Mash):
                 t = self.generate_ir(tree[0])
                 if type(tree[0]) == Tree and tree[0].data != "code_block":
                     symb_table.pop()
-                cnd = None
-                # Condition check
-                if type(tree[1]) == Token and tree[1].type == "CODE":
-                    insts += tree[1].value
-                    cnd = insts[-1].dst
-                elif (type(tree[1]) == Token and tree[1].type == "VAR_NAME") or (type(tree[1]) == Token and tree[1].type == "scope_name"):
-                    s, m = self.symb_table.exists(tree[1].value)
-                    if not s:
-                        raise mex.UndefinedReference(m)
-                    cnd = tree[1].value
-                else:
-                    cnd = tree[1].value
-                insts.append(ir.DoWhile(t, cnd))
+                cnd, cnd_insts = self.generate_cond(tree[1])
+                insts.append(ir.DoWhile(t, cnd, cnd_insts))
             # For loop
             elif root.data == "for":
                 tree = root.children[0].children
@@ -556,6 +546,10 @@ class Interpreter(Mash):
             i.exec()
         #print("\n\n"+str(symb_table))
 
+def format_ir(ir_code):
+    for i in ir_code:
+        print(i.output())
+
 def interpret(opts, code, libmash_code):
     """
     Interpret mash code
@@ -581,8 +575,7 @@ def interpret(opts, code, libmash_code):
     ir_code = interpreter.interpret_top_level(parsing.ConstTransformer(symb_table).transform(tree))
     debug("IR generation done", opts)
     if opts.code_only:
-        for i in ir_code:
-            print(i)
+        format_ir(ir_code)
         return
     debug("Running IR", opts)
     symb_table.clear_all()

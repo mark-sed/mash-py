@@ -35,6 +35,9 @@ class Value():
     def __eq__(self, other):
         return self.get_value() == other.get_value()
 
+    def ir_str(self):
+        return f"{self.type_name()}({self.fstr()})"
+
     def fstr(self):
         return self.__str__()
 
@@ -159,7 +162,10 @@ class List(Value):
         for x in self.value:
             if type(x) == str or type(x) == list:
                 if(symb_table.analyzer):
-                    v.append(x)
+                    if type(x) == list:
+                        v.append("".join(x))
+                    else:
+                        v.append(x)
                 else:
                     if type(x) == list:
                         # Fun
@@ -204,6 +210,9 @@ class Dict(Value):
 
     def __eq__(self, other):
         return self.value == other.value
+
+    def items(self):
+        return List([List([x, y]) for x, y in self.value])
 
     def update(self):
         for c, i in enumerate(self.value):

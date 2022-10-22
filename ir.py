@@ -9,6 +9,8 @@ class IR:
     """
     Base class for all ir nodes
     """
+    SPCS = "    "
+
     def getV(self, name):
         if type(name) == str or type(name) == list:
             return symb_table.get(name).get_value()
@@ -20,6 +22,9 @@ class IR:
             return symb_table.get(name)
         elif issubclass(type(name), Value):
             return name
+
+    def output(self, indent=0):
+        return (indent*IR.SPCS)+str(self)
 
 def wrap(v):
     if type(v) == int:
@@ -36,6 +41,14 @@ def wrap(v):
         return Nil(v)
     else:
         raise mex.Unimplemented(f"Wrapper for type '{type(v)}'")
+
+def ir_str(value):
+    if type(value) == list:
+        return "".join(value)
+    elif type(value) == str:
+        return value
+    else:
+        return value.ir_str()
 
 class Instruction(IR):
     """
@@ -72,7 +85,7 @@ class AssignVar(Instruction):
         symb_table.assign(self.dst, self.value)
 
     def __str__(self):
-        return f"SET {self.value}, {self.dst}"
+        return f"SET {ir_str(self.value)}, {ir_str(self.dst)}"
 
 class Print(Instruction):
     """
@@ -202,9 +215,19 @@ class If(Instruction):
             else:
                 for i in self.f:
                     i.exec()
-        except mex.FlowControl as e:
+        except mex.FlowControlReturn as e:
             raise mex.FlowControlReturn(e.value, e.frames+1)
         symb_table.pop()
+
+    def output(self, indent=0):
+        t = self.t
+        f = self.f
+        if type(self.t) == list:
+            t = "\n".join(i.output(indent+1) for i in t)
+        if type(self.f) == list:
+            f = "\n".join(i.output(indent+1) for i in f)
+        spc = (indent*IR.SPCS)
+        return spc+f"IF ({self.cnd}) {{\n{t}\n{spc}}} ELSE {{\n{f}\n{spc}}}"
 
     def __str__(self):
         t = self.t
@@ -213,14 +236,15 @@ class If(Instruction):
             t = "\n".join(str(i) for i in t)
         if type(self.f) == list:
             f = "\n".join(str(i) for i in f)
-        return f"IF ({self.cnd}) {{\n{t}\n}} ELSE {{\n{f}}}"
+        return f"IF ({self.cnd}) {{\n{t}\n}} ELSE {{\n{f}\n}}"
 
 class While(Instruction):
     """
     While loop
     """
-    def __init__(self, cnd, t):
+    def __init__(self, cnd, cnd_insts, t):
         self.cnd = cnd
+        self.cnd_insts = cnd_insts
         self.t = t
         if type(self.t) is not list:
             self.t = [self.t]
@@ -238,8 +262,18 @@ class While(Instruction):
                 continue
             except mex.FlowControlReturn as e:
                 raise mex.FlowControlReturn(e.value, e.frames+1)
+            # Run code for condition
+            for i in self.cnd_insts:
+                i.exec()
             c = self.getV(self.cnd)
         symb_table.pop()
+
+    def output(self, indent=0):
+        t = self.t
+        if type(self.t) == list:
+            t = "\n".join(i.output(indent+1) for i in t)
+        spc = indent*IR.SPCS
+        return spc+f"WHILE ({self.cnd}) {{\n{t}\n{spc}}}"
 
     def __str__(self):
         t = self.t
@@ -251,8 +285,9 @@ class DoWhile(Instruction):
     """
     Do While loop
     """
-    def __init__(self, t, cnd):
+    def __init__(self, t, cnd, cnd_insts):
         self.cnd = cnd
+        self.cnd_insts = cnd_insts
         self.t = t
         if type(self.t) is not list:
             self.t = [self.t]
@@ -269,6 +304,9 @@ class DoWhile(Instruction):
             ...
         except mex.FlowControlReturn as e:
             raise mex.FlowControlReturn(e.value, e.frames+1)
+        # Run code for condition
+        for i in self.cnd_insts:
+            i.exec()
         c = self.getV(self.cnd)
         while c:
             try:
@@ -280,8 +318,18 @@ class DoWhile(Instruction):
                 continue
             except mex.FlowControlReturn as e:
                 raise mex.FlowControlReturn(e.value, e.frames+1)
+            # Run code for condition
+            for i in self.cnd_insts:
+                i.exec()
             c = self.getV(self.cnd)
         symb_table.pop()
+
+    def output(self, indent=0):
+        t = self.t
+        if type(self.t) == list:
+            t = "\n".join(i.output(indent+1) for i in t)
+        spc = IR.SPCS*indent
+        return spc+f"DO {{\n{t}\n{spc}}} WHILE ({self.cnd})"
 
     def __str__(self):
         t = self.t
@@ -302,7 +350,13 @@ class For(Instruction):
 
     def exec(self):
         symb_table.push()
-        for a in self.getV(self.l):
+        s = self.get(self.l)
+        if type(s) != List and type(s) != Dict:
+            raise mex.TypeError(f"Cannot iterate over {s.type_name()}")
+        v = s.get_value()
+        if type(s) == Dict:
+            v = s.items().get_value()
+        for a in v:
             symb_table.assign(self.i, a)
             try:
                 for i in self.t:
@@ -315,6 +369,13 @@ class For(Instruction):
                 symb_table.pop()
                 raise e
         symb_table.pop()
+
+    def output(self, indent=0):
+        t = self.t
+        if type(self.t) == list:
+            t = "\n".join(i.output(indent+1) for i in t)
+        spc = IR.SPCS*indent
+        return spc+f"FOR ({self.i} : {self.l}) {{\n{t}\n{spc}}}"
 
     def __str__(self):
         t = self.t
@@ -399,6 +460,23 @@ class Fun(Instruction):
             details = f" with {len(v)} signatures"
         n = "".join(self.name)
         return f"<function '{n}'{details}>"
+
+    def output(self, indent=0):
+        if self.internal:
+            return self.str_header()
+        t = self.body
+        if type(self.body) == list:
+            t = "\n".join(i.output(indent+1) for i in t)
+        args = []
+        for k, v in self.args:
+            if v is None:
+                args.append(str(k))
+            else:
+                args.append(f"{k} = {str(v)}")
+        args_s = ", ".join(args)
+        n = "".join(self.name)
+        spc = IR.SPCS*indent
+        return spc+f"fun {n}({args_s}) {{\n{t}\n{spc}}}"
 
     def __str__(self):
         if self.internal:
