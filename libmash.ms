@@ -61,6 +61,13 @@ fun rshift(a, count) internal
  */
 fun zip(l1, l2) internal  # Change from internal to [[x, y] : x = l1, y = l2]
 
+/**
+ * Creates new list by reversing passed one
+ * @param l List to reverse
+ * @return new list that is reversed version of the passed one
+ */
+fun reverse(l) internal
+
 /** Space for functions using random number generator */
 space Rnd {
 
@@ -70,5 +77,54 @@ space Rnd {
  * @return Copy of passed in list with randomly shuffled elements
  */
 fun shuffle(l) internal
+
+}
+
+/** Math functions **/
+space Math {
+
+/**
+ * Sine
+ * @param x Numeric value
+ * @return Sine of x in radians
+ */
+fun sin(x) internal
+
+/**
+ * Tangent
+ * @param x Numeric value
+ * @return Tangent of x in radians
+ */
+fun tan(x) internal
+
+/**
+ * Cosine
+ * @param x Numeric value
+ * @return Cosine of x in radians
+ */
+fun cos(x) internal
+
+/**
+ * Arc sine
+ * @param x Numeric value
+ * @return Arc sine of x in radians
+ */
+fun asin(x) internal
+
+/**
+ * Arc tangent
+ * @param x Numeric value
+ * @return Arc tangent of x in radians
+ */
+fun atan(x) internal
+/** Returns atan(y/x) */
+fun atan(y, x) internal
+
+/**
+ * Arc cosine
+ * @param x Numeric value
+ * @return Arc cosine of x in radians
+ */
+fun acos(x) internal
 
 }

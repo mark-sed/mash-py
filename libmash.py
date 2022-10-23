@@ -4,6 +4,7 @@ Internal implementation for libmash functions
 """
 from copy import copy
 import random
+import math
 
 import mash_types as types
 
@@ -32,3 +33,29 @@ def shuffle_1(l):
     retv = copy(l)
     random.shuffle(retv)
     return retv
+
+def reverse_1(l):
+    retv = copy(l)
+    retv.reverse()
+    return retv
+
+def cos_1(x):
+    return math.cos(x)
+
+def sin_1(x):
+    return math.sin(x)
+
+def tan_1(x):
+    return math.tan(x)
+
+def acos_1(x):
+    return math.acos(x)
+
+def asin_1(x):
+    return math.asin(x)
+
+def atan_1(x):
+    return math.atan(x)
+
+def atan_2(y, x):
+    return math.atan2(y, x)
