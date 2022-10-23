@@ -40,6 +40,9 @@ class SpaceFrame(Frame):
         self.name = name
         super(SpaceFrame, self).__init__(True)
 
+    def __str__(self):
+        return f"<space {self.name}>"
+
 class ClassFrame(Frame):
     """
     Class frame
@@ -52,6 +55,9 @@ class ClassFrame(Frame):
     def instance(self):
         from mash_types import Class
         return Class(self.name, self)
+
+    def __str__(self):
+        return f"<class {self.name}>"
 
 class SymbTable(Mash):
     """

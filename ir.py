@@ -1,7 +1,8 @@
+from ast import ClassDef
 from typing import Type
 from symbol_table import symb_table, SymbTable, ClassFrame, Frame, SpaceFrame
 import mash_exceptions as mex
-from mash_types import Float, Int, Nil, Bool, String, Value, List, RString, FString, Dict
+from mash_types import Float, Int, Nil, Bool, String, Value, List, Dict
 import mash_types as types
 import libmash
 
@@ -22,6 +23,10 @@ class IR:
             return symb_table.get(name)
         elif issubclass(type(name), Value):
             return name
+        elif type(name) == ClassFrame or type(name) == SpaceFrame:
+            return str(name)
+        else:
+            raise mex.Unimplemented("Getter for IR node type")
 
     def output(self, indent=0):
         return (indent*IR.SPCS)+str(self)
@@ -32,7 +37,7 @@ def wrap(v):
     elif type(v) == float:
         return Float(v)
     elif type(v) == str:
-        return String(v)
+        return String(v, escape_chs=False)
     elif type(v) == bool:
         return Bool(v)
     elif type(v) == list:
@@ -620,6 +625,7 @@ class FunCall(Instruction):
         new_obj = False
         if type(fl) == ClassFrame:
             new_obj = True
+            n = fl.name
             if n not in fl:
                 raise mex.Unimplemented("Implicit constructors")
                 ... # TODO: implicit constructor
@@ -642,12 +648,17 @@ class FunCall(Instruction):
                     raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
                 else:
                     raise mex.UndefinedReference(str(self))
+            elif type(f) == Constructor:
+                raise mex.TypeError("Constructor cannot be called as a function")
         assigned = []
+        start_arg_i = 0
         if new_obj:
             assigned = [(f.args[0][0], fl.instance())]
+            start_arg_i = 1
         elif method_call:
             assigned = [(f.args[0][0], self.name[-3])]
-        for i, a in enumerate(f.args[1:]):
+            start_arg_i = 1
+        for i, a in enumerate(f.args[start_arg_i:]):
             v = a[1]
             a = a[0]
             if i >= len(self.pos_args):
@@ -907,7 +918,7 @@ class Add(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("+", s1, s2, {Int, Float, String, RString, FString, List, Dict})
+        self.check_types("+", s1, s2, {Int, Float, String, List, Dict})
         if issubclass(type(s1), String) or issubclass(type(s2), String):
             v1 = str(s1)
             v2 = str(s2)

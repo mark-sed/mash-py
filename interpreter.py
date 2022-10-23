@@ -256,12 +256,9 @@ class Interpreter(Mash):
                 return insts
             # Printing
             elif root.type == "scope_name":
-                exists, msg = self.symb_table.exists(root.value)
-                if exists:
-                    if not silent:
-                        return [ir.Print(root.value)]
-                else:
-                    raise mex.UndefinedReference(msg)
+                # Value cannot be checked since it can be assigned in a class method or as an alias
+                if not silent:
+                    return [ir.Print(root.value)]
             # Generated calculation
             elif root.type == "CALC":
                 insts = []

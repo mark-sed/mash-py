@@ -79,10 +79,11 @@ class ConstTransformer(Transformer):
         return Token("string", types.String(items[0].value[1:-1]))
 
     def rstring(self, items):
-        return Token("string", types.RString(items[0].value[1:-1]))
+        return Token("string", types.String(items[0].value[1:-1], escape_chs=False))
 
     def fstring(self, items):
-        return Token("string", types.FString(items[0].value[1:-1]))
+        raise mex.Unimplemented("fStrings")
+        return Token("string", types.String(items[0].value[1:-1]))
 
     def hex_int(self, items):
         return Token("SIGNED_INT", types.Int(int(items[0].value, base=16)))

@@ -125,16 +125,6 @@ class String(Value):
     def fstr(self):
         return "\""+self.original+"\""
 
-class RString(String):
-    """
-    Raw String
-    """
-    def __init__(self, value):
-        super().__init__(value, False)
-
-    def __str__(self):
-        return self.value
-
 class FString(String):
     """
     Formatted String
