@@ -7,6 +7,7 @@ import random
 import math
 
 import mash_types as types
+import mash_exceptions as mex
 
 def bitand_2(a, b):
     return a & b
@@ -59,3 +60,18 @@ def atan_1(x):
 
 def atan_2(y, x):
     return math.atan2(y, x)
+
+def toupper_1(x):
+    if type(x) != str:
+        raise mex.TypeError("toupper accepts only String")
+    return x.upper()
+
+def tolower_1(x):
+    if type(x) != str:
+        raise mex.TypeError("tolower accepts only String")
+    return x.lower()
+
+def capitalize_1(x):
+    if type(x) != str:
+        raise mex.TypeError("capitalize accepts only String")
+    return x.capitalize()

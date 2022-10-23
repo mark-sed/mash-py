@@ -330,7 +330,7 @@ class ConstTransformer(Transformer):
         return self._help_expr_bin(items, lambda a, b: a % b, ir.Mod, "MOD")
 
     def expr_exp(self, items):
-        return self._help_expr_bin(items, lambda a, b: a ^ b, ir.Exp, "EXP")
+        return self._help_expr_bin(items, lambda a, b: a ** b, ir.Exp, "EXP")
 
     def expr_or(self, items):
         return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "OR")

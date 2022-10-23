@@ -68,63 +68,114 @@ fun zip(l1, l2) internal  # Change from internal to [[x, y] : x = l1, y = l2]
  */
 fun reverse(l) internal
 
+/** String functions */
+
+/**
+ * Converts string to uppercase
+ * @param s String to be converted
+ * @return Passed in string in uppercase
+ */
+fun toupper(s) internal
+
+/**
+ * Converts string to lowercse
+ * @param s String to be converted
+ * @return Passed in string in lowercase
+ */
+fun tolower(s) internal
+
+/**
+ * Capitalized string
+ * First letter is in uppercase, the rest is lowercase
+ * @param s String to be capitalized
+ * @return Capitalized passed in string
+ */
+fun capitalize(s) internal
+
+
+
 /** Space for functions using random number generator */
 space Rnd {
 
-/**
- * Shuffles elements in a list, not changing the passed in list
- * @param l List to be shuffled
- * @return Copy of passed in list with randomly shuffled elements
- */
-fun shuffle(l) internal
+    /**
+    * Shuffles elements in a list, not changing the passed in list
+    * @param l List to be shuffled
+    * @return Copy of passed in list with randomly shuffled elements
+    */
+    fun shuffle(l) internal
 
 }
 
 /** Math functions **/
 space Math {
 
-/**
- * Sine
- * @param x Numeric value
- * @return Sine of x in radians
- */
-fun sin(x) internal
+    /** Constants **/
 
-/**
- * Tangent
- * @param x Numeric value
- * @return Tangent of x in radians
- */
-fun tan(x) internal
+    /** π (Ludolph's number) */
+    pi = 3.141592653589793115997963468544185161590576171875
 
-/**
- * Cosine
- * @param x Numeric value
- * @return Cosine of x in radians
- */
-fun cos(x) internal
+    /** e (Euler's number) */
+    e = 2.718281828459045090795598298427648842334747314453125
 
-/**
- * Arc sine
- * @param x Numeric value
- * @return Arc sine of x in radians
- */
-fun asin(x) internal
+    /** τ (2*pi)
+    tau = 6.28318530717958623199592693708837032318115234375
 
-/**
- * Arc tangent
- * @param x Numeric value
- * @return Arc tangent of x in radians
- */
-fun atan(x) internal
-/** Returns atan(y/x) */
-fun atan(y, x) internal
+    /** φ (Golden ratio = (1 + 5^0.5)/2) */
+    phi = 1.6180339887498949025257388711906969547271728515625
 
-/**
- * Arc cosine
- * @param x Numeric value
- * @return Arc cosine of x in radians
- */
-fun acos(x) internal
+    /** Euler–Mascheroni constant */
+    euler_gamma = 0.57721566490153286554942724251304753124713897705078125
+
+    /**
+    * Sine
+    * @param x Numeric value
+    * @return Sine of x in radians
+    */
+    fun sin(x) internal
+
+    /**
+    * Tangent
+    * @param x Numeric value
+    * @return Tangent of x in radians
+    */
+    fun tan(x) internal
+
+    /**
+    * Cosine
+    * @param x Numeric value
+    * @return Cosine of x in radians
+    */
+    fun cos(x) internal
+
+    /**
+    * Arc sine
+    * @param x Numeric value
+    * @return Arc sine of x in radians
+    */
+    fun asin(x) internal
+
+    /**
+    * Arc tangent
+    * @param x Numeric value
+    * @return Arc tangent of x in radians
+    */
+    fun atan(x) internal
+    /** Returns atan(y/x) */
+    fun atan(y, x) internal
+
+    /**
+    * Arc cosine
+    * @param x Numeric value
+    * @return Arc cosine of x in radians
+    */
+    fun acos(x) internal
+
+    /**
+    * Square root function
+    * Is equal to x^0.5
+    * @param x Value to be calculated the square root of
+    * @return Square root of passed in argument
+    */
+    fun sqrt(x) { return x^0.5 }
 
 }
