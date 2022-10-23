@@ -4,7 +4,7 @@ Mash interpreter
 """
 __author__ = "Marek Sedlacek"
 __date__ = "September 2022"
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __email__ = "mr.mareksedlacek@gmail.com"
 
 import argparse
