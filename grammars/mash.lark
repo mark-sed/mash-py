@@ -71,6 +71,7 @@ _expr : expr_or
      | expr_eq
      | expr_neq
      | expr_in
+     | expr_cat
      | expr_add
      | expr_sub
      | expr_mul
@@ -78,8 +79,6 @@ _expr : expr_or
      | expr_idiv
      | expr_mod
      | expr_exp
-     | expr_inc
-     | expr_dec
      | ternary_if
      | fun_call
      | member
@@ -99,6 +98,7 @@ expr_lt : _expr "<" _expr
 expr_eq : _expr "==" _expr
 expr_neq : _expr "!=" _expr
 expr_in : _expr "in" _expr
+expr_cat : _expr "++" _expr
 expr_add : _expr "+"_expr
 expr_sub : _expr "-" _expr
 expr_mul : _expr "*" _expr
@@ -106,8 +106,7 @@ expr_fdiv : _expr "/" _expr
 expr_idiv : _expr "//" _expr
 expr_mod : _expr "%" _expr
 expr_exp : _expr "^" _expr
-expr_inc : scope_name"++"
-expr_dec : scope_name"--"
+//expr_dec : scope_name"--"
 
 // Constants
 const : SIGNED_FLOAT  -> float

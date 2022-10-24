@@ -93,19 +93,12 @@ class Interpreter(Mash):
         if type(root) == Token:
             return (root.value, [])
         else:
-            if root.data == "EXPR_NOT" or root.data == "EXPR_INC" or root.data == "EXPR_DEC":
+            if root.data == "EXPR_NOT":
                 lr, left = self.generate_expr(root.children[0])
                 iname = root.data[5:]
                 opres = self.uniq_var()
                 symb_table.assign(opres, None)
-                if iname == "NOT":
-                    return (opres, left+[ir.LNot(lr, opres)])
-                elif iname == "DEC":
-                    return (opres, left+[ir.Dec(lr, opres)])
-                elif iname == "INC":
-                    return (opres, left+[ir.Inc(lr, opres)])
-                else:
-                    raise mex.Unimplemented(root.data)
+                return (opres, left+[ir.LNot(lr, opres)])
             elif root.data == "EXPR_TIF":
                 lr, left = self.generate_expr(root.children[0])
                 mr, mid = self.generate_expr(root.children[1])
@@ -121,6 +114,8 @@ class Interpreter(Mash):
                 symb_table.assign(opres, None)
                 if iname == "ADD":
                     return (opres, left+right+[ir.Add(lr, rr, opres)])
+                if iname == "CAT":
+                    return (opres, left+right+[ir.Cat(lr, rr, opres)])
                 elif iname == "MUL":
                     return (opres, left+right+[ir.Mul(lr, rr, opres)])
                 elif iname == "SUB":
@@ -279,7 +274,7 @@ class Interpreter(Mash):
                         insts += self.generate_ir(i, silent)
                     else:
                         insts.append(i)
-                if not silent and not (len(insts) == 1 and (type(insts[0]) == ir.Inc or type(insts[0]) == ir.Dec)):
+                if not silent:
                     insts.append(ir.Print(root.value[-1].dst))
                 return insts
             # Const print
@@ -482,7 +477,11 @@ class Interpreter(Mash):
                         value = insts[-1].dst
                     elif root.children[0].type == "CALC":
                         for i in root.children[0].value:
-                            if type(i) == Token or type(i) == Tree:
+                            if type(i) == Token and i.type == "CODE":
+                                insts += i.value
+                            elif type(i) == Token and i.type in Interpreter.CONSTS:
+                                insts.append(ir.AssignVar(self.uniq_var(), i.value))
+                            elif type(i) == Token or type(i) == Tree:
                                 insts += self.generate_ir(i, True)
                         value = insts[-1].dst
                     else:

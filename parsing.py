@@ -36,6 +36,9 @@ class ConstTransformer(Transformer):
     """
     Tree transformer
     """
+
+    CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "nil", "true", "false", "string", "list", "dict"}
+
     def __init__(self, symb_table):
         """
         Transformer constructor
@@ -227,35 +230,18 @@ class ConstTransformer(Transformer):
             if items[i].type == "CODE":
                 insts += items[i].value
                 srcs[i] = items[i].value[-1].dst
+            elif items[i].type == "CALC":
+                for a in items[i].value:
+                    if type(a) == Token and a.type == "CODE":
+                        insts += a.value
+                    elif type(a) == Token and a.type in ConstTransformer.CONSTS:
+                        insts.append(ir.AssignVar(self.uniq_var(), a.value))
+                    elif type(a) == Token or type(a) == Tree:
+                        raise mex.Unimplemented("Runtime expression for given operator")
+                srcs[i] = insts[-1].dst
             else:
                 srcs[i] = items[i].value
         insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
-        return Token("CODE", insts)
-
-    def _help_expr_un(self, items, op, Cls, post):
-        i1 = items[0]
-
-        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
-            return Tree("EXPR_"+post, [i1])
-
-        if type(i1) == Tree and i1.data == "fun_call":
-            return Tree("EXPR_"+post, [i1])
-            
-        # Evaluating const expr
-        if i1.type == "SIGNED_INT" or i1.type == "SIGNED_FLOAT":
-            if i1.type == "SIGNED_FLOAT":
-                return Token("SIGNED_FLOAT", ir.Float(op(i1.value.value)))
-            else:
-                return Token("SIGNED_INT", ir.Int(op(i1.value.value)))
-        # Generating code
-        insts = []
-        srcs = None
-        if items[0].type == "CODE":
-            insts += items[0].value
-            srcs = items[0].value[-1].dst
-        else:
-            srcs = items[0].value
-        insts.append(Cls(srcs))
         return Token("CODE", insts)
 
     def _help_expr_log(self, items, op, Cls, post):
@@ -285,6 +271,15 @@ class ConstTransformer(Transformer):
                 insts += items[i].value
                 # Expr code
                 srcs[i] = items[i].value[-1].dst
+            elif items[i].type == "CALC":
+                for a in items[i].value:
+                    if type(a) == Token and a.type == "CODE":
+                        insts += a.value
+                    elif type(a) == Token and a.type in ConstTransformer.CONSTS:
+                        insts.append(ir.AssignVar(self.uniq_var(), a.value))
+                    elif type(a) == Token or type(a) == Tree:
+                        raise mex.Unimplemented("Runtime expression for given operator")
+                srcs[i] = insts[-1].dst
             else:
                 srcs[i] = items[i].value
         insts.append(Cls(srcs[0], srcs[1], self.uniq_var()))
@@ -306,6 +301,15 @@ class ConstTransformer(Transformer):
             insts += items[0].value
             # Expr code
             src = items[0].value[-1].dst
+        elif items[0].type == "CALC":
+            for a in items[0].value:
+                if type(a) == Token and a.type == "CODE":
+                    insts += a.value
+                elif type(a) == Token and a.type in ConstTransformer.CONSTS:
+                    insts.append(ir.AssignVar(self.uniq_var(), a.value))
+                elif type(a) == Token or type(a) == Tree:
+                    raise mex.Unimplemented("Runtime expression for given operator")
+            src = insts[-1].dst
         else:
             src = items[0].value
         insts.append(Cls(src, self.uniq_var()))
@@ -331,6 +335,47 @@ class ConstTransformer(Transformer):
 
     def expr_exp(self, items):
         return self._help_expr_bin(items, lambda a, b: a ** b, ir.Exp, "EXP")
+
+    def expr_cat(self, items):
+        i1 = items[0]
+        i2 = items[1]
+
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_CAT", [i1, i2])
+        
+        if type(i2) == Tree and len(i2.data) > 5 and i2.data[0:5] == "EXPR_":
+            return Tree("EXPR_CAT", [i1, i2])
+
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_CAT", [i1, i2])
+            
+        if type(i2) == Tree and i2.data == "fun_call":
+            return Tree("EXPR_CAT", [i1, i2])
+
+        #if type(items[0].value) == ir.String and type(items[1].value) == ir.String:
+        #    r = ir.String(items[0].value.value + items[1].value.value)
+        #    return Token(str(r), r)
+        # Generating code
+        insts = []
+        srcs = [0, 0]
+        for i in range(0, 2):
+            if items[i].type == "CODE":
+                insts += items[i].value
+                # Expr code
+                srcs[i] = items[i].value[-1].dst
+            elif items[i].type == "CALC":
+                for a in items[i].value:
+                    if type(a) == Token and a.type == "CODE":
+                        insts += a.value
+                    elif type(a) == Token and a.type in ConstTransformer.CONSTS:
+                        insts.append(ir.AssignVar(self.uniq_var(), a.value))
+                    elif type(a) == Token or type(a) == Tree:
+                        raise mex.Unimplemented("Runtime expression for given operator")
+                srcs[i] = insts[-1].dst
+            else:
+                srcs[i] = items[i].value
+        insts.append(ir.Cat(srcs[0], srcs[1], self.uniq_var()))
+        return Token("CODE", insts)
 
     def expr_or(self, items):
         return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "OR")
@@ -380,6 +425,15 @@ class ConstTransformer(Transformer):
                 insts += items[i].value
                 # Expr code
                 srcs[i] = items[i].value[-1].dst
+            elif items[i].type == "CALC":
+                for a in items[i].value:
+                    if type(a) == Token and a.type == "CODE":
+                        insts += a.value
+                    elif type(a) == Token and a.type in ConstTransformer.CONSTS:
+                        insts.append(ir.AssignVar(self.uniq_var(), a.value))
+                    elif type(a) == Token or type(a) == Tree:
+                        raise mex.Unimplemented("Runtime expression for given operator")
+                srcs[i] = insts[-1].dst
             else:
                 srcs[i] = items[i].value
         insts.append(ir.In(srcs[0], srcs[1], self.uniq_var()))
@@ -424,8 +478,3 @@ class ConstTransformer(Transformer):
     def expr_not(self, items):
         return self._help_expr_log_un(items, lambda a: not a, ir.LNot, "NOT")
 
-    def expr_inc(self, items):
-        return self._help_expr_un(items, lambda a: a + 1, ir.Inc, "INC")
-
-    def expr_dec(self, items):
-        return self._help_expr_un(items, lambda a: a - 1, ir.Dec, "DEC")

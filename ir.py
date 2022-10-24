@@ -848,7 +848,9 @@ class Return(Keyword):
         self.value = value
 
     def exec(self):
-        raise mex.FlowControlReturn(self.get(self.value))
+        v = self.get(self.value)
+        v.update()
+        raise mex.FlowControlReturn(v)
 
     def __str__(self):
         return "return "+str(self.value)
@@ -864,6 +866,12 @@ class Expr(IR):
             s2 = s2[0].fstr()
         if (type(s1) == str or type(s2) == str) or not ((type(s1) in allowed) and (type(s2) in allowed)):
             raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'")
+
+    def check_type(self, op, s, allowed):
+        if type(s) == list:
+            s = s[0].fstr()
+        if type(s) == str or (type(s) not in allowed):
+            raise mex.TypeError(f"Unsupported type for '{op}'. Given value is '{s}'")
 
 class TernaryIf(Expr):
     """
@@ -918,13 +926,9 @@ class Add(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("+", s1, s2, {Int, Float, String, List, Dict})
-        if issubclass(type(s1), String) or issubclass(type(s2), String):
-            v1 = str(s1)
-            v2 = str(s2)
-        else:
-            v1 = s1.get_value()
-            v2 = s2.get_value()
+        self.check_types("+", s1, s2, {Int, Float, String, List})
+        v1 = s1.get_value()
+        v2 = s2.get_value()
         r = v1+v2
         symb_table.assign(self.dst, wrap(r))
 
@@ -1036,6 +1040,34 @@ class Exp(Expr):
     def __str__(self):
         return f"EXP {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
+class Cat(Expr):
+    """
+    Concatenation
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        if type(s1) == list:
+            v1 = s1[0].fstr()
+        else:
+            v1 = str(s1)
+
+        if type(s2) == list:
+            v2 = s2[0].fstr()
+        else:
+            v2 = str(s2)
+        
+        r = v1+v2
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"CAT {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
+
 class In(Expr):
     """
     In collection
@@ -1125,7 +1157,7 @@ class LNot(Expr):
             s1 = types.Bool(v1)
         else:
             v1 = s1.get_value()
-        self.check_types("not", s1, Bool(True), {Bool})
+        self.check_type("not", s1, {Bool})
         r = not v1
         symb_table.assign(self.dst, wrap(r))
 
@@ -1245,33 +1277,3 @@ class Neq(Expr):
 
     def __str__(self):
         return f"NEQ {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
-
-class Inc(Expr):
-    
-    def __init__(self, dst):
-        self.dst = dst
-
-    def exec(self):
-        s1 = self.get(self.dst)
-        self.check_types("++", s1, Int(1), {Int, Float})
-        v1 = s1.get_value()
-        r = v1 + 1
-        symb_table.assign(self.dst, wrap(r))
-
-    def __str__(self):
-        return f"INC {self.dst}"
-
-class Dec(Expr):
-    
-    def __init__(self, dst):
-        self.dst = dst
-
-    def exec(self):
-        s1 = self.get(self.dst)
-        self.check_types("--", s1, Int(1), {Int, Float})
-        v1 = s1.get_value()
-        r = v1 - 1
-        symb_table.assign(self.dst, wrap(r))
-
-    def __str__(self):
-        return f"DEC {self.dst}"
