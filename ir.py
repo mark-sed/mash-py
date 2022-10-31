@@ -405,6 +405,8 @@ class Fun(Instruction):
         self.req_args = [k for k, v in args if v is None]
         self.min_args = len(self.req_args)
         self.max_args = len(self.args)
+        if len(self.args) > 0 and type(self.args[-1][1]) == types.VarArgs:
+            self.max_args = float("inf")
         self.body = body
         self.internal = False
         if len(self.body) > 0 and type(self.body[0]) == Internal:
@@ -526,6 +528,8 @@ class Constructor(Fun):
                     if type(r.value) != Nil:
                         raise mex.TypeError("Constructor has to return nil")
                     return r.value, r.frames
+            if type(self.args[0][1]) == types.VarArgs:
+                return symb_table.get(self.args[0][0]).get_value()[0], 1
             return symb_table.get(self.args[0][0]), 1
 
     def str_header(self):
@@ -653,24 +657,33 @@ class FunCall(Instruction):
         assigned = []
         start_arg_i = 0
         if new_obj:
-            assigned = [(f.args[0][0], fl.instance())]
+            if type(f.args[0][1]) == types.VarArgs:
+                assigned = [(f.args[0][0], types.List([fl.instance()]+self.pos_args))]
+            else:
+                assigned = [(f.args[0][0], fl.instance())]
             start_arg_i = 1
         elif method_call:
-            assigned = [(f.args[0][0], self.name[-3])]
+            if type(f.args[0][1]) == types.VarArgs:
+                assigned = [(f.args[0][0], types.List([self.name[-3]]+self.pos_args))]
+            else:
+                assigned = [(f.args[0][0], self.name[-3])]
             start_arg_i = 1
         for i, a in enumerate(f.args[start_arg_i:]):
             v = a[1]
             a = a[0]
-            if i >= len(self.pos_args):
-                if v is None:
-                    raise mex.TypeError(f"Function call to '{f.str_header()}' is missing required positional argument '{a}'")
-                else:
-                    break
-            passed = self.pos_args[i]
-            value = passed
-            if type(passed) == str or type(passed) == list: 
-                # Variable
-                value = symb_table.get(passed)
+            if type(v) == types.VarArgs:
+                value = types.List(self.pos_args[i:])
+            else:
+                if i >= len(self.pos_args):
+                    if v is None:
+                        raise mex.TypeError(f"Function call to '{f.str_header()}' is missing required positional argument '{a}'")
+                    else:
+                        break
+                passed = self.pos_args[i]
+                value = passed
+                if type(passed) == str or type(passed) == list: 
+                    # Variable
+                    value = symb_table.get(passed)
             assigned.append((a, value))
 
         for k, v in self.named_args:

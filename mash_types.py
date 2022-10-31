@@ -40,6 +40,9 @@ class Value():
     def fstr(self):
         return self.__str__()
 
+class VarArgs:
+    ...
+
 class Class(Value):
     """
     Class type

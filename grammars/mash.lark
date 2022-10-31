@@ -232,19 +232,26 @@ _arg_list_call : (_expr|lambda)
 arg_list_call_exp : VAR_NAME "=" (_expr|lambda)
                   | arg_list_call_exp "," VAR_NAME "=" (_expr|lambda)
 
-// Function call
+// Function args
 fun_args : _arg_list_ndef
+         | _arg_list_ndef "," var_args_list
          | arg_list
+         | arg_list "," var_args_list
          | _arg_list_ndef "," arg_list
+         | _arg_list_ndef "," arg_list "," var_args_list
+         | var_args_list 
          |
 
 // List of arguments without default values
 _arg_list_ndef : VAR_NAME 
-              | _arg_list_ndef "," VAR_NAME 
+              | _arg_list_ndef "," VAR_NAME
 
 // List of arguments with possibility of default values
 arg_list : VAR_NAME "=" (_expr|lambda)
          | arg_list "," VAR_NAME "=" (_expr|lambda)
+
+// Variable amount of arguments
+var_args_list : "*" VAR_NAME
 
 // Constructs
 construct : if       -> if

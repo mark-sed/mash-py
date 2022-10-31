@@ -154,6 +154,9 @@ class ConstTransformer(Transformer):
                 args.append(x)
         return Token("fun_call_args", args)
 
+    def var_args_list(self, items):
+        return Token("arg_list", [(items[0], types.VarArgs())])
+
     def dict(self, items):
         v = []
         code = []
