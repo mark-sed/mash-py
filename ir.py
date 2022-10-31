@@ -2,7 +2,7 @@ from ast import ClassDef
 from typing import Type
 from symbol_table import symb_table, SymbTable, ClassFrame, Frame, SpaceFrame
 import mash_exceptions as mex
-from mash_types import Float, Int, Nil, Bool, String, Value, List, Dict
+from mash_types import Float, Int, Nil, Bool, String, Value, List, Dict, VarArgs
 import mash_types as types
 import libmash
 
@@ -455,6 +455,8 @@ class Fun(Instruction):
         for k, v in self.args:
             if v is None:
                 args.append(str(k))
+            elif type(v) == VarArgs:
+                args.append("*"+str(k))
             else:
                 args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
@@ -467,6 +469,9 @@ class Fun(Instruction):
             details = f" with {len(v)} signatures"
         n = "".join(self.name)
         return f"<function '{n}'{details}>"
+
+    def ir_str(self):
+        return self.fstr()
 
     def output(self, indent=0):
         if self.internal:

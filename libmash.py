@@ -9,6 +9,12 @@ import math
 import mash_types as types
 import mash_exceptions as mex
 
+def vardump_1(var):
+    r = []
+    for v in var:
+        r.append(types.vardump(v))
+    return "\n".join(r)
+
 def bitand_2(a, b):
     return a & b
 

@@ -3,6 +3,27 @@ Mash core library.
 @author Marek Sedlacek
 */
 
+/** Output functions */
+fun print(a) { return ""++a }
+fun print(a, b, *c) { 
+    r = a++" "++b
+    for(i : c) {
+        r = r++" "++i
+    }
+    return r
+}
+fun println() { return "\n" }
+fun println(a) { return a++"\n" }
+fun println(a, b, *c) { 
+    r = a++" "++b
+    for(i : c) {
+        r = r++" "++i
+    }
+    return r++"\n"
+}
+
+fun vardump(*var) internal
+
 /** Bit-wise operators **/
 
 /**

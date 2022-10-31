@@ -78,7 +78,7 @@ class Class(Value):
         n = "".join(self.value)
         return f"<{n} object>"
 
-from symbol_table import symb_table
+from symbol_table import ClassFrame, SpaceFrame, symb_table
 
 class String(Value):
     """
@@ -325,6 +325,76 @@ class Nil(Value):
     def __str__(self):
         return "nil"
 
-    
+def vardump(var, indent=0):
+    from ir import Constructor
+    if type(var) == str or (type(var) == list and len(var) > 0 and type(var[0]) == str):
+        var = symb_table.get(var)
+    if type(var) == list:
+        r = []
+        spc = "    "*(indent+1)
+        # Functions
+        for c, f in enumerate(var):
+            r.append(spc+str(c)+": "+f.str_header())
+        return var[0].ir_str()+": [\n"+(",\n".join(r))+"\n"+("    "*indent)+"]"
+    elif type(var) == List:
+        if len(var.get_value()) == 0:
+            return "List([])"
+        r = []
+        spc = "    "*(indent+1)
+        for c, i in enumerate(var.get_value()):
+            r.append(spc+str(c)+": "+vardump(i, indent=indent+1))
+        return "List([\n"+(",\n".join(r))+"\n"+("    "*indent)+"])"
+    elif type(var) == Dict:
+        if len(var.get_value()) == 0:
+            return "Dict({,})"
+        r = []
+        spc = "    "*(indent+1)
+        for c, i in enumerate(var.get_value()):
+            k = i[0]
+            v = i[1]
+            r.append(spc+vardump(k, indent=indent+1)+": "+vardump(v, indent=indent+1))
+        return "Dict({\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
+    elif type(var) == Class:
+        r = []
+        spc = "    "*(indent+1)
+        for k, v in var.attr.items():
+            r.append(spc+str(k)+": "+vardump(v, indent=indent+1))
+        return "Object of class "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
+    elif type(var) == ClassFrame:
+        r = []
+        spc = "    "*(indent+1)
+        for k, v in var.items():
+            if type(v) == list:
+                indent += 1
+                fr = []
+                spc = "    "*(indent+1)
+                for c, f in enumerate(v):
+                    fr.append(spc+str(c)+": "+f.str_header())
+                funtype = "method"
+                if type(v[0]) == Constructor:
+                    funtype = "constructor"
+                r.append(("    "*indent)+"<"+funtype+" '"+v[0].name+"'>: [\n"+(",\n".join(fr))+"\n"+("    "*indent)+"]")
+                indent -= 1
+            else:
+                spc = "    "*(indent+1)
+                r.append(spc+str(k)+": "+vardump(v, indent+1))
+        return "Class "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
+    elif type(var) == SpaceFrame:
+        r = []
+        spc = "    "*(indent+1)
+        for k, v in var.items():
+            if type(v) == list:
+                indent += 1
+                fr = []
+                spc = "    "*(indent+1)
+                for c, f in enumerate(v):
+                    fr.append(spc+str(c)+": "+f.str_header())
+                r.append(("    "*indent)+"<function '"+v[0].name+"'>: [\n"+(",\n".join(fr))+"\n"+("    "*indent)+"]")
+                indent -= 1
+            else:
+                spc = "    "*(indent+1)
+                r.append(spc+str(k)+": "+vardump(v, indent+1))
+        return "Space "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
+    return var.ir_str()
 
 IMPLICIT_TO_BOOL = {Int, Float, Nil}

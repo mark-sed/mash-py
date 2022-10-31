@@ -185,7 +185,9 @@ class Interpreter(Mash):
         name = tree[0].value
         args = tree[1].value
         for i, a in enumerate(args):
-            if type(a) == list:
+            if type(a) == list and len(a) > 0 and type(a[0]) == str:
+                args[i] = a
+            elif type(a) == list:
                 # Expression in positional argument
                 insts += a
                 args[i] = insts[-1].dst
