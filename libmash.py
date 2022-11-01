@@ -8,12 +8,62 @@ import math
 
 import mash_types as types
 import mash_exceptions as mex
+from symbol_table import symb_table
 
 def vardump_1(var):
     r = []
     for v in var:
         r.append(types.vardump(v))
     return "\n".join(r)
+
+def getattr_3(object, name, default):
+    if type(name) != str:
+        raise mex.TypeError("Attribute name has to be a String")
+    if type(object) == types.Class:
+        if name in object.attr:
+            a = object.attr[name]
+            if type(a) == list:
+                return types.Var([object.name, "::", a[0].name])
+            return a
+        else:
+            if type(default) != types.NoValue:
+                return default
+            raise mex.UndefinedReference("'"+name+"' in instance of class '"+object.name+"'")
+    elif type(object) == types.ClassFrame:
+        if name in object:
+            a = object[name]
+            if type(a) == list:
+                return types.Var([object.name, "::", a[0].name])
+            return a
+        else:
+            if type(default) != types.NoValue:
+                return default
+            raise mex.UndefinedReference("'"+name+"' in class '"+object.name+"'")
+    elif type(object) == types.SpaceFrame:
+        if name in object:
+            a = object[name]
+            if type(a) == list:
+                return types.Var([object.name, "::", a[0].name])
+            return a
+        else:
+            if type(default) != types.NoValue:
+                return default
+            raise mex.UndefinedReference("'"+name+"' in space '"+object.name+"'")
+    raise mex.UndefinedReference(name)
+
+def getattr_2(object, name):
+    return getattr_3(object, name, types.NoValue)
+
+def setattr_3(object, name, value):
+    if type(name) != str:
+        raise mex.TypeError("Attribute name has to be a String")
+
+    if type(object) == types.Class:
+        object.attr[name] = types.wrap_py(value)
+    elif type(object) == types.ClassFrame or type(object) == types.SpaceFrame:
+        symb_table.assign(["@", object.name, "::", name], types.wrap_py(value))
+    else:
+        raise mex.TypeError("Cannot set attribute for given type")
 
 def bitand_2(a, b):
     return a & b

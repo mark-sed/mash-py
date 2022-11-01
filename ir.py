@@ -32,7 +32,9 @@ class IR:
         return (indent*IR.SPCS)+str(self)
 
 def wrap(v):
-    if type(v) == int:
+    if type(v) == types.Var:
+        return v.name
+    elif type(v) == int:
         return Int(v)
     elif type(v) == float:
         return Float(v)
@@ -104,7 +106,12 @@ class Print(Instruction):
         v = self.get(self.value)
         if type(v) == list:
             # Function/s (there can be multiple)
-            print(v[0].fstr(), end="")
+            details = ""
+            if len(v) > 1:
+                details = f" with {len(v)} signatures"
+            n = "".join(v[0].name)
+            # Function/s (there can be multiple)
+            print(f"<function '{n}'{details}>", end="")
         else:
             print(v, end="")
 
@@ -121,6 +128,7 @@ class SetIfNotSet(Instruction):
         self.value = value
 
     def exec(self):
+        self.update(self.value)
         s, _ = symb_table.exists(self.dst)
         if not s:
             symb_table.assign(self.dst, self.value)
@@ -138,6 +146,7 @@ class SetOrPrint(Instruction):
         self.value = value
 
     def exec(self):
+        self.update(self.value)
         s, _ = symb_table.exists(self.dst)
         if not s:
             self.update(self.value)
@@ -146,8 +155,12 @@ class SetOrPrint(Instruction):
             self.update(self.dst)
             v = self.get(self.dst)
             if type(v) == list:
+                details = ""
+                if len(v) > 1:
+                    details = f" with {len(v)} signatures"
+                n = "".join(v[0].name)
                 # Function/s (there can be multiple)
-                print(v[0].fstr(), end="")
+                print(f"<function '{n}'{details}>", end="")
             else:
                 print(v, end="")
 
@@ -424,10 +437,12 @@ class Fun(Instruction):
         """
         Wraps value returned by internal function into IR value if not yet wrapped
         """
-        if   type(v) == int: return types.Int(v)
+        if   type(v) == types.Var: return v.name
+        elif type(v) == int: return types.Int(v)
         elif type(v) == float: return types.Float(v)
         elif type(v) == str: return types.String(v)
         elif type(v) == list: return types.List(v)
+        elif type(v) == tuple: return types.Dict(v)
         elif type(v) == bool: return types.Bool(v)
         elif v is None: return types.Nil()
         else: return v
@@ -436,7 +451,11 @@ class Fun(Instruction):
         if self.internal:
             assign_args = []
             for a, _ in self.args:
-                assign_args.append(symb_table.get(a).get_value())
+                v = symb_table.get(a)
+                if type(v) != list:
+                    assign_args.append(v.get_value())
+                else:
+                    assign_args.append(v)
             try:
                 rval = self.wrap_internal(self.body(*assign_args))
             except TypeError:

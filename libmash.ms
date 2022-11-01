@@ -24,6 +24,11 @@ fun println(a, b, *c) {
 
 fun vardump(*var) internal
 
+/** Attributes */
+fun getattr(object, name) internal
+fun getattr(object, name, default) internal
+fun setattr(object, name, value) internal
+
 /** Bit-wise operators **/
 
 /**

@@ -33,7 +33,7 @@ assignment : scope_name "=" (_expr|lambda|assignment)
 op_assign : scope_name ASSIGN_OP (_expr|lambda)
 
 // Different assignments
-ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^=")
+ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^="|"++=")
 
 // List
 list : _expr "," _expr ".." _expr -> range

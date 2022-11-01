@@ -176,6 +176,8 @@ class Interpreter(Mash):
             return ir.Mod(dst, value, dst)
         elif op == "^=":
             return ir.Exp(dst, value, dst)
+        elif op == "++=":
+            return ir.Cat(dst, value, dst)
         else:
             raise mex.Unimplemented("Assignment operator "+str(op))
 

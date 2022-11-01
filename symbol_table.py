@@ -10,6 +10,9 @@ class Frame(dict):
         self.shadowing = shadowing
         super(Frame, self).__init__(*args, **kwargs)
 
+    def get_value(self):
+        return self
+
     def fstr(self, indent=0):
         spc = indent*"    "
         endspc = (indent-1)*"    " if indent > 0 else ""
@@ -265,7 +268,7 @@ class SymbTable(Mash):
         Assigns value to a variable.
         """
         if not self.analyzer and not fun_arg:
-            if type(value) == str or type(value) == list:
+            if type(value) == str or (type(value) == list and len(value) > 0 and type(value[0]) == str):
                 # TODO: Make sure that Int, Float, String, Bool are copied
                 #       They should be, because Expr creates a new object
                 value = self.get(value)

@@ -43,18 +43,28 @@ class Value():
 class VarArgs:
     ...
 
+class Var:
+    def __init__(self, name):
+        self.name = name
+
+class NoValue:
+    ...
+
 class Class(Value):
     """
     Class type
     """
     def __init__(self, name, frame):
-        self.value = name
+        self.value = self
         self.name = name
         self.frame = frame
         self.attr = {}
         for v, k in self.frame.items():
             if type(v) == list:
                 self.attr[k] = v
+
+    def get_value(self):
+        return self
 
     def __contains__(self, key):
         return self.attr.__contains__(key)
@@ -396,5 +406,16 @@ def vardump(var, indent=0):
                 r.append(spc+str(k)+": "+vardump(v, indent+1))
         return "Space "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
     return var.ir_str()
+
+def wrap_py(value):
+    from ir import Fun
+    if type(value) == list and len(value) > 0 and type(value[0]) == Fun: return value
+    elif type(value) == int: return Int(value)
+    elif type(value) == str: return String(value)
+    elif type(value) == float: return Float(value)
+    elif type(value) == bool: return Bool(value)
+    elif type(value) == list: return List(value)
+    elif type(value) == tuple: return Dict(value)
+    else: return value
 
 IMPLICIT_TO_BOOL = {Int, Float, Nil}
