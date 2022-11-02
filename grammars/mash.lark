@@ -23,7 +23,11 @@ _stmts : import
        | construct
 
 // Importing
-import : "import" VAR_NAME
+import : "import" _list_space_scope
+       | "import" space_scope "as" VAR_NAME -> import_as
+
+_list_space_scope : space_scope
+                  | _list_space_scope "," space_scope
 
 // Value assignment excluding standalone variable (nil assignment)
 assignment : scope_name "=" (_expr|lambda|assignment)
@@ -209,6 +213,13 @@ _scope_no_glob : "(" _scope_no_glob ")"
                | _dot_name
                | fun_call
                | VAR_NAME
+
+// Space scope - for imports
+space_scope : _pspace_scope
+
+_pspace_scope : "(" _pspace_scope ")"
+              | VAR_NAME
+              | _pspace_scope SCOPE VAR_NAME
 
 // Class member selection
 _dot_name : _scope_no_glob DOT VAR_NAME

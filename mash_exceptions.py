@@ -66,6 +66,13 @@ class AmbiguousRedefinition(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Ambiguous redefinition of '"+msg+"'", *args)
 
+class ImportError(MashException):
+    """
+    Import error
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Import error: "+msg, *args)
+
 class FlowControl(MashException):
     """
     Exceptions for controlling flow

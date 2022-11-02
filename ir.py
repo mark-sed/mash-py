@@ -503,7 +503,10 @@ class Fun(Instruction):
             if v is None:
                 args.append(str(k))
             else:
-                args.append(f"{k} = {str(v)}")
+                if type(v) == VarArgs:
+                    args.append(f"*{k}")
+                else:
+                    args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         n = "".join(self.name)
         spc = IR.SPCS*indent

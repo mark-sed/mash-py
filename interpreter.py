@@ -3,12 +3,13 @@ from lark.tree import Tree
 from sys import stderr
 from mash import Mash
 import mash_exceptions as mex
-from symbol_table import symb_table, SymbTable
+from symbol_table import SpaceFrame, symb_table, SymbTable
 import ir
 import parsing
 import mash_types as types
 from parsing import Parser
 from debugging import info, debug
+from pathlib import Path
 
 class Interpreter(Mash):
     """
@@ -181,6 +182,45 @@ class Interpreter(Mash):
         else:
             raise mex.Unimplemented("Assignment operator "+str(op))
 
+    def find_module(self, name):
+        pname = Path(name)
+        for base in self.opts.lib_path:
+            fp = base / pname
+            if fp.exists() and fp.is_file():
+                return fp
+        return None
+
+    def import_module(self, scope, alias):
+        if type(scope) == list:
+            f_name = scope[0]+".ms"
+        else:
+            f_name = scope+".ms"
+        lpath = self.find_module(f_name)
+        if lpath is None:
+            raise mex.ImportError("No module '"+f_name+"' found on lib path ("+(", ".join(["'"+str(i)+"'" for i in self.opts.lib_path]))+")")
+        # Reading the file
+        try:
+            with open(lpath, 'r', encoding='utf-8') as lib_file:
+                lib_code = lib_file.read()
+        except PermissionError:
+            raise mex.ImportError("Insufficient permissions to read file '"+str(lpath)+"'")
+        except Exception:
+            raise mex.ImportError("Could not read module file '"+str(lpath)+"'")
+        
+        if type(scope) != list:
+            lib_code = "space "+alias+"{ " + lib_code + "}"
+        else:
+            sp_name = "__"+scope[0]
+            # Name that cannot be accessed by the user
+            lib_code = "space "+sp_name+"{ " + lib_code + "}"
+        parser = Parser(lib_code, self.opts)
+        tree = parser.parse()
+        interpreter = Interpreter(self.opts, self.symb_table)
+        lib_ir = interpreter.interpret_top_level(parsing.ConstTransformer(self.symb_table).transform(tree))
+        if type(scope) == list:
+            lib_ir.append(ir.AssignVar(alias, [sp_name]+scope[1:]))
+        return lib_ir
+
     def generate_fun(self, root):
         insts = []
         tree = root.children
@@ -344,6 +384,17 @@ class Interpreter(Mash):
             elif root.data == "fun_code_block":
                 for tree in root.children:
                     insts += self.generate_ir(tree)
+            # Import
+            elif root.data == "import":
+                for m in root.children:
+                    if m.type == "VAR_NAME":
+                        insts += self.import_module(m.value, m.value)
+                    elif m.type == "scope_name":
+                        insts +=self.import_module(m.value, m.value[-1])
+                    else:
+                        raise mex.Unimplemented("Unknwon module parsed type")
+            elif root.data == "import_as":
+                insts += self.import_module(root.children[0].value, root.children[1].value)
             # Space
             elif root.data == "space":
                 symb_table.push_space(root.children[0].value)

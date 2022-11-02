@@ -39,9 +39,13 @@ class SpaceFrame(Frame):
     Name space
     """
 
-    def __init__(self, name):
+    def __init__(self, name, frame=None):
         self.name = name
-        super(SpaceFrame, self).__init__(True)
+        if frame is None:
+            super(SpaceFrame, self).__init__(True)
+        else:
+            super(SpaceFrame, self).__init__(True, frame)
+
 
     def __str__(self):
         return f"<space {self.name}>"

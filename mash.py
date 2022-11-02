@@ -4,12 +4,13 @@ Mash interpreter
 """
 __author__ = "Marek Sedlacek"
 __date__ = "September 2022"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __email__ = "mr.mareksedlacek@gmail.com"
 
 import argparse
 import interpreter
 import sys
+from pathlib import Path
 import mash_exceptions as mex
 
 def print_version():
@@ -43,6 +44,10 @@ class Initializer():
         self.argparser = argparser
         self.add_arguments(argparser)
         self.opts = self.argparser.parse_args()
+        if self.opts.lib_path is None:
+            self.opts.lib_path = [Path(".")]
+        else:
+            self.opts.lib_path = [Path(i) for sublist in self.opts.lib_path for i in sublist]
         # TODO: Change it so that the lib is not read from a file and parsed?
         self.libmash_path = "libmash.ms"
         # --version
@@ -89,6 +94,9 @@ class Initializer():
                                 help='Runs only the parser.')
         argparser.add_argument('--no-libmash', action='store_true', default=False, dest='no_libmash',
                                 help='Does not include libmash.')
+        argparser.add_argument('-l', '--lib-path', action='append', help='Path to folders to search for imports', 
+                                required=False, default=None, dest='lib_path', nargs='+')
+
 
     def error(self, msg):
         """

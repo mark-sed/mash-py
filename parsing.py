@@ -63,6 +63,19 @@ class ConstTransformer(Transformer):
                 var.append(v.value)
         return Token("scope_name", var)
 
+    def space_scope(self, items):
+        # Single variable = declaration
+        if len(items) == 1:
+            return items[0]
+        # Scope name
+        var = []
+        for v in items:
+            if type(v.value) == list:
+                var += v.value
+            else:
+                var.append(v.value)
+        return Token("scope_name", var)
+
     def int(self, items):
         return Token("SIGNED_INT", ir.Int(int(items[0].value)))
 
