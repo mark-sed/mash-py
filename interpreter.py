@@ -495,6 +495,15 @@ class Interpreter(Mash):
                 if type(tree[2]) == Tree and tree[2].data != "code_block":
                     symb_table.pop()
                 insts.append(ir.For(i, l, t))
+            # Raise
+            elif root.data == "raise":
+                raise mex.Unimplemented("Exceptions are not yet implemented")
+            # Try
+            elif root.data == "try":
+                raise mex.Unimplemented("Exceptions are not yet implemented")
+            # Lambda
+            elif root.data == "lambda":
+                raise mex.Unimplemented("Lambda expressions")
             # Function
             elif root.data == "function":
                 tree = root.children
@@ -504,6 +513,9 @@ class Interpreter(Mash):
                 symb_table.push()
                 # Push args
                 for k, v in args:
+                    # typed var
+                    if type(k) == tuple:
+                        k = k[0]
                     symb_table.declare(k, v)
                 body = self.generate_ir(tree[2])
                 symb_table.pop()

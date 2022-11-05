@@ -473,11 +473,17 @@ class Fun(Instruction):
         args = []
         for k, v in self.args:
             if v is None:
-                args.append(str(k))
-            elif type(v) == VarArgs:
-                args.append("*"+str(k))
+                if type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]}")
+                else:
+                    args.append(str(k))
             else:
-                args.append(f"{k} = {str(v)}")
+                if type(v) == VarArgs:
+                    args.append(f"*{k}")
+                elif type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]} = {str(v)}")
+                else:
+                    args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         return f"fun {self.name}({args_s})"+(" internal" if self.internal else "")
 
@@ -501,10 +507,15 @@ class Fun(Instruction):
         args = []
         for k, v in self.args:
             if v is None:
-                args.append(str(k))
+                if type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]}")
+                else:
+                    args.append(str(k))
             else:
                 if type(v) == VarArgs:
                     args.append(f"*{k}")
+                elif type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]} = {str(v)}")
                 else:
                     args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
@@ -521,9 +532,17 @@ class Fun(Instruction):
         args = []
         for k, v in self.args:
             if v is None:
-                args.append(str(k))
+                if type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]}")
+                else:
+                    args.append(str(k))
             else:
-                args.append(f"{k} = {str(v)}")
+                if type(v) == VarArgs:
+                    args.append(f"*{k}")
+                elif type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]} = {str(v)}")
+                else:
+                    args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         n = "".join(self.name)
         return f"fun {n}({args_s}) {{\n{t}\n}}"
@@ -563,9 +582,17 @@ class Constructor(Fun):
         args = []
         for k, v in self.args:
             if v is None:
-                args.append(str(k))
+                if type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]}")
+                else:
+                    args.append(str(k))
             else:
-                args.append(f"{k} = {str(v)}")
+                if type(v) == VarArgs:
+                    args.append(f"*{k}")
+                elif type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]} = {str(v)}")
+                else:
+                    args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         return f"new {self.name}({args_s})"+(" internal" if self.internal else "")
 
@@ -578,9 +605,17 @@ class Constructor(Fun):
         args = []
         for k, v in self.args:
             if v is None:
-                args.append(str(k))
+                if type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]}")
+                else:
+                    args.append(str(k))
             else:
-                args.append(f"{k} = {str(v)}")
+                if type(v) == VarArgs:
+                    args.append(f"*{k}")
+                elif type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]} = {str(v)}")
+                else:
+                    args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         n = "".join(self.name)
         spc = IR.SPCS*indent
@@ -595,9 +630,17 @@ class Constructor(Fun):
         args = []
         for k, v in self.args:
             if v is None:
-                args.append(str(k))
+                if type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]}")
+                else:
+                    args.append(str(k))
             else:
-                args.append(f"{k} = {str(v)}")
+                if type(v) == VarArgs:
+                    args.append(f"*{k}")
+                elif type(k) == tuple:
+                    args.append(f"{k[0]}:{k[1]} = {str(v)}")
+                else:
+                    args.append(f"{k} = {str(v)}")
         args_s = ", ".join(args)
         n = "".join(self.name)
         return f"new {n}({args_s}) {{\n{t}\n}}"
@@ -652,7 +695,7 @@ class FunCall(Instruction):
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
                 raise mex.TypeError("'"+"".join(self.name)+"' is not callable")
-        f = None
+        f = []
         new_obj = False
         if type(fl) == ClassFrame:
             new_obj = True
@@ -664,57 +707,92 @@ class FunCall(Instruction):
                 for i in fl[n]:
                     # Find matching function signature
                     if i.max_args-1 >= len(self.args):
-                        f = i
-                        break
-                if f is None:
+                        f.append(i)
+                if len(f) == 0:
                     raise mex.UndefinedReference(f"Arguments do not match any class '{self.name}' constructors")
         else:
             for i in fl:
                 # Find closest matching function signature
                 if i.max_args >= len(self.args):
-                    f = i
-                    break
-            if f is None:
+                    f.append(i)
+            if len(f) == 0:
                 if self.name[0] == "$":
                     raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
                 else:
                     raise mex.UndefinedReference(str(self))
-            elif type(f) == Constructor:
-                raise mex.TypeError("Constructor cannot be called as a function")
+            else:
+                for fi in f:
+                    if type(fi) == Constructor:
+                        raise mex.TypeError("Constructor cannot be called as a function")
         assigned = []
         start_arg_i = 0
         if new_obj:
-            if type(f.args[0][1]) == types.VarArgs:
-                assigned = [(f.args[0][0], types.List([fl.instance()]+self.pos_args))]
+            if type(f[0].args[0][0] == tuple):
+                raise mex.TypeError("Object argument (self) cannot be type constrained")
+            if type(f[0].args[0][1]) == types.VarArgs:
+                assigned = [(f[0].args[0][0], types.List([fl.instance()]+self.pos_args))]
             else:
-                assigned = [(f.args[0][0], fl.instance())]
+                assigned = [(f[0].args[0][0], fl.instance())]
             start_arg_i = 1
         elif method_call:
-            if type(f.args[0][1]) == types.VarArgs:
-                assigned = [(f.args[0][0], types.List([self.name[-3]]+self.pos_args))]
+            if type(f[0].args[0][0] == tuple):
+                raise mex.TypeError("Object argument (self) cannot be type constrained")
+            if type(f[0].args[0][1]) == types.VarArgs:
+                assigned = [(f[0].args[0][0], types.List([self.name[-3]]+self.pos_args))]
             else:
-                assigned = [(f.args[0][0], self.name[-3])]
+                assigned = [(f[0].args[0][0], self.name[-3])]
             start_arg_i = 1
-        for i, a in enumerate(f.args[start_arg_i:]):
-            v = a[1]
-            a = a[0]
-            if type(v) == types.VarArgs:
-                value = types.List(self.pos_args[i:])
-            else:
-                if i >= len(self.pos_args):
-                    if v is None:
-                        raise mex.TypeError(f"Function call to '{f.str_header()}' is missing required positional argument '{a}'")
-                    else:
-                        break
-                passed = self.pos_args[i]
-                value = passed
-                if type(passed) == str or type(passed) == list: 
-                    # Variable
-                    value = symb_table.get(passed)
-            assigned.append((a, value))
+
+        f_match = None
+        f_excp = None
+        assign_rest = []
+        f.sort(key=lambda x: sum([1 if type(a[0]) == tuple else 0 for a in x.args]), reverse=True)
+        for f_adept in f:
+            assign_rest = []
+            found = True
+            f_match = f_adept
+            for i, a in enumerate(f_adept.args[start_arg_i:]):
+                v = a[1]
+                a = a[0]
+                a_str = str(a) if type(a) != tuple else str(a[0])
+                if type(v) == types.VarArgs:
+                    value = types.List(self.pos_args[i:])
+                    # Update in case of variable names
+                    value.update()
+                else:
+                    if i >= len(self.pos_args):
+                        if v is None:
+                            f_excp = mex.TypeError(f"Function call to '{f_adept.str_header()}' is missing required positional argument '{a_str}'")
+                            found = False
+                            break
+                        else:
+                            break
+                    passed = self.pos_args[i]
+                    value = passed
+                    if type(passed) == str or type(passed) == list: 
+                        # Variable
+                        value = symb_table.get(passed)
+                    if type(a) == tuple:
+                        for t in a[1]:
+                            if t == value.type_name():
+                                break
+                        else:
+                            found = False
+                            supp_t = ", ".join(a[1])
+                            f_excp = mex.TypeError(f"Passed in value for argument {a_str} has unexpected type. Value should be of following type: {supp_t}")
+                if type(a) == tuple:
+                    assign_rest.append((a[0], value))
+                else:
+                    assign_rest.append((a, value))
+            if found:
+                break
+
+        if not found:
+            raise f_excp
+        assigned += assign_rest
 
         for k, v in self.named_args:
-            for a, b in f.args:
+            for a, b in f_match.args:
                 if b is not None:
                     assigned.append((k, v))
                     break
@@ -737,12 +815,14 @@ class FunCall(Instruction):
         # Push new frame and arguments
         symb_table.push(True)
         # Set default args
-        for k, v in f.args:
+        for k, v in f_match.args:
             if v is not None:
+                if type(k) == tuple:
+                    k = k[0]
                 symb_table.assign(k, v)
         for k, v in assigned:
             symb_table.assign(k, v)
-        ret_val, frames = f.call()
+        ret_val, frames = f_match.call()
         if type(ret_val) == str:
             ret_val = symb_table.get(ret_val)
         #print(symb_table, "\n---\n")

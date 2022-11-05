@@ -46,6 +46,8 @@ class SpaceFrame(Frame):
         else:
             super(SpaceFrame, self).__init__(True, frame)
 
+    def type_name(self):
+        return self.name
 
     def __str__(self):
         return f"<space {self.name}>"
@@ -58,6 +60,9 @@ class ClassFrame(Frame):
     def __init__(self, name):
         self.name = name
         super(ClassFrame, self).__init__(True)
+
+    def type_name(self):
+        return self.name
 
     def instance(self):
         from mash_types import Class
@@ -170,6 +175,10 @@ class SymbTable(Mash):
                 if f.min_args <= max_args and f.max_args >= min_args and f.max_args != max_args:
                     raise mex.AmbiguousRedefinition(f"function '{name}'")
                 elif f.max_args == max_args:
+                    types1 = [k[1] if type(k) == tuple else None for k, _ in f.args]
+                    types2 = [k[1] if type(k) == tuple else None for k, _ in irfun.args]
+                    if types1 != types2:
+                        continue
                     # Overridden
                     fprev[i] = irfun
                     break

@@ -74,7 +74,7 @@ class ConstTransformer(Transformer):
                 var += v.value
             else:
                 var.append(v.value)
-        return Token("scope_name", var)
+        return Token("scope_name", var) 
 
     def int(self, items):
         return Token("SIGNED_INT", ir.Int(int(items[0].value)))
@@ -144,6 +144,12 @@ class ConstTransformer(Transformer):
                 args.append((x.value, None))
         return Token("fun_args", args)
 
+    def type_list(self, items):
+        return Token("type_list", [i.value for i in items])
+
+    def typed_var(self, items):
+        return Token("typed_var", (items[0].value, items[1].value if type(items[1].value) == list else [items[1].value]))
+
     def arg_list_call_exp(self, items):
         i1 = items[0].value if type(items[0]) == Token else items[0]
         i2 = items[1].value if type(items[1]) == Token else items[1]
@@ -168,7 +174,7 @@ class ConstTransformer(Transformer):
         return Token("fun_call_args", args)
 
     def var_args_list(self, items):
-        return Token("arg_list", [(items[0], types.VarArgs())])
+        return Token("arg_list", [(items[0].value, types.VarArgs())])
 
     def dict(self, items):
         v = []

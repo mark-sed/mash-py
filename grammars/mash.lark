@@ -16,6 +16,8 @@ _stmts : import
        | _rvalue
        | FLOW_CTRL
        | return
+       | raise
+       | try
        | assignment
        | op_assign
        | _definition
@@ -198,7 +200,15 @@ class : "class" VAR_NAME INTERNAL? "{" _END? _class_content _END? "}"
       | "class" VAR_NAME INTERNAL
 
 // Variable name
-VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
+VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|raise|as|finally|try|catch|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
+
+typed_var : VAR_NAME ":" scope_name
+          | VAR_NAME ":" type_list
+
+type_list : "[" _type_list_val "]"
+
+_type_list_val : VAR_NAME
+               | _type_list_val "," VAR_NAME
 
 // Variable in some scope
 scope_name : _pscope_name
@@ -255,11 +265,15 @@ fun_args : _arg_list_ndef
 
 // List of arguments without default values
 _arg_list_ndef : VAR_NAME 
-              | _arg_list_ndef "," VAR_NAME
+               | typed_var
+               | _arg_list_ndef "," VAR_NAME
+               | _arg_list_ndef "," typed_var
 
 // List of arguments with possibility of default values
 arg_list : VAR_NAME "=" (_expr|lambda)
+         | typed_var "=" (_expr|lambda)
          | arg_list "," VAR_NAME "=" (_expr|lambda)
+         | arg_list "," typed_var "=" (_expr|lambda)
 
 // Variable amount of arguments
 var_args_list : "*" VAR_NAME
@@ -284,7 +298,14 @@ do_while : "do" _END* (code_block|_stmts) _END* "while" "(" _expr ")" _END?
 // For loop
 for : "for" "(" VAR_NAME ":" _expr ")" _END* (code_block|_stmts) _END?
 
-return : "return" _rvalue?
+return : "return" (_expr|lambda)?
+
+raise : "raise" (_expr|lambda)
+
+// Try
+try: "try" _END* (code_block|_stmts) _END* (catch)+ finally?
+catch: "catch" "(" (VAR_NAME | typed_var) ")" _END* (code_block | _stmts) _END*
+finally: "finally" _END* (code_block|_stmts) _END* 
 
 // Internal implementation comment
 INTERNAL : "internal"
