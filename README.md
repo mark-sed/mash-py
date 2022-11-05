@@ -1,5 +1,8 @@
 # mash-py
-Python 3 interpreter for Mash language
+Prototype interpreter for Mash language. 
+
+Be warned that the interpreter is quite slow and poorly optimized, it was created mostly to test the language make 
+the final interpreter build on this.
 
 # Mash language
 Dynamically typed language (with some optional typing features) for easy prototyping, writing one liners, but also
