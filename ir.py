@@ -701,8 +701,8 @@ class FunCall(Instruction):
             new_obj = True
             n = fl.name
             if n not in fl:
-                raise mex.Unimplemented("Implicit constructors")
-                ... # TODO: implicit constructor
+                symb_table.assign(SymbTable.RETURN_NAME, fl.instance())
+                return
             else:
                 for i in fl[n]:
                     # Find matching function signature
@@ -735,7 +735,7 @@ class FunCall(Instruction):
                 assigned = [(f[0].args[0][0], fl.instance())]
             start_arg_i = 1
         elif method_call:
-            if type(f[0].args[0][0] == tuple):
+            if type(f[0].args[0][0]) == tuple:
                 raise mex.TypeError("Object argument (self) cannot be type constrained")
             if type(f[0].args[0][1]) == types.VarArgs:
                 assigned = [(f[0].args[0][0], types.List([self.name[-3]]+self.pos_args))]
