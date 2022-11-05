@@ -10,6 +10,68 @@ import mash_types as types
 import mash_exceptions as mex
 from symbol_table import symb_table
 
+def Int_Int_2(self, v):
+    if type(v) == int:
+        return v
+    if type(v) == str:
+        return int(v, base=0)
+    try:
+        return int(v)
+    except ValueError:
+        raise mex.ValueError(f"Cannot convert '{v}' to Int")
+
+def Float_Float_2(self, v):
+    if type(v) == float:
+        return v
+    try:
+        return float(v)
+    except ValueError:
+        raise mex.ValueError(f"Cannot convert '{v}' to Float")
+
+def String_String_2(self, v):
+    # TODO: call _to method
+    if type(v) in {int, float, str, bool}:
+        return str(v)
+    if type(v) == list:
+        return types.List(v).fstr()
+    if type(v) == tuple:
+        return types.Dict(v).fstr()
+    if v is None:
+        return types.Nil().fstr()
+    raise mex.Unimplemented("Calls to '_to' function is not yet implemented")
+
+def Bool_Bool_2(self, v):
+    if type(v) == bool:
+        return v
+    try:
+        return bool(v)
+    except ValueError:
+        raise mex.ValueError(f"Cannot convert '{v}' to Bool")
+
+def List_List_1(self):
+    return []
+
+def List_List_3(self, a, b):
+    return types.List([types.wrap_py(a)]+b)
+
+def Dict_Dict_1(self):
+    return types.Dict()
+
+def NilType_NilType_1(self):
+    return None
+
+def type_1(var):
+    ir_type = types.wrap_py(var)
+    if type(ir_type) == types.Class:
+        ir_type = ir_type.frame
+    e, _ = symb_table.exists(ir_type.type_name())
+    if e:
+        return symb_table.get(ir_type.type_name())
+    raise mex.Unimplemented("Type value for given type")
+
+def id_1(var):
+    return id(var)
+
 def vardump_1(var):
     r = []
     for v in var:
@@ -117,12 +179,12 @@ def atan_1(x):
 def atan_2(y, x):
     return math.atan2(y, x)
 
-def toupper_1(x):
+def upper_1(x):
     if type(x) != str:
         raise mex.TypeError("toupper accepts only String")
     return x.upper()
 
-def tolower_1(x):
+def lower_1(x):
     if type(x) != str:
         raise mex.TypeError("tolower accepts only String")
     return x.lower()

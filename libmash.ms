@@ -3,6 +3,49 @@ Mash core library.
 @author Marek Sedlacek
 */
 
+/** Class/Object methods */
+class Int {
+    new Int(self, v:Int) internal
+    new Int(self, v:Float) internal
+    new Int(self, v:Bool) internal
+    new Int(self, v:String) internal
+}
+
+class Float {
+    new Float(self, v:Float) internal
+    new Float(self, v:Int) internal
+    new Float(self, v:String) internal
+}
+
+class String {
+    new String(self, v) internal
+}
+
+class Bool {
+    new Bool(self, v:Bool) internal
+    new Bool(self, v:Int) internal
+    new Bool(self, v:Float) internal
+    new Bool(self, v:String) internal
+    new Bool(self, v:NilType) internal
+}
+
+class List {
+    new List(self) internal
+    new List(self, a, *b) internal
+}
+
+class Dict {
+    new Dict(self) internal
+}
+
+class NilType { 
+    new NilType(self) internal
+}
+
+fun type(var) internal
+
+fun id(var) internal
+
 /** Output functions */
 fun print(a) { return ""++a }
 fun print(a, b, *c) { 
@@ -101,14 +144,14 @@ fun reverse(l) internal
  * @param s String to be converted
  * @return Passed in string in uppercase
  */
-fun toupper(s) internal
+fun upper(s) internal
 
 /**
  * Converts string to lowercse
  * @param s String to be converted
  * @return Passed in string in lowercase
  */
-fun tolower(s) internal
+fun lower(s) internal
 
 /**
  * Capitalized string

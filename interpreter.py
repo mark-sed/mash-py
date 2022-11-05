@@ -528,6 +528,8 @@ class Interpreter(Mash):
                 symb_table.push()
                 # Push args
                 for k, v in args:
+                    if type(k) == tuple:
+                        k = k[0]
                     symb_table.declare(k, v)
                 body = self.generate_ir(tree[2])
                 symb_table.pop()

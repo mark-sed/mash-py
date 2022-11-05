@@ -46,6 +46,9 @@ class SpaceFrame(Frame):
         else:
             super(SpaceFrame, self).__init__(True, frame)
 
+    def __eq__(self, other):
+        return id(self) == id(other)
+
     def type_name(self):
         return self.name
 
@@ -60,6 +63,9 @@ class ClassFrame(Frame):
     def __init__(self, name):
         self.name = name
         super(ClassFrame, self).__init__(True)
+
+    def __eq__(self, other):
+        return id(self) == id(other)
 
     def type_name(self):
         return self.name

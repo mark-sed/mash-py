@@ -66,6 +66,9 @@ class Class(Value):
     def get_value(self):
         return self
 
+    def __eq__(self, other):
+        return id(self) == id(other)
+
     def __contains__(self, key):
         return self.attr.__contains__(key)
 
@@ -85,7 +88,7 @@ class Class(Value):
         return self.attr.__len__()
 
     def __str__(self):
-        n = "".join(self.value)
+        n = "".join(self.name)
         return f"<{n} object>"
 
 from symbol_table import ClassFrame, SpaceFrame, symb_table
@@ -416,6 +419,7 @@ def wrap_py(value):
     elif type(value) == bool: return Bool(value)
     elif type(value) == list: return List(value)
     elif type(value) == tuple: return Dict(value)
+    elif value is None: return Nil()
     else: return value
 
-IMPLICIT_TO_BOOL = {Int, Float, Nil}
+IMPLICIT_TO_BOOL = {Nil}

@@ -163,6 +163,7 @@ lambda : "fun" VAR_NAME? "(" fun_args ")" "=" _rvalue
 
 // Class constructor
 constructor : "new" VAR_NAME "(" fun_args ")" fun_code_block
+            | "new" VAR_NAME "(" fun_args ")" INTERNAL
 
 // Block of code
 code_block : "{" _stmt "}"

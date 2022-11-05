@@ -216,6 +216,8 @@ class If(Instruction):
     """
     def __init__(self, cnd, t, f):
         self.cnd = cnd
+        #if cnd != str and cnd != list and (type(cnd) not in types.IMPLICIT_TO_BOOL):
+        #    raise mex.TypeError("Unexpected expression type in if statement condition")
         self.t = t
         if type(self.t) is not list:
             self.t = [self.t]
@@ -225,7 +227,13 @@ class If(Instruction):
 
     def exec(self):
         symb_table.push()
-        c = self.getV(self.cnd)
+        c = self.get(self.cnd)
+        if type(c) == types.Class:
+            raise mex.Unimplemented("Call to _to method")
+        elif type(c) not in types.IMPLICIT_TO_BOOL:
+            raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in if statement condition")
+        else:
+            c = c.get_value()
         try:
             if c:
                 for i in self.t:
@@ -269,7 +277,13 @@ class While(Instruction):
 
     def exec(self):
         symb_table.push()
-        c = self.getV(self.cnd)
+        c = self.get(self.cnd)
+        if type(c) == types.Class:
+            raise mex.Unimplemented("Call to _to method")
+        elif type(c) not in types.IMPLICIT_TO_BOOL:
+            raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in while statement condition")
+        else:
+            c = c.get_value()
         while c:
             try:
                 for i in self.t:
@@ -325,7 +339,13 @@ class DoWhile(Instruction):
         # Run code for condition
         for i in self.cnd_insts:
             i.exec()
-        c = self.getV(self.cnd)
+        c = self.get(self.cnd)
+        if type(c) == types.Class:
+            raise mex.Unimplemented("Call to _to method")
+        elif type(c) not in types.IMPLICIT_TO_BOOL:
+            raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in do while statement condition")
+        else:
+            c = c.get_value()
         while c:
             try:
                 for i in self.t:
@@ -339,7 +359,13 @@ class DoWhile(Instruction):
             # Run code for condition
             for i in self.cnd_insts:
                 i.exec()
-            c = self.getV(self.cnd)
+            c = self.get(self.cnd)
+            if type(c) == types.Class:
+                raise mex.Unimplemented("Call to _to method")
+            elif type(c) not in types.IMPLICIT_TO_BOOL:
+                raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in do while statement condition")
+            else:
+                c = c.get_value()
         symb_table.pop()
 
     def output(self, indent=0):
@@ -422,10 +448,14 @@ class Fun(Instruction):
             self.max_args = float("inf")
         self.body = body
         self.internal = False
+        self.method = type(symb_table.top()) == ClassFrame
         if len(self.body) > 0 and type(self.body[0]) == Internal:
             self.internal = True
             try:
-                self.body = getattr(libmash, name+"_"+str(len(args)))
+                if self.method:
+                    self.body = getattr(libmash, symb_table.top().name+"_"+name+"_"+str(len(args)))
+                else:
+                    self.body = getattr(libmash, name+"_"+str(len(args)))
             except AttributeError:
                 raise mex.UndefinedReference(self.str_header())
 
@@ -560,12 +590,14 @@ class Constructor(Fun):
         if self.internal:
             assign_args = []
             for a, _ in self.args:
+                if type(a) == tuple:
+                    a = a[0]
                 assign_args.append(symb_table.get(a).get_value())
             try:
                 rval = self.wrap_internal(self.body(*assign_args))
             except TypeError:
                 raise mex.TypeError("Incorrect argument type in function call to '"+self.str_header()+"'")
-            return self.args[0][1], 1
+            return rval, 1
         else:
             for i in self.body:
                 try:
@@ -727,7 +759,7 @@ class FunCall(Instruction):
         assigned = []
         start_arg_i = 0
         if new_obj:
-            if type(f[0].args[0][0] == tuple):
+            if type(f[0].args[0][0]) == tuple:
                 raise mex.TypeError("Object argument (self) cannot be type constrained")
             if type(f[0].args[0][1]) == types.VarArgs:
                 assigned = [(f[0].args[0][0], types.List([fl.instance()]+self.pos_args))]
@@ -1370,7 +1402,7 @@ class Eq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict})
+        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame})
         v1 = s1.get_value()
         v2 = s2.get_value()
         r = v1 == v2
@@ -1389,7 +1421,7 @@ class Neq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict})
+        self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame})
         v1 = s1.get_value()
         v2 = s2.get_value()
         r = v1 != v2
