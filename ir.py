@@ -1265,7 +1265,7 @@ class LOr(Expr):
         symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
-        return f"OR {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
+        return f"LOR {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
 
 class LAnd(Expr):
     """
@@ -1292,6 +1292,62 @@ class LAnd(Expr):
         self.check_types("and", s1, s2, {Bool})
         r = v1 and v2
         symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"LAND {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
+
+class Or(Expr):
+    """
+    Shortcircuit OR
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        if type(s1) in types.IMPLICIT_TO_BOOL:
+            v1 = bool(v1.get_value())
+            s1 = types.Bool(v1)
+        else:
+            v1 = s1.get_value()
+        self.check_type("short-circuit or", s1, {Bool})
+
+        if v1:
+            symb_table.assign(self.dst, wrap(v1))
+        else:
+            v2 = s2.get_value()
+            symb_table.assign(self.dst, wrap(v2))
+
+    def __str__(self):
+        return f"OR {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
+
+class And(Expr):
+    """
+    Shortcircuit AND
+    """
+    def __init__(self, src1, src2, dst):
+        self.dst = dst
+        self.src1 = src1
+        self.src2 = src2
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        s2 = self.get(self.src2)
+        if type(s1) in types.IMPLICIT_TO_BOOL:
+            v1 = bool(v1.get_value())
+            s1 = types.Bool(v1)
+        else:
+            v1 = s1.get_value()
+        self.check_type("short-circuit and", s1, {Bool})
+
+        if not v1:
+            symb_table.assign(self.dst, wrap(v1))
+        else:
+            v2 = s2.get_value()
+            symb_table.assign(self.dst, wrap(v2))
 
     def __str__(self):
         return f"AND {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"

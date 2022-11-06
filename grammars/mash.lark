@@ -94,8 +94,10 @@ _expr : expr_or
      | dict
      | "(" _expr ")"
 
-expr_or : _expr ("||"|"or") _expr
-expr_and : _expr ("&&"|"and") _expr
+expr_lor : _expr "or" _expr
+expr_land : _expr "and" _expr
+expr_or : _expr "||" _expr  // (_expr | return | FLOW_CTRL | raise)
+expr_and : _expr "&&" _expr // (_expr | return | FLOW_CTRL | raise)
 expr_not : ("!"|"not") _expr
 expr_lte : _expr "<=" _expr
 expr_gte : _expr ">=" _expr
@@ -332,7 +334,7 @@ FLOW_CTRL : ("continue" | "break")
 
 // Statement _END
 _END : NEWLINE
-    | ";"
+     | ";"
 
 NUMBER : SIGNED_INT | SIGNED_FLOAT
 

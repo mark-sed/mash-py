@@ -129,10 +129,14 @@ class Interpreter(Mash):
                     return (opres, left+right+[ir.Mod(lr, rr, opres)])
                 elif iname == "EXP":
                     return (opres, left+right+[ir.Exp(lr, rr, opres)])
-                elif iname == "OR":
+                elif iname == "LOR":
                     return (opres, left+right+[ir.LOr(lr, rr, opres)])
-                elif iname == "AND":
+                elif iname == "LAND":
                     return (opres, left+right+[ir.LAnd(lr, rr, opres)])
+                elif iname == "OR":
+                    return (opres, left+right+[ir.Or(lr, rr, opres)])
+                elif iname == "AND":
+                    return (opres, left+right+[ir.And(lr, rr, opres)])
                 elif iname == "LTE":
                     return (opres, left+right+[ir.Lte(lr, rr, opres)])
                 elif iname == "GTE":

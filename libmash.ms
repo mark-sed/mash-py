@@ -25,7 +25,6 @@ class Bool {
     new Bool(self, v:Bool) internal
     new Bool(self, v:Int) internal
     new Bool(self, v:Float) internal
-    new Bool(self, v:String) internal
     new Bool(self, v:NilType) internal
 }
 

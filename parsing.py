@@ -399,11 +399,17 @@ class ConstTransformer(Transformer):
         insts.append(ir.Cat(srcs[0], srcs[1], self.uniq_var()))
         return Token("CODE", insts)
 
+    def expr_lor(self, items):
+        return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "LOR")
+
+    def expr_land(self, items):
+        return self._help_expr_log(items, lambda a, b: a and b, ir.LAnd, "LAND")
+
     def expr_or(self, items):
-        return self._help_expr_log(items, lambda a, b: a or b, ir.LOr, "OR")
+        return self._help_expr_log(items, lambda a, b: a or b, ir.Or, "OR")
 
     def expr_and(self, items):
-        return self._help_expr_log(items, lambda a, b: a and b, ir.LAnd, "AND")
+        return self._help_expr_log(items, lambda a, b: a and b, ir.And, "AND")
 
     def expr_lte(self, items):
         return self._help_expr_log(items, lambda a, b: a <= b, ir.Lte, "LTE")
