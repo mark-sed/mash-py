@@ -40,8 +40,8 @@ incorrect code and to help with the readability of the code.
 | `<=`, `>=`, `>`, `<`             | Comparisons                                      | Left          |
 | `==`, `!=`                       | Equals, Not equals                               | Left          |
 | `!`, `not`                       | Logical not                                      | Right         |
-| `&&`, `and`                      | Logical and                                      | Left          |
-| `\|\|`, `or`                     | Logical or                                       | Left          |
+| `&&`, `and`                      | Short-circuit type checked/not checked logical and | Left        |
+| `\|\|`, `or`                     | Short-circuit type checked/not checked logical or | Left         |
 | `?:`                             | Ternary if                                       | Right         |
 | `=`, `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `^=`, `++=` | Assignment, Operation and assignment | Right       |
 | `~`                              | Silence operator                                 | Right         |

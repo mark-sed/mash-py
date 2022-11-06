@@ -698,6 +698,7 @@ class FunCall(Instruction):
         method_call = False
         if type(self.name) == list and len(self.name) > 2 and self.name[-2] == ".":
             method_call = True
+            # Firsts check object attributes
             frame = symb_table.get_frame(self.name, flist=True)
             if frame is not None:
                 i = len(frame)
@@ -708,7 +709,11 @@ class FunCall(Instruction):
                         continue
                     if frm in symb_table.frames:
                         lframe = frm
-                frame = frame[-1].frame
+                if type(frame[-1]) == dict: # attr
+                    method_call = False
+                    frame = frame[-1]
+                else:
+                    frame = frame[-1].frame
         else:
             frame = symb_table.get_frame(self.name)
 
