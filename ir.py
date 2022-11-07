@@ -230,7 +230,7 @@ class If(Instruction):
         c = self.get(self.cnd)
         if type(c) == types.Class:
             raise mex.Unimplemented("Call to _to method")
-        elif type(c) not in types.IMPLICIT_TO_BOOL:
+        elif type(c) != Bool and type(c) not in types.IMPLICIT_TO_BOOL:
             raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in if statement condition")
         else:
             c = c.get_value()
@@ -280,7 +280,7 @@ class While(Instruction):
         c = self.get(self.cnd)
         if type(c) == types.Class:
             raise mex.Unimplemented("Call to _to method")
-        elif type(c) not in types.IMPLICIT_TO_BOOL:
+        elif type(c) != Bool and type(c) not in types.IMPLICIT_TO_BOOL:
             raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in while statement condition")
         else:
             c = c.get_value()
@@ -342,7 +342,7 @@ class DoWhile(Instruction):
         c = self.get(self.cnd)
         if type(c) == types.Class:
             raise mex.Unimplemented("Call to _to method")
-        elif type(c) not in types.IMPLICIT_TO_BOOL:
+        elif type(c) != Bool and type(c) not in types.IMPLICIT_TO_BOOL:
             raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in do while statement condition")
         else:
             c = c.get_value()
@@ -362,7 +362,7 @@ class DoWhile(Instruction):
             c = self.get(self.cnd)
             if type(c) == types.Class:
                 raise mex.Unimplemented("Call to _to method")
-            elif type(c) not in types.IMPLICIT_TO_BOOL:
+            elif type(c) != Bool and type(c) not in types.IMPLICIT_TO_BOOL:
                 raise mex.TypeError(f"Unexpected expression type '{c.type_name()}' in do while statement condition")
             else:
                 c = c.get_value()
@@ -395,23 +395,49 @@ class For(Instruction):
     def exec(self):
         symb_table.push()
         s = self.get(self.l)
-        if type(s) != List and type(s) != Dict:
+        if type(s) != List and type(s) != Dict and type(s) != types.Class:
             raise mex.TypeError(f"Cannot iterate over {s.type_name()}")
         v = s.get_value()
         if type(s) == Dict:
             v = s.items().get_value()
-        for a in v:
-            symb_table.assign(self.i, a)
-            try:
-                for i in self.t:
-                    i.exec()
-            except mex.FlowControlBreak:
-                break
-            except mex.FlowControlContinue:
-                continue
-            except mex.FlowControlReturn as e:
-                symb_table.pop()
-                raise e
+        
+        if type(s) == types.Class:
+            if type(self.l) == list:
+                l += [".", "__next"]
+            else:
+                l = [self.l, ".", "__next"]
+            
+            next_call = FunCall(l, [])
+            next_call.exec()
+            symb_table.assign(self.i, SymbTable.RETURN_NAME)
+            i_v = symb_table.get(self.i)
+            while not (type(i_v) == types.ClassFrame and i_v.name == "StopIteration"):
+                try:
+                    for i in self.t:
+                        i.exec()
+                    next_call.exec()
+                    symb_table.assign(self.i, SymbTable.RETURN_NAME)
+                    i_v = symb_table.get(self.i)
+                except mex.FlowControlBreak:
+                    break
+                except mex.FlowControlContinue:
+                    continue
+                except mex.FlowControlReturn as e:
+                    symb_table.pop()
+                    raise e
+        else:
+            for a in v:
+                symb_table.assign(self.i, a)
+                try:
+                    for i in self.t:
+                        i.exec()
+                except mex.FlowControlBreak:
+                    break
+                except mex.FlowControlContinue:
+                    continue
+                except mex.FlowControlReturn as e:
+                    symb_table.pop()
+                    raise e
         symb_table.pop()
 
     def output(self, indent=0):

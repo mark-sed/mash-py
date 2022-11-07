@@ -41,6 +41,25 @@ class NilType {
     new NilType(self) internal
 }
 
+class StopIteration {}
+
+class Range {
+    new Range(self, start, end, step=1) {
+        self.start = start
+        self.end = end
+        self.step = step
+        self.i = start
+    }
+
+    fun __next(self) {
+        if(self.step >= 0 and self.i >= self.end) return StopIteration
+        if(self.step < 0 and self.i <= self.end) return StopIteration
+        r = self.i
+        self.i += self.step
+        return r
+    }
+}
+
 fun type(var) internal
 
 fun id(var) internal

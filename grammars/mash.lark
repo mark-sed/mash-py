@@ -42,8 +42,8 @@ op_assign : scope_name ASSIGN_OP (_expr|lambda)
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^="|"++=")
 
 // List
-list : _expr "," _expr ".." _expr -> range
-     | _expr ".." _expr -> range
+list : "[" _expr "," _expr ".." _expr "]" -> range
+     | "[" _expr ".." _expr "]" -> range
      | "[" _list_vals "]"
      | "[" (_expr|lambda) ":" list_assig "]"  // List comprehension
      | "[" (_expr|lambda) "if" _expr ":" list_assig "]"  // List comprehension with condition
@@ -67,7 +67,9 @@ _rvalue : silent_expr
 silent_expr : "~" _expr
 
 // Expressions using operators
-_expr : expr_or
+_expr : expr_lor
+     | expr_land
+     | expr_or
      | expr_and
      | expr_not
      | expr_lte

@@ -49,13 +49,9 @@ class Interpreter(Mash):
                 insts += self.multi_call(src)
                 dst = self.uniq_var()
                 insts.append(ir.AssignVar(dst, SymbTable.RETURN_NAME))
-            elif src.data == "member":
-                s, extra_insts = self.generate_subexpr(src.children[0])
-                insts += extra_insts
-                index, extra_insts = self.generate_subexpr(src.children[1])
-                insts += extra_insts
-                dst = self.uniq_var()
-                insts.append(ir.Member(s, index, dst))
+            elif src.data == "member" or src.data == "range":
+                insts = self.generate_ir(src, True)
+                dst = insts[-1].dst
             elif len(src.data) > 5 and src.data[0:5] == "EXPR_":
                 dst, insts = self.generate_expr(src)
             else:
@@ -158,6 +154,9 @@ class Interpreter(Mash):
                 symb_table.assign(SymbTable.RETURN_NAME, None)
                 symb_table.assign(opres, SymbTable.RETURN_NAME)
                 return (opres, self.generate_ir(root, True)+[ir.AssignVar(opres, SymbTable.RETURN_NAME)])
+            elif root.data == "member" or root.data == "range":
+                insts = self.generate_ir(root, True)
+                return (insts[-1].dst, insts)
                 
     def op_assign(self, dst, value, op):
         """
@@ -248,6 +247,10 @@ class Interpreter(Mash):
                 symb_table.assign(retv, SymbTable.RETURN_NAME)
                 insts.append(ir.AssignVar(retv, SymbTable.RETURN_NAME))
                 args[i] = retv
+            elif type(a) == Tree and (a.data == "member" or a.data == "range"):
+                retv, inst_extra = self.generate_subexpr(a)
+                insts += inst_extra
+                args[i] = retv
             elif type(a) == Tree and len(a.data) > 5 and a.data[:5] == "EXPR_":
                 # Expression nor parsable in the transformer
                 retv, insts = self.generate_expr(a)
@@ -273,11 +276,12 @@ class Interpreter(Mash):
             v = root.children[0]
             # Function call over returned value
             return self.multi_call(v)+[ir.FunCall(SymbTable.RETURN_NAME, root.children[1].value)]
-        elif type(root.children[0]) == Tree and root.children[0].data == "member":
-            v = root.children[0]
-            ret, inst = self.generate_subexpr(v)
-            # Function call over member
-            return inst+[ir.FunCall(ret, root.children[1].value)]
+        #elif type(root.children[1].value[0]) == Tree and (root.children[1].value[0].data == "member" or root.children[1].value[0].data == "range"):
+        #    print(root.children[0].value)
+        #    v = root.children[1].value[0]
+        #    ret, inst = self.generate_subexpr(v)
+        #    # Function call over member
+        #    return inst+[ir.FunCall(root.children[0].value, [ret])]
         else:
             return self.generate_fun(root)
 
@@ -340,6 +344,7 @@ class Interpreter(Mash):
                 return [ir.Internal()]
         else:
             insts = []
+            # Assignment
             if root.data == "assignment" or root.data == "op_assign":
                 tree = root.children[1]
                 op = "="
@@ -373,7 +378,7 @@ class Interpreter(Mash):
                         assign = self.generate_ir(tree, True)
                         self.symb_table.assign(root.children[0].value, assign[-1].dst)
                         insts += assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
-                    elif tree.data == "member":
+                    elif tree.data == "member" or tree.data == "range":
                         insts += self.generate_ir(tree, True)
                         insts.append(self.op_assign(root.children[0].value, insts[-1].dst, op))
                     else:
@@ -420,6 +425,36 @@ class Interpreter(Mash):
                 insts += self.multi_call(root)
                 if not silent:
                     insts.append(ir.Print(SymbTable.RETURN_NAME))
+            elif root.data == "range":
+                start = root.children[0]
+                second = None if len(root.children) == 2 else root.children[1]
+                end = root.children[1] if len(root.children) == 2 else root.children[2]
+                step = types.Int(1)
+                if type(start) == Token:
+                    if start.type == "CODE":
+                        insts += start.value
+                        start = insts[-1].dst
+                    else:
+                        start = start.value
+                if type(second) == Token:
+                    if second.type == "CODE":
+                        insts += second.value
+                        second_r = insts[-1].dst
+                        step = self.uniq_var()
+                        insts.append(ir.Sub(second_r, start, step))
+                    else:
+                        step = self.uniq_var()
+                        insts.append(ir.Sub(second.value, start, step))
+                if type(end) == Token:
+                    if end.type == "CODE":
+                        insts += end.value
+                        end = insts[-1].dst
+                    else:
+                        end = end.value
+                obj_var = self.uniq_var()
+                insts += [ir.FunCall("Range", [start, end, step]), ir.AssignVar(obj_var, SymbTable.RETURN_NAME)]
+                if not silent:
+                    insts.append(ir.Print(obj_var))
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
@@ -479,7 +514,11 @@ class Interpreter(Mash):
                 elif type(tree[1]) == Tree:
                     if tree[1].data == "fun_call":
                         insts += self.multi_call(tree[1])
-                        l = SymbTable.RETURN_NAME
+                        l = self.uniq_var()
+                        insts.append(ir.AssignVar(l, SymbTable.RETURN_NAME))
+                    elif tree[1].data == "member" or tree[1].data == "range":
+                        insts += self.generate_ir(tree[1], True)
+                        l = insts[-1].dst
                     elif len(tree[1].data) > 5 and tree[1].data[0:5] == "EXPR_":
                         l, extra = self.generate_expr(tree[1])
                         insts += extra
