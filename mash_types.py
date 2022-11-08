@@ -91,6 +91,56 @@ class Class(Value):
         n = "".join(self.name)
         return f"<{n} object>"
 
+class Enum(Value):
+    """Enumeration"""
+    def __init__(self, name, values):
+        self.value = self
+        self.values = values
+        self.value_names = [v.name for v in values]
+        self.name = name
+
+    def fstr(self):
+        vs = ", ".join([x.name for x in self.values])
+        return f"{self.name} {{ {vs} }}"
+
+    def __contains__(self, key):
+        return self.value_names.__contains__(key)
+
+    def __getitem__(self, key):
+        for v in self.values:
+            if v.name == key:
+                return v
+        raise KeyError
+
+    def type_name(self):
+        return self.name
+
+    def __eq__(self, other):
+        return id(self) == id(other)
+
+    def __str__(self):
+        return f"<enum {self.name}>"
+
+class EnumValue(Value):
+    """Enumeration value"""
+
+    def __init__(self, name, enum_name):
+        self.name = name
+        self.value = self
+        self.enum_name = enum_name
+
+    def __eq__(self, other):
+        return id(self) == id(other)
+
+    def type_name(self):
+        return self.enum_name
+
+    def fstr(self):
+        return self.enum_name+"::"+self.name
+
+    def __str__(self):
+        return self.name
+
 from symbol_table import ClassFrame, SpaceFrame, symb_table
 
 class String(Value):

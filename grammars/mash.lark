@@ -152,6 +152,7 @@ _definition : lambda
            | function
            | space
            | class
+           | enum
 
 // Function call
 fun_call : scope_name "(" fun_call_args ")" _END?
@@ -195,17 +196,23 @@ _class_content : _END* constructor _END* _class_content
 //             |
 
 // Namespace definition
-space : "space" VAR_NAME "{" _END? _stmt _END? "}"
-      | "space" VAR_NAME INTERNAL
-      | "space" VAR_NAME INTERNAL "{" _END? _stmt _END? "}"
+space : "space" VAR_NAME _END* "{" _END* _stmt _END* "}"
+      //| "space" VAR_NAME INTERNAL
+      //| "space" VAR_NAME INTERNAL "{" _END? _stmt _END? "}"
 
 // Class definition
-class : "class" VAR_NAME INTERNAL? "{" _END? _class_content _END? "}"
-      | "class" VAR_NAME ":" var_list "{" _END? _class_content _END? "}"
-      | "class" VAR_NAME INTERNAL
+class : "class" VAR_NAME _END* "{" _END* _class_content _END* "}"
+      | "class" VAR_NAME ":" var_list _END* "{" _END* _class_content _END* "}"
+      
+// Enum definition
+enum : "enum" VAR_NAME _END* "{" _END* _enum_name_list _END* "}"
 
 // Variable name
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|raise|as|finally|try|catch|nil|true|false|fun|class|space|in|or|and|not)\b)[a-zA-Z_][a-zA-Z0-9_]*/
+
+_enum_name_list : VAR_NAME ","? 
+                | _enum_name_list "," _END* VAR_NAME ","?
+                |
 
 typed_var : VAR_NAME ":" scope_name
           | VAR_NAME ":" type_list

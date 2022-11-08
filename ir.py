@@ -1489,7 +1489,7 @@ class Eq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame})
+        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame, types.Enum, types.EnumValue})
         v1 = s1.get_value()
         v2 = s2.get_value()
         r = v1 == v2

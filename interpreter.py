@@ -420,6 +420,12 @@ class Interpreter(Mash):
                     insts += self.generate_ir(tree)
                 insts.append(ir.ClassPop())
                 symb_table.pop_class()
+            elif root.data == "enum":
+                name = root.children[0].value
+                values = [types.EnumValue(x.value, name) for x in root.children[1:]]
+                r = types.Enum(name, values)
+                symb_table.assign(name, r)
+                insts.append(ir.AssignVar(name, r))
             # Function call
             elif root.data == "fun_call":
                 insts += self.multi_call(root)
