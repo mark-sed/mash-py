@@ -750,7 +750,10 @@ class FunCall(Instruction):
                 n = self.name[-1]
             else:
                 n = self.name
-            fl = frame[n]
+            try:
+                fl = frame[n]
+            except KeyError:
+                raise mex.UndefinedReference("".join(self.name))
         if fl is None:
             raise mex.UndefinedReference("".join(self.name))
         if type(fl) != list and type(fl) != ClassFrame:

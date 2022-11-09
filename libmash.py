@@ -15,6 +15,9 @@ def Int_Int_2(self, v):
         return v
     if type(v) == str:
         return int(v, base=0)
+    if type(v) == types.Class:
+        v.call_method("__Int", [])
+        return types.Var(symb_table.RETURN_NAME)
     try:
         return int(v)
     except ValueError:
@@ -23,19 +26,24 @@ def Int_Int_2(self, v):
 def Float_Float_2(self, v):
     if type(v) == float:
         return v
+    if type(v) == types.Class:
+        v.call_method("__Float", [])
+        return types.Var(symb_table.RETURN_NAME)
     try:
         return float(v)
     except ValueError:
         raise mex.ValueError(f"Cannot convert '{v}' to Float")
 
 def String_String_2(self, v):
-    # TODO: call _to method
     if type(v) in {int, float, str, bool}:
         return str(v)
     if type(v) == list:
         return types.List(v).fstr()
     if type(v) == tuple:
         return types.Dict(v).fstr()
+    if type(v) == types.Class:
+        v.call_method("__String", [])
+        return types.Var(symb_table.RETURN_NAME)
     if v is None:
         return types.Nil().fstr()
     raise mex.Unimplemented("Calls to '_to' function is not yet implemented")
@@ -43,6 +51,9 @@ def String_String_2(self, v):
 def Bool_Bool_2(self, v):
     if type(v) == bool:
         return v
+    if type(v) == types.Class:
+        v.call_method("__Bool", [])
+        return types.Var(symb_table.RETURN_NAME)
     try:
         return bool(v)
     except ValueError:

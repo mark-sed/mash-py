@@ -63,6 +63,16 @@ class Class(Value):
             if type(v) == list:
                 self.attr[k] = v
 
+    def call_method(self, fname, args):
+        from ir import FunCall
+        if type(self.name) != list:
+            name = [self.name]
+        else:
+            name = self.name
+        name += ["::", fname]
+        m_call = FunCall(name, [self]+args)
+        m_call.exec()
+
     def get_value(self):
         return self
 
