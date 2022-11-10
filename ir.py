@@ -1246,7 +1246,11 @@ class Cat(Expr):
         if type(s2) == list:
             v2 = s2[0].fstr()
         else:
-            v2 = str(s2)
+            v2 = s2.__str__()
+            if type(v2) == types.String:
+                v2 = v2.get_value()
+            elif type(v2) != str:
+                raise mex.TypeError(f"Attribute of ++ has incorrect type. String is expected, but got {v2.type_name()}")
         
         r = v1+v2
         symb_table.assign(self.dst, wrap(r))
@@ -1267,7 +1271,10 @@ class In(Expr):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
         r = s2._in(s1)
-        symb_table.assign(self.dst, wrap(r))
+        if type(r) == types.Var:
+            symb_table.assign(self.dst, r.name)
+        else:
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"IN {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"

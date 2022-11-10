@@ -119,7 +119,7 @@ if __name__ == "__main__":
     except mex.FlowControlContinue:
         print("Error: 'continue' outside of a loop.")
         exit(1)
-    #except mex.MashException as e:
-    #    print("Error: {}.".format(e))
-    #    exit(1)
+    except mex.MashException as e:
+        print("Error: {}.".format(e))
+        exit(1)
     

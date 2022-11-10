@@ -8,7 +8,7 @@ import math
 
 import mash_types as types
 import mash_exceptions as mex
-from symbol_table import symb_table
+from symbol_table import symb_table, ClassFrame, SpaceFrame
 
 def Int_Int_2(self, v):
     if type(v) == int:
@@ -73,6 +73,8 @@ def NilType_NilType_1(self):
 
 def type_1(var):
     ir_type = types.wrap_py(var)
+    if type(ir_type) in {ClassFrame, SpaceFrame, types.Enum}:
+        return symb_table.get("Type")
     if type(ir_type) == types.Class:
         ir_type = ir_type.frame
     e, _ = symb_table.exists(ir_type.type_name())

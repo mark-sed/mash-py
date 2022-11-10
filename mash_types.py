@@ -62,6 +62,8 @@ class Class(Value):
         for v, k in self.frame.items():
             if type(v) == list:
                 self.attr[k] = v
+        from symbol_table import SymbTable
+        self.ret = Var(SymbTable.RETURN_NAME)
 
     def call_method(self, fname, args):
         from ir import FunCall
@@ -72,6 +74,14 @@ class Class(Value):
         name += ["::", fname]
         m_call = FunCall(name, [self]+args)
         m_call.exec()
+
+    def _at(self, index):
+        self.call_method("__at", [index])
+        return self.ret
+
+    def _in(self, x):
+        self.call_method("__in", [x])
+        return self.ret
 
     def get_value(self):
         return self
@@ -98,8 +108,12 @@ class Class(Value):
         return self.attr.__len__()
 
     def __str__(self):
-        n = "".join(self.name)
-        return f"<{n} object>"
+        try:
+            self.call_method("__String", [])
+            return symb_table.get(self.ret.name)
+        except mex.UndefinedReference:
+            n = "".join(self.name)
+            return f"<{n} object>"
 
 class Enum(Value):
     """Enumeration"""

@@ -4,6 +4,10 @@ Mash core library.
 */
 
 /** Class/Object methods */
+class Type {
+    
+}
+
 class Int {
     # new Int(self, v:Int) internal
     # new Int(self, v:Float) internal
