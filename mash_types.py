@@ -76,11 +76,11 @@ class Class(Value):
         m_call.exec()
 
     def _at(self, index):
-        self.call_method("__at", [index])
+        self.call_method("([])", [index])
         return self.ret
 
     def _in(self, x):
-        self.call_method("__in", [x])
+        self.call_method("(in)", [x])
         return self.ret
 
     def get_value(self):

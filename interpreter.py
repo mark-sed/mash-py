@@ -556,7 +556,10 @@ class Interpreter(Mash):
             # Function
             elif root.data == "function":
                 tree = root.children
-                name = tree[0].value
+                if tree[0].type == "FUN_OP":
+                    name = "("+tree[0].value+")"
+                else:
+                    name = tree[0].value
                 args = tree[1].value
                 # fun_code_block does not push the frame itself
                 symb_table.push()

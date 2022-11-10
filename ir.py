@@ -922,7 +922,10 @@ class Member(Instruction):
         if type(s1) == list:
             raise mex.TypeError("Functions are not subscriptable")
         v = s1._at(self.get(self.index))
-        symb_table.assign(self.dst, v)
+        if type(v) == types.Var:
+            symb_table.assign(self.dst, v.name)
+        else:
+            symb_table.assign(self.dst, v)
 
     def __str__(self):
         return f"AT {ir_str(self.src)}, {ir_str(self.index)}, {self.dst}"
@@ -1059,6 +1062,12 @@ class Expr(IR):
         if type(s) == str or (type(s) not in allowed):
             raise mex.TypeError(f"Unsupported type for '{op}'. Given value is '{s}'")
 
+    def class_call(self, fname, s1, s2):
+        if type(s1) == types.Class:
+            s1.call_method(fname, [s2])
+            return types.Var(SymbTable.RETURN_NAME)
+        return None
+
 class TernaryIf(Expr):
     """
     Ternary If
@@ -1091,11 +1100,15 @@ class Mul(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("*", s1, s2, {Int, Float})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1*v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(*)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("*", s1, s2, {Int, Float})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1*v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"MUL {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1112,11 +1125,15 @@ class Add(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("+", s1, s2, {Int, Float, String, List})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1+v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(+)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("+", s1, s2, {Int, Float, String, List})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1+v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"ADD {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1133,11 +1150,15 @@ class Sub(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("-", s1, s2, {Int, Float})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1-v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(-)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("-", s1, s2, {Int, Float})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1-v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"SUB {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1154,11 +1175,15 @@ class FDiv(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("/", s1, s2, {Int, Float})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1/v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(/)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("/", s1, s2, {Int, Float})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1/v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"FDIV {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1175,11 +1200,15 @@ class IDiv(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("//", s1, s2, {Int, Float})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1//v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(//)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("//", s1, s2, {Int, Float})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1//v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"IDIV {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1196,11 +1225,15 @@ class Mod(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("%", s1, s2, {Int, Float})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 % v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(%)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("%", s1, s2, {Int, Float})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 % v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"MOD {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1217,11 +1250,15 @@ class Exp(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("^", s1, s2, {Int, Float})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 ** v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(^)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("^", s1, s2, {Int, Float})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 ** v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"EXP {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1295,19 +1332,23 @@ class LOr(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1.get_value())
-            s1 = types.Bool(v1)
+        r = self.class_call("(or)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
         else:
-            v1 = s1.get_value()
-        if type(s2) in types.IMPLICIT_TO_BOOL:
-            v2 = bool(v2.get_value())
-            s2 = types.Bool(v2)
-        else:
-            v2 = s2.get_value()
-        self.check_types("or", s1, s2, {Bool})
-        r = v1 or v2
-        symb_table.assign(self.dst, wrap(r))
+            if type(s1) in types.IMPLICIT_TO_BOOL:
+                v1 = bool(v1.get_value())
+                s1 = types.Bool(v1)
+            else:
+                v1 = s1.get_value()
+            if type(s2) in types.IMPLICIT_TO_BOOL:
+                v2 = bool(v2.get_value())
+                s2 = types.Bool(v2)
+            else:
+                v2 = s2.get_value()
+            self.check_types("or", s1, s2, {Bool})
+            r = v1 or v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"LOR {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1324,19 +1365,23 @@ class LAnd(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1.get_value())
-            s1 = types.Bool(v1)
+        r = self.class_call("(and)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
         else:
-            v1 = s1.get_value()
-        if type(s2) in types.IMPLICIT_TO_BOOL:
-            v2 = bool(v2.get_value())
-            s2 = types.Bool(v2)
-        else:
-            v2 = s2.get_value()
-        self.check_types("and", s1, s2, {Bool})
-        r = v1 and v2
-        symb_table.assign(self.dst, wrap(r))
+            if type(s1) in types.IMPLICIT_TO_BOOL:
+                v1 = bool(v1.get_value())
+                s1 = types.Bool(v1)
+            else:
+                v1 = s1.get_value()
+            if type(s2) in types.IMPLICIT_TO_BOOL:
+                v2 = bool(v2.get_value())
+                s2 = types.Bool(v2)
+            else:
+                v2 = s2.get_value()
+            self.check_types("and", s1, s2, {Bool})
+            r = v1 and v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"LAND {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1353,18 +1398,22 @@ class Or(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1.get_value())
-            s1 = types.Bool(v1)
+        r = self.class_call("(||)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
         else:
-            v1 = s1.get_value()
-        self.check_type("short-circuit or", s1, {Bool})
+            if type(s1) in types.IMPLICIT_TO_BOOL:
+                v1 = bool(v1.get_value())
+                s1 = types.Bool(v1)
+            else:
+                v1 = s1.get_value()
+            self.check_type("short-circuit or", s1, {Bool})
 
-        if v1:
-            symb_table.assign(self.dst, wrap(v1))
-        else:
-            v2 = s2.get_value()
-            symb_table.assign(self.dst, wrap(v2))
+            if v1:
+                symb_table.assign(self.dst, wrap(v1))
+            else:
+                v2 = s2.get_value()
+                symb_table.assign(self.dst, wrap(v2))
 
     def __str__(self):
         return f"OR {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1381,18 +1430,22 @@ class And(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(v1.get_value())
-            s1 = types.Bool(v1)
+        r = self.class_call("(&&)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
         else:
-            v1 = s1.get_value()
-        self.check_type("short-circuit and", s1, {Bool})
+            if type(s1) in types.IMPLICIT_TO_BOOL:
+                v1 = bool(v1.get_value())
+                s1 = types.Bool(v1)
+            else:
+                v1 = s1.get_value()
+            self.check_type("short-circuit and", s1, {Bool})
 
-        if not v1:
-            symb_table.assign(self.dst, wrap(v1))
-        else:
-            v2 = s2.get_value()
-            symb_table.assign(self.dst, wrap(v2))
+            if not v1:
+                symb_table.assign(self.dst, wrap(v1))
+            else:
+                v2 = s2.get_value()
+                symb_table.assign(self.dst, wrap(v2))
 
     def __str__(self):
         return f"AND {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1405,14 +1458,18 @@ class LNot(Expr):
 
     def exec(self):
         s1 = self.get(self.src1)
-        if type(s1) in types.IMPLICIT_TO_BOOL:
-            v1 = bool(s1.get_value())
-            s1 = types.Bool(v1)
+        if type(s1) == types.Class:
+            s1.call_method("(!)", [])
+            symb_table.assign(self.dst, SymbTable.RETURN_NAME)
         else:
-            v1 = s1.get_value()
-        self.check_type("not", s1, {Bool})
-        r = not v1
-        symb_table.assign(self.dst, wrap(r))
+            if type(s1) in types.IMPLICIT_TO_BOOL:
+                v1 = bool(s1.get_value())
+                s1 = types.Bool(v1)
+            else:
+                v1 = s1.get_value()
+            self.check_type("not", s1, {Bool})
+            r = not v1
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"NOT {ir_str(self.src1)}, {self.dst}"
@@ -1427,11 +1484,15 @@ class Lte(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("<=", s1, s2, {Int, Float, String, Bool})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 <= v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(<=)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("<=", s1, s2, {Int, Float, String, Bool})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 <= v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"LTE {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1446,11 +1507,15 @@ class Gte(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types(">=", s1, s2, {Int, Float, String, Bool})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 >= v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(>=)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types(">=", s1, s2, {Int, Float, String, Bool})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 >= v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"GTE {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1465,11 +1530,15 @@ class Gt(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types(">", s1, s2, {Int, Float, String, Bool})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 > v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(>)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types(">", s1, s2, {Int, Float, String, Bool})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 > v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"GT {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1484,11 +1553,15 @@ class Lt(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("<", s1, s2, {Int, Float, String, Bool})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 < v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(<)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("<", s1, s2, {Int, Float, String, Bool})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 < v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"LT {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1503,11 +1576,15 @@ class Eq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame, types.Enum, types.EnumValue})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 == v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(==)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame, types.Enum, types.EnumValue})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 == v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"EQ {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
@@ -1522,11 +1599,15 @@ class Neq(Expr):
     def exec(self):
         s1 = self.get(self.src1)
         s2 = self.get(self.src2)
-        self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame})
-        v1 = s1.get_value()
-        v2 = s2.get_value()
-        r = v1 != v2
-        symb_table.assign(self.dst, wrap(r))
+        r = self.class_call("(!=)", s1, s2)
+        if r is not None:
+            symb_table.assign(self.dst, r.name)
+        else:
+            self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame})
+            v1 = s1.get_value()
+            v2 = s2.get_value()
+            r = v1 != v2
+            symb_table.assign(self.dst, wrap(r))
 
     def __str__(self):
         return f"NEQ {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
