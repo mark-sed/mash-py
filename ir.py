@@ -475,6 +475,8 @@ class Fun(Instruction):
         self.body = body
         self.internal = False
         self.method = type(symb_table.top()) == ClassFrame
+        if not self.method and self.name[0] == "(":
+            raise mex.TypeError("Operator overloading is only possible for class methods, not functions")
         if len(self.body) > 0 and type(self.body[0]) == Internal:
             self.internal = True
             try:
@@ -947,7 +949,10 @@ class Slice(Instruction):
         if type(s1) == list:
             raise mex.TypeError("Functions cannot be sliced")
         v = s1._slice(self.get(self.i1), self.get(self.i2), self.get(self.step))
-        symb_table.assign(self.dst, v)
+        if type(v) == types.Var:
+            symb_table.assign(self.dst, v.name)
+        else:
+            symb_table.assign(self.dst, v)
 
     def __str__(self):
         return f"SLICE {ir_str(self.src)}, {ir_str(self.i1)}, {ir_str(self.i2)}, {ir_str(self.step)}, {self.dst}"

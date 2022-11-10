@@ -165,7 +165,7 @@ function : "fun" VAR_NAME "(" fun_args ")" fun_code_block
          | "fun" VAR_NAME "(" fun_args ")" INTERNAL
 
 FUN_OP : ("*" | "+" | "-" | "/" | "//" | "%" | "^" 
-            | "in" | "[]" | "or" | "and" | "||" | "&&" | "!"  
+            | "in" | "[]" | "[::]" | "or" | "and" | "||" | "&&" | "!"  
             | "<=" | ">=" | ">" | "<" | "==" | "!=")
 
 // Lambda function definition

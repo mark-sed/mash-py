@@ -83,6 +83,10 @@ class Class(Value):
         self.call_method("(in)", [x])
         return self.ret
 
+    def _slice(self, i1, i2, step):
+        self.call_method("([::])", [i1, i2, step])
+        return self.ret
+
     def get_value(self):
         return self
 
