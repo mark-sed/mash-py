@@ -113,7 +113,7 @@ class Print(Instruction):
             # Function/s (there can be multiple)
             print(f"<function '{n}'{details}>", end="")
         else:
-            print(v, end="")
+            print(v.__str__(), end="")
 
     def __str__(self):
         return f"PRINT {ir_str(self.value)}"
@@ -162,7 +162,7 @@ class SetOrPrint(Instruction):
                 # Function/s (there can be multiple)
                 print(f"<function '{n}'{details}>", end="")
             else:
-                print(v, end="")
+                print(v.__str__(), end="")
 
     def __str__(self):
         return f"SETORPRINT {ir_str(self.value)}, {self.dst}"
@@ -1241,7 +1241,11 @@ class Cat(Expr):
         if type(s1) == list:
             v1 = s1[0].fstr()
         else:
-            v1 = str(s1)
+            v1 = s1.__str__()
+            if type(v1) == types.String:
+                v1 = v1.get_value()
+            elif type(v1) != str:
+                raise mex.TypeError(f"Attribute of ++ has incorrect type. String is expected, but got {v1.type_name()}")
 
         if type(s2) == list:
             v2 = s2[0].fstr()
