@@ -154,7 +154,7 @@ class Interpreter(Mash):
                 symb_table.assign(SymbTable.RETURN_NAME, None)
                 symb_table.assign(opres, SymbTable.RETURN_NAME)
                 return (opres, self.generate_ir(root, True)+[ir.AssignVar(opres, SymbTable.RETURN_NAME)])
-            elif root.data == "member" or root.data == "range":
+            elif root.data == "member" or root.data == "range" or root.data == "slice":
                 insts = self.generate_ir(root, True)
                 return (insts[-1].dst, insts)
                 

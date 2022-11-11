@@ -12,6 +12,7 @@ import interpreter
 import sys
 from pathlib import Path
 import mash_exceptions as mex
+from lark.exceptions import LarkError
 
 def print_version():
     """
@@ -105,21 +106,32 @@ class Initializer():
         print("Error: {}.".format(msg), file=sys.stderr)
         exit(1)
 
+def format_lark_ex(e, code, fname):
+    msg = str(e).split("\n")[0]
+    cntx = e.get_context(code).split("\n")
+    empty = str(" ").rjust(5)
+    fname = fname if fname is not None else ""
+    print(f"{fname}:{e.line}:{e.column}: Error: {msg}\n{str(e.line).rjust(5)} | {cntx[0]}\n{empty} | {cntx[1]}", file=sys.stderr)
+    exit(1)
+
+def format_ex(msg, code, fname):
+    fname = fname if fname is not None else ""
+    print(f"{fname}: Error: {msg}.", file=sys.stderr)
+    exit(1)
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Mash interpreter")
     initializer = Initializer(argparser)
     try:
         initializer.interpret()
     except mex.FlowControlReturn:
-        print("Error: 'return' outside of a function.")
-        exit(1)
+        format_ex("'return' outside of a function.", initializer.code, initializer.opts.mash_file)
     except mex.FlowControlBreak:
-        print("Error: 'break' outside of a loop.")
-        exit(1)
+        format_ex("'break' outside of a loop.", initializer.code, initializer.opts.mash_file)
     except mex.FlowControlContinue:
-        print("Error: 'continue' outside of a loop.")
-        exit(1)
+        format_ex("'continue' outside of a loop", initializer.code, initializer.opts.mash_file)
+    except LarkError as e:
+        format_lark_ex(e, initializer.code, initializer.opts.mash_file)
     except mex.MashException as e:
-        print("Error: {}.".format(e))
-        exit(1)
+        format_ex(str(e), initializer.code, initializer.opts.mash_file)
     

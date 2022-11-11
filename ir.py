@@ -26,7 +26,7 @@ class IR:
         elif type(name) == ClassFrame or type(name) == SpaceFrame:
             return str(name)
         else:
-            raise mex.Unimplemented("Getter for IR node type")
+            raise mex.Unimplemented(f"Getter for IR node type ({name})")
 
     def output(self, indent=0):
         return (indent*IR.SPCS)+str(self)
@@ -948,14 +948,20 @@ class Slice(Instruction):
         s1 = self.get(self.src)
         if type(s1) == list:
             raise mex.TypeError("Functions cannot be sliced")
-        v = s1._slice(self.get(self.i1), self.get(self.i2), self.get(self.step))
+        i1 = self.i1 if self.i1 is None else self.get(self.i1)
+        i2 = self.i2 if self.i2 is None else self.get(self.i2)
+        step = self.step if self.step is None else self.get(self.step)
+        v = s1._slice(i1, i2, step)
         if type(v) == types.Var:
             symb_table.assign(self.dst, v.name)
         else:
             symb_table.assign(self.dst, v)
 
     def __str__(self):
-        return f"SLICE {ir_str(self.src)}, {ir_str(self.i1)}, {ir_str(self.i2)}, {ir_str(self.step)}, {self.dst}"
+        end_str = types.Nil() if self.i2 is None else ir_str(self.i2)
+        start_str = types.Nil() if self.i1 is None else ir_str(self.i1)
+        step_str = types.Nil() if self.step is None else ir_str(self.step)
+        return f"SLICE {ir_str(self.src)}, {start_str}, {end_str}, {step_str}, {self.dst}"
 
 class SpacePush(Instruction):
     """

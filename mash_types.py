@@ -84,6 +84,9 @@ class Class(Value):
         return self.ret
 
     def _slice(self, i1, i2, step):
+        i1 = Nil() if i1 is None else i1
+        i2 = Nil() if i2 is None else i2
+        step = Nil() if step is None else step
         self.call_method("([::])", [i1, i2, step])
         return self.ret
 
@@ -249,10 +252,10 @@ class List(Value):
         i2 = i2 if i2 is not None else Int(len(self.value))
         step = step if step is not None else Int(1)
         if type(i1) != Int or type(i2) != Int or type(step) != Int:
-            raise mex.TypeError("String slice indices must be Ints")
+            raise mex.TypeError("List slice indices must be Ints")
         if step.get_value() == 0:
-            raise mex.ValueError("Slice step cannot be 0")
-        return String(self.value[i1.get_value():i2.get_value():step.get_value()])
+            raise mex.ValueError("List step cannot be 0")
+        return List(self.value[i1.get_value():i2.get_value():step.get_value()])
 
     def _in(self, x):
         v = x.get_value() if type(x) != list else x
