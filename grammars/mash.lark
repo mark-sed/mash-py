@@ -45,8 +45,8 @@ ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^="|"++=")
 list : "[" _expr "," _expr ".." _expr "]" -> range
      | "[" _expr ".." _expr "]" -> range
      | "[" _list_vals "]"
-     | "[" (_expr|lambda) ":" list_assig "]"  // List comprehension
-     | "[" (_expr|lambda) "if" _expr ":" list_assig "]"  // List comprehension with condition
+     | "[" (_expr|lambda) ":" list_assig "]"  -> list_comp // List comprehension
+     | "[" (_expr|lambda) "if" _expr ":" list_assig "]" -> list_comp  // List comprehension with condition
 _list_vals : _list_vals "," (_expr|lambda)
            | (_expr|lambda)
            |
@@ -184,7 +184,7 @@ code_block : "{" _stmt "}"
 fun_code_block : code_block
 
 // Constructs allowed in class body
-_class_content : _END* constructor _END* _class_content
+_class_content : _class_content? _END* constructor _END* _class_content
                | _stmt
 //              | VAR_NAME
 //              | assignment

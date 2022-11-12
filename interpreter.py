@@ -431,9 +431,15 @@ class Interpreter(Mash):
                 symb_table.pop_space()
             # Class
             elif root.data == "class":
-                symb_table.push_class(root.children[0].value)
-                insts.append(ir.ClassPush(root.children[0].value))
-                for tree in root.children[1:]:
+                extends = []
+                start_i = 1
+                if len(root.children) > 1:
+                    if type(root.children[1]) == Token and type(root.children[1].type == "var_list"):
+                        extends = root.children[1].value
+                        start_i += 1
+                symb_table.push_class(root.children[0].value, extends)
+                insts.append(ir.ClassPush(root.children[0].value, extends))
+                for tree in root.children[start_i:]:
                     insts += self.generate_ir(tree)
                 insts.append(ir.ClassPop())
                 symb_table.pop_class()
@@ -448,6 +454,10 @@ class Interpreter(Mash):
                 insts += self.multi_call(root)
                 if not silent:
                     insts.append(ir.Print(SymbTable.RETURN_NAME))
+            # List comprehention
+            elif root.data == "list_comp":
+                raise mex.Unimplemented("List comprehention is not yet implemented")
+            # Range
             elif root.data == "range":
                 start = root.children[0]
                 second = None if len(root.children) == 2 else root.children[1]

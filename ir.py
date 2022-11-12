@@ -817,6 +817,9 @@ class FunCall(Instruction):
                 for fi in f:
                     if type(fi) == Constructor:
                         raise mex.TypeError("Constructor cannot be called as a function")
+        # Recheck if function was assigned to the object or if it is the class method
+        if not method_call and len(f) > 0:
+            method_call = f[0].method
         assigned = []
         start_arg_i = 0
         if new_obj:
@@ -1022,11 +1025,12 @@ class ClassPush(Instruction):
     """
     Starts class definition
     """
-    def __init__(self, name):
+    def __init__(self, name, extends):
         self.name = name
+        self.extends = extends
 
     def exec(self):
-        symb_table.push_class(self.name)
+        symb_table.push_class(self.name, self.extends)
 
     def __str__(self):
         return f"CLSPUSH {self.name}"

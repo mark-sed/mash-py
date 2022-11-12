@@ -60,8 +60,9 @@ class ClassFrame(Frame):
     Class frame
     """
 
-    def __init__(self, name):
+    def __init__(self, name, extends):
         self.name = name
+        self.extends = extends
         super(ClassFrame, self).__init__(True)
 
     def __eq__(self, other):
@@ -134,8 +135,8 @@ class SymbTable(Mash):
         self.spaces.pop()
         self.pop()
 
-    def push_class(self, name):
-        f = ClassFrame(name)
+    def push_class(self, name, extends):
+        f = ClassFrame(name, extends)
         if self.in_space():
             self.top()[name] = f
             self.spaces.append(f)

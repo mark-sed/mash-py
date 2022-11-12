@@ -60,14 +60,21 @@ class Class(Value):
     Class type
     """
     def __init__(self, name, frame):
+        from symbol_table import SymbTable
+        from ir import Constructor
         self.value = self
         self.name = name
         self.frame = frame
         self.attr = {}
-        for v, k in self.frame.items():
-            if type(v) == list:
+        ecs = []
+        for cl in self.frame.extends:
+            c = symb_table.get(cl)
+            for k, v in c.items():
+                if type(v) == list and type(v[0]) == Constructor:
+                    continue
                 self.attr[k] = v
-        from symbol_table import SymbTable
+        for k, v in self.frame.items():
+            self.attr[k] = v
         self.ret = Var(SymbTable.RETURN_NAME)
 
     def call_method(self, fname, args):
@@ -222,6 +229,8 @@ class String(Value):
         return x.get_value() in self.value
 
     def __eq__(self, other):
+        if type(other) == str or type(other) == list:
+            return False
         return self.value == other.value
 
     def fstr(self):
@@ -477,7 +486,10 @@ def vardump(var, indent=0):
             else:
                 spc = "    "*(indent+1)
                 r.append(spc+str(k)+": "+vardump(v, indent+1))
-        return "Class "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
+        extends = ", ".join(var.extends)
+        if len(extends) > 0:
+            extends = " : "+extends+" "
+        return "class "+var.name+extends+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
     elif type(var) == SpaceFrame:
         r = []
         spc = "    "*(indent+1)
@@ -493,7 +505,7 @@ def vardump(var, indent=0):
             else:
                 spc = "    "*(indent+1)
                 r.append(spc+str(k)+": "+vardump(v, indent+1))
-        return "Space "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
+        return "space "+var.name+"(\n"+(",\n".join(r))+"\n"+("    "*indent)+"})"
     return var.ir_str()
 
 def wrap_py(value):

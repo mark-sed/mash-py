@@ -49,6 +49,8 @@ def String_String_2(self, v):
     raise mex.Unimplemented("Calls to '_to' function is not yet implemented")
 
 def String_len_1(self):
+    if type(self) != str:
+        raise mex.TypeError("Value passed to len function has incorrect type")
     return len(self)
 
 def Bool_Bool_2(self, v):
@@ -66,6 +68,8 @@ def List_List_1(self):
     return []
 
 def List_len_1(self):
+    if type(self) != list:
+        raise mex.TypeError("Value passed to len function has incorrect type")
     return len(self)
 
 def List_List_3(self, a, b):
