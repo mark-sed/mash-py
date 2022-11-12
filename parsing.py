@@ -45,6 +45,7 @@ class ConstTransformer(Transformer):
         """
         self.symb_table = symb_table
         self._last_id = 0
+        self.insts = []
 
     def uniq_var(self):
         self._last_id += 1
@@ -56,12 +57,25 @@ class ConstTransformer(Transformer):
             return items[0]
         # Scope name
         var = []
+        code = []
         for v in items:
-            if type(v.value) == list:
-                var += v.value
+            if type(v) == Token:
+                if issubclass(type(v.value), types.Value):
+                    var.append(v.value)
+                elif type(v.value) == list:
+                    var += v.value
+                else:
+                    var.append(v.value)
             else:
-                var.append(v.value)
-        return Token("scope_name", var)
+                if v.data == "fun_call":
+                    r = self.uniq_var()
+                    code += [v, ir.AssignVar(r, SymbTable.RETURN_NAME)]
+                else:
+                    code += [v]
+        if len(code) == 0:
+            return Token("scope_name", var)
+        else:
+            return Token("scope_name", [Token("CODE", code), Token("scope_name", var)])
 
     def space_scope(self, items):
         # Single variable = declaration
@@ -337,6 +351,39 @@ class ConstTransformer(Transformer):
         insts.append(Cls(src, self.uniq_var()))
         return Token("CODE", insts)
 
+    def _help_expr_un(self, items, op, Cls, post):
+        i1 = items[0]
+        if type(i1) == Tree and len(i1.data) > 5 and i1.data[0:5] == "EXPR_":
+            return Tree("EXPR_"+post, [i1])
+        if type(i1) == Tree and i1.data == "fun_call":
+            return Tree("EXPR_"+post, [i1])
+        if type(items[0].value) == ir.Int:
+            r = ir.Int(op(items[0].value.value))
+            return Token(str(r), r)
+        elif type(items[0].value) == ir.Float:
+            r = ir.Float(op(items[0].value.value))
+            return Token(str(r), r)
+        # Generating code
+        insts = []
+        src = None
+        if items[0].type == "CODE":
+            insts += items[0].value
+            # Expr code
+            src = items[0].value[-1].dst
+        elif items[0].type == "CALC":
+            for a in items[0].value:
+                if type(a) == Token and a.type == "CODE":
+                    insts += a.value
+                elif type(a) == Token and a.type in ConstTransformer.CONSTS:
+                    insts.append(ir.AssignVar(self.uniq_var(), a.value))
+                elif type(a) == Token or type(a) == Tree:
+                    raise mex.Unimplemented("Runtime expression for given operator")
+            src = insts[-1].dst
+        else:
+            src = items[0].value
+        insts.append(Cls(src, self.uniq_var()))
+        return Token("CODE", insts)
+
     def expr_mul(self, items):
         return self._help_expr_bin(items, lambda a, b: a*b, ir.Mul, "MUL")
 
@@ -506,3 +553,5 @@ class ConstTransformer(Transformer):
     def expr_not(self, items):
         return self._help_expr_log_un(items, lambda a: not a, ir.LNot, "NOT")
 
+    def expr_neg(self, items):
+        return self._help_expr_un(items, lambda a: -a, ir.Neg, "NEG")

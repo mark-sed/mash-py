@@ -96,6 +96,12 @@ class Interpreter(Mash):
                 opres = self.uniq_var()
                 symb_table.assign(opres, None)
                 return (opres, left+[ir.LNot(lr, opres)])
+            if root.data == "EXPR_NEG":
+                lr, left = self.generate_expr(root.children[0])
+                iname = root.data[5:]
+                opres = self.uniq_var()
+                symb_table.assign(opres, None)
+                return (opres, left+[ir.Neg(lr, opres)])
             elif root.data == "EXPR_TIF":
                 lr, left = self.generate_expr(root.children[0])
                 mr, mid = self.generate_expr(root.children[1])
@@ -228,6 +234,9 @@ class Interpreter(Mash):
         insts = []
         tree = root.children
         name = tree[0].value
+        if type(name) == list and type(name[0]) != str:
+            insts += self.generate_ir(Token("scope_name", name), True)
+            name = insts[-1].dst
         args = tree[1].value
         for i, a in enumerate(args):
             if type(a) == list and len(a) > 0 and type(a[0]) == str:
@@ -276,12 +285,6 @@ class Interpreter(Mash):
             v = root.children[0]
             # Function call over returned value
             return self.multi_call(v)+[ir.FunCall(SymbTable.RETURN_NAME, root.children[1].value)]
-        #elif type(root.children[1].value[0]) == Tree and (root.children[1].value[0].data == "member" or root.children[1].value[0].data == "range"):
-        #    print(root.children[0].value)
-        #    v = root.children[1].value[0]
-        #    ret, inst = self.generate_subexpr(v)
-        #    # Function call over member
-        #    return inst+[ir.FunCall(root.children[0].value, [ret])]
         else:
             return self.generate_fun(root)
 
@@ -304,8 +307,22 @@ class Interpreter(Mash):
             # Printing
             elif root.type == "scope_name":
                 # Value cannot be checked since it can be assigned in a class method or as an alias
+                sc = []
+                for v in root.value:
+                    if type(v) == Token and v.type == "CODE":
+                        insts += self.generate_ir(v, True)
+                        sc.append(insts[-1].dst)
+                    elif type(v) == list:
+                        insts += v.value
+                    else:
+                        if type(v) == Token:
+                            sc += v.value
+                        else:
+                            sc.append(v)
                 if not silent:
-                    return [ir.Print(root.value)]
+                    return insts+[ir.Print(sc)]
+                else:
+                    return insts+[ir.AssignVar(sc, sc)]
             # Generated calculation
             elif root.type == "CALC":
                 insts = []
@@ -708,9 +725,15 @@ def interpret(opts, code, libmash_code):
     debug("Code generation started", opts)
     interpreter = Interpreter(opts, symb_table)
     if not opts.no_libmash:
-        lib_code = interpreter.interpret_top_level(parsing.ConstTransformer(symb_table).transform(libmash_tree))
+        lib_parse = parsing.ConstTransformer(symb_table)
+        lpt_tree = lib_parse.transform(libmash_tree)
+        lib_code = lib_parse.insts
+        lib_code += interpreter.interpret_top_level(lpt_tree)
     debug("Libmash code generated", opts)
-    ir_code = interpreter.interpret_top_level(parsing.ConstTransformer(symb_table).transform(tree))
+    ir_parse = parsing.ConstTransformer(symb_table)
+    ir_tree = ir_parse.transform(tree)
+    ir_code = ir_parse.insts
+    ir_code += interpreter.interpret_top_level(ir_tree)
     debug("IR generation done", opts)
     if opts.code_only:
         format_ir(ir_code)

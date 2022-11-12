@@ -87,6 +87,7 @@ _expr : expr_lor
      | expr_idiv
      | expr_mod
      | expr_exp
+     | expr_neg
      | ternary_if
      | fun_call
      | member
@@ -116,6 +117,7 @@ expr_fdiv : _expr "/" _expr
 expr_idiv : _expr "//" _expr
 expr_mod : _expr "%" _expr
 expr_exp : _expr "^" _expr
+expr_neg : "-" _expr
 //expr_dec : scope_name"--"
 
 // Constants
@@ -250,9 +252,11 @@ _pspace_scope : "(" _pspace_scope ")"
 
 // Class member selection
 _dot_name : _scope_no_glob DOT VAR_NAME
+          | _expr DOT VAR_NAME
 
 // Space member selection
 _space_name : _scope_no_glob SCOPE VAR_NAME
+            | _expr SCOPE VAR_NAME
 
 // List of variables/ids
 var_list : _scope_no_glob

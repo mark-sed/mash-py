@@ -22,6 +22,9 @@ class Value():
     def update(self):
         ...
 
+    def access(self, name):
+        return symb_table.get([self.type_name(), "::"]+name[1:])
+
     def _at(self, index):
         raise mex.TypeError(f"Type {self.type_name()} is not subscriptable")
 
@@ -32,6 +35,8 @@ class Value():
         raise mex.TypeError(f"Type {self.type_name()} cannot be sliced")
 
     def __eq__(self, other):
+        if type(other) == str or type(other) == list:
+            return False
         return self.get_value() == other.get_value()
 
     def ir_str(self):

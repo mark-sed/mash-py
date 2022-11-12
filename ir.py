@@ -86,12 +86,23 @@ class AssignVar(Instruction):
     def __init__(self, dst, value):
         self.dst = dst
         self.value = value
+        self.skip = False
+        if type(self.dst) == list and type(self.dst[0]) != str:
+            self.skip = True
+        if type(self.value) == list and type(self.value[0]) != str:
+            self.skip = True
+        if self.dst == self.value:
+            self.skip = True
 
     def exec(self):
+        if self.skip:
+            return
         self.update(self.value)
         symb_table.assign(self.dst, self.value)
 
     def __str__(self):
+        if self.skip:
+            return "NOP"
         return f"SET {ir_str(self.value)}, {ir_str(self.dst)}"
 
 class Print(Instruction):
@@ -711,8 +722,14 @@ class FunCall(Instruction):
     Function call
     """
     def __init__(self, name, args):
-        self.name = name
-        self.args = args
+        if type(name) == list and issubclass(type(name[0]), Value):
+            v = name[0]
+            self.name = [v.type_name(), "::"]+name[2:]
+            self.args = [v]+args
+        else:
+            self.name = name
+            self.args = args
+        self.dst = SymbTable.RETURN_NAME
         self.pos_args = []
         self.named_args = []
         for i in self.args:
@@ -724,6 +741,7 @@ class FunCall(Instruction):
     def exec(self):
         lframe = None
         method_call = False
+        const_call = False
         if type(self.name) == list and len(self.name) > 2 and self.name[-2] == ".":
             method_call = True
             # Firsts check object attributes
@@ -740,6 +758,10 @@ class FunCall(Instruction):
                 if type(frame[-1]) == dict: # attr
                     method_call = False
                     frame = frame[-1]
+                elif type(frame[-1]) == tuple:
+                    self.args = [frame[-1][0]]+self.args
+                    frame = frame[-1][0].access(frame[-1][1]) 
+                    const_call = True
                 else:
                     frame = frame[-1].frame
         else:
@@ -752,10 +774,13 @@ class FunCall(Instruction):
                 n = self.name[-1]
             else:
                 n = self.name
-            try:
-                fl = frame[n]
-            except KeyError:
-                raise mex.UndefinedReference("".join(self.name))
+            if const_call:
+                fl = frame
+            else:
+                try:
+                    fl = frame[n]
+                except KeyError:
+                    raise mex.UndefinedReference("".join(self.name))
         if fl is None:
             raise mex.UndefinedReference("".join(self.name))
         if type(fl) != list and type(fl) != ClassFrame:
@@ -795,6 +820,8 @@ class FunCall(Instruction):
         assigned = []
         start_arg_i = 0
         if new_obj:
+            if len(f[0].args) == 0:
+                raise mex.TypeError("Class methods have to take the object as its first attribute")
             if type(f[0].args[0][0]) == tuple:
                 raise mex.TypeError("Object argument (self) cannot be type constrained")
             if type(f[0].args[0][1]) == types.VarArgs:
@@ -803,6 +830,8 @@ class FunCall(Instruction):
                 assigned = [(f[0].args[0][0], fl.instance())]
             start_arg_i = 1
         elif method_call:
+            if len(f[0].args) == 0:
+                raise mex.TypeError("Class methods have to take the object as its first attribute")
             if type(f[0].args[0][0]) == tuple:
                 raise mex.TypeError("Object argument (self) cannot be type constrained")
             if type(f[0].args[0][1]) == types.VarArgs:
@@ -1061,15 +1090,15 @@ class Expr(IR):
     """
     def check_types(self, op, s1, s2, allowed):
         if type(s1) == list:
-            s1 = s1[0].fstr()
+            s1 = s1[0]
         if type(s2) == list:
-            s2 = s2[0].fstr()
+            s2 = s2[0]
         if (type(s1) == str or type(s2) == str) or not ((type(s1) in allowed) and (type(s2) in allowed)):
             raise mex.TypeError(f"Unsupported types for '{op}'. Given values are '{s1}' and '{s2}'")
 
     def check_type(self, op, s, allowed):
         if type(s) == list:
-            s = s[0].fstr()
+            s = s[0]
         if type(s) == str or (type(s) not in allowed):
             raise mex.TypeError(f"Unsupported type for '{op}'. Given value is '{s}'")
 
@@ -1622,3 +1651,20 @@ class Neq(Expr):
 
     def __str__(self):
         return f"NEQ {ir_str(self.src1)}, {ir_str(self.src2)}, {self.dst}"
+
+class Neg(Expr):
+    
+    def __init__(self, src1, dst):
+        self.dst = dst
+        self.src1 = src1
+
+    def exec(self):
+        s1 = self.get(self.src1)
+        self.check_type("-", s1, {Int, Float})
+        v1 = s1.get_value()
+        r = -v1
+        symb_table.assign(self.dst, wrap(r))
+
+    def __str__(self):
+        return f"NEG {ir_str(self.src1)}, {self.dst}"
+

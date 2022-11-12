@@ -48,6 +48,9 @@ def String_String_2(self, v):
         return types.Nil().fstr()
     raise mex.Unimplemented("Calls to '_to' function is not yet implemented")
 
+def String_len_1(self):
+    return len(self)
+
 def Bool_Bool_2(self, v):
     if type(v) == bool:
         return v
@@ -61,6 +64,9 @@ def Bool_Bool_2(self, v):
 
 def List_List_1(self):
     return []
+
+def List_len_1(self):
+    return len(self)
 
 def List_List_3(self, a, b):
     return types.List([types.wrap_py(a)]+b)

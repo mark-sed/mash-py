@@ -25,6 +25,8 @@ class Float {
 
 class String {
     new String(self, v) internal
+
+    fun len(self) internal
 }
 
 class Bool {
@@ -38,6 +40,8 @@ class Bool {
 class List {
     new List(self) internal
     new List(self, a, *b) internal
+
+    fun len(self) internal
 }
 
 class Dict {

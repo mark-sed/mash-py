@@ -198,6 +198,7 @@ class SymbTable(Mash):
                     fprev.append(irfun)
 
     def search_scope(self, symb, scope, write, ret_top=False):
+        from mash_types import Class
         obj_find = False
         move_am = 1
         if symb[0] == ".":
@@ -213,6 +214,8 @@ class SymbTable(Mash):
             s = symb[0]
 
         for f in reversed(scope):
+            if not issubclass(type(f), Frame) and type(f) != Class:
+                return (f, symb)
             if s in f:
                 if len(symb) <= 2:
                     if obj_find:
@@ -229,6 +232,7 @@ class SymbTable(Mash):
         return None
 
     def search_scope_list(self, symb, scope, write):
+        from mash_types import Class
         obj_find = False
         move_am = 1
         if symb[0] == ".":
@@ -244,6 +248,8 @@ class SymbTable(Mash):
             s = symb[0]
         
         for f in reversed(scope):
+            if not issubclass(type(f), Frame) and type(f) != Class:
+                return [(f, symb)]
             if s in f:
                 if len(symb) <= 2:
                     if obj_find:
@@ -297,6 +303,11 @@ class SymbTable(Mash):
             f = self.get_frame(symb, True, True, flist=True)
         else:
             f = self.get_frame(symb, True, True)
+        
+        if type(f) == tuple:
+            f = f[0].access(f[1][1:])
+        elif type(f) == list and len(f) > 0 and type(f[-1]) == tuple:
+            f = f[-1][0].access(f[1][1:])
         if f is None:
             raise mex.UndefinedReference("".join(symb))
         elif type(f) == bool:
@@ -312,6 +323,11 @@ class SymbTable(Mash):
 
     def get(self, symb):
         f = self.get_frame(symb)
+        
+        if type(f) == tuple:
+            f = f[0].access(f[1][1:])
+        elif type(f) == list and len(f) > 0 and type(f[-1]) == tuple:
+            f = f[-1][0].access(f[1][1:])
         if f is None:
             if type(symb) == list:
                 raise mex.UndefinedReference("".join(symb))
