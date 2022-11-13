@@ -12,7 +12,7 @@ import interpreter
 import sys
 from pathlib import Path
 import mash_exceptions as mex
-from lark.exceptions import LarkError
+from mash_parser import LarkError
 
 def print_version():
     """

@@ -76,7 +76,7 @@ fun type(var) internal
 fun id(var) internal
 
 /** Output functions */
-fun print(a) { return ""++a }
+fun print(a) { return ""++a; }
 fun print(a, b, *c) { 
     r = a++" "++b
     for(i : c) {
@@ -84,8 +84,8 @@ fun print(a, b, *c) {
     }
     return r
 }
-fun println() { return "\n" }
-fun println(a) { return a++"\n" }
+fun println() { return "\n"; }
+fun println(a) { return a++"\n"; }
 fun println(a, b, *c) { 
     r = a++" "++b
     for(i : c) {
@@ -274,6 +274,7 @@ space Math {
     * @param x Value to be calculated the square root of
     * @return Square root of passed in argument
     */
-    fun sqrt(x) { return x^0.5 }
+    fun sqrt(x) { return x^0.5; }
 
 }
+

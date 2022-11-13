@@ -1,5 +1,4 @@
-from lark.lexer import Token
-from lark.tree import Tree
+from mash_parser import Token, Tree
 from sys import stderr
 from mash import Mash
 import mash_exceptions as mex

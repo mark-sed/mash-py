@@ -1,12 +1,10 @@
-from lark import Lark, Transformer
-from lark.lexer import Token
-from lark.tree import Tree
 import ir
 import mash_types as types
 from mash import Mash
 from debugging import info, debug
 import mash_exceptions as mex
 from symbol_table import SymbTable
+from mash_parser import Lark_StandAlone, Transformer, Token, Tree
 
 class Parser(Mash):
     """
@@ -19,9 +17,10 @@ class Parser(Mash):
         """
         self.code = code
         self.opts = opts
-        with open("grammars/mash.lark", "r") as gfile:
-            grammar = gfile.read()
-        self.parser = Lark(grammar, start="start")
+        #with open("grammars/mash_lalr.lark", "r") as gfile:
+        #    grammar = gfile.read()
+        #self.parser = Lark(grammar, start="start", parser="lalr")
+        self.parser = Lark_StandAlone()
     
     def parse(self):
         """
@@ -184,11 +183,16 @@ class ConstTransformer(Transformer):
         else:
             return Token("arg_list_call_exp", [(i1, i2)])
 
+    def arg_list_call_v(self, items):
+        if items[0].type == "CODE":
+            return items[0].value
+        return Token("arg_list_call_v", items[0].value)
+
     def fun_call_args(self, items):
         args = []
         for x in items:
             if type(x) == Token:
-                if x.type == "arg_list_call_exp":
+                if x.type == "arg_list_call_exp" or type(x.value) == list:
                     args += x.value
                 else:
                     args.append(x.value)
