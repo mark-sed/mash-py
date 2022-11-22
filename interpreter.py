@@ -21,6 +21,7 @@ class Interpreter(Mash):
         self.opts = opts
         self.symb_table = symb_table
         self._last_id = 0
+        self._last_lambda = 0
 
     def uniq_var(self):
         """
@@ -28,6 +29,10 @@ class Interpreter(Mash):
         """
         self._last_id += 1
         return f"$i_{self._last_id}"
+
+    def uniq_lambda(self):
+        self._last_lambda += 1
+        return f"λ{self._last_lambda}"
 
     def generate_subexpr(self, src):
         """
@@ -397,6 +402,9 @@ class Interpreter(Mash):
                     elif tree.data == "member" or tree.data == "range":
                         insts += self.generate_ir(tree, True)
                         insts.append(self.op_assign(root.children[0].value, insts[-1].dst, op))
+                    elif tree.data == "lambda":
+                        insts += self.generate_ir(tree, True)
+                        insts.append(self.op_assign(root.children[0].value, insts[-1].name, op))
                     else:
                         raise mex.Unimplemented("Assignment not implemented for such value")
             # Block of code
@@ -578,7 +586,25 @@ class Interpreter(Mash):
                 raise mex.Unimplemented("Exceptions are not yet implemented")
             # Lambda
             elif root.data == "lambda":
-                raise mex.Unimplemented("Lambda expressions")
+                tree = root.children
+                offs = 0
+                if tree[0].type == "VAR_NAME":
+                    name = tree[0].value
+                    offs = 1
+                else:
+                    name = self.uniq_lambda( )
+                args = tree[offs].value
+                symb_table.push()
+                # Push args
+                for k, v in args:
+                    # typed var
+                    if type(k) == tuple:
+                        k = k[0]
+                    symb_table.declare(k, v)
+                body = self.generate_ir(tree[offs+1], silent=True)
+                body.append(ir.Return(body[-1].dst))
+                symb_table.pop()
+                insts.append(ir.Fun(name, args, body))
             # Function
             elif root.data == "function":
                 tree = root.children

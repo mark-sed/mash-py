@@ -22,15 +22,24 @@ _stmts : import _END+
        | construct _END*
 
 // Class contents (allows for constructors)
-_clstmt : _clstmt _clstmts _END*
-        | _END* _clstmts _END+
+_clstmt : _clstmt _clstmts
         | _clstmts
         | _END+
         |
         
 // Statements without ENDs
-_clstmts : constructor
-         | _stmts
+_clstmts : import _END+
+         | _rvalue _END+
+         | FLOW_CTRL _END+
+         | return _END+
+         | raise _END+
+         | try _END*
+         | assignment _END+
+         | op_assign _END+
+         | _definition _END*
+         //| code_block
+         | construct _END*
+         | constructor _END*
 
 // Imports
 import : "import" _list_space_scope
@@ -103,8 +112,8 @@ const : SIGNED_FLOAT  -> float
       | SIGNED_INT -> int
       | HEX_INT -> hex_int
       | STRING  -> string
-      | RSTRING -> rstring
-      | FSTRING -> fstring
+      //| RSTRING -> rstring
+      //| FSTRING -> fstring
       | "nil"   -> nil
       | "true"  -> true
       | "false" -> false
@@ -244,8 +253,8 @@ var_list : _scope_no_glob
 
 // Enum definition
 enum : "enum" VAR_NAME _END* "{" _END* _enum_name_list _END* "}"
-_enum_name_list : VAR_NAME "," _enum_name_list ","?
-                | VAR_NAME
+_enum_name_list : VAR_NAME "," _END* _enum_name_list ","?
+                | VAR_NAME _END*
                 |
 
 // Block of code
@@ -257,6 +266,7 @@ fun_code_block : code_block
 
 // Constructs allowed in class body
 _class_code_block : "{" _clstmt "}"
+                  | "{" _END+ "}"
 
 // Variable name
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|raise|as|finally|try|catch|nil|true|false|fun|class|space|in|or|and|not|new)\b)[a-zA-Z_][a-zA-Z0-9_]*/
@@ -293,8 +303,8 @@ HEX_INT : /0x[a-fA-F0-9]+/
 
 // String
 STRING : ESCAPED_STRING
-RSTRING : "r"ESCAPED_STRING
-FSTRING : "f"ESCAPED_STRING
+//RSTRING : "r"ESCAPED_STRING
+//FSTRING : "f"ESCAPED_STRING
 
 // Flow control
 FLOW_CTRL : ("continue" | "break")

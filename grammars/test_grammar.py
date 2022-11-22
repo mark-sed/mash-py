@@ -2,7 +2,7 @@ from lark import Lark
 from sys import stdin
 
 grammar = None
-with open("test.lark", "r") as gfile:
+with open("mash.lark", "r") as gfile:
     grammar = gfile.read()
 
 print(grammar)

@@ -112,7 +112,7 @@ def format_lark_ex(e, code, fname):
     empty = str(" ").rjust(5)
     fname = fname if fname is not None else ""
 
-    print(f"{fname}:{e.line}:{e.column}: Error: {msg}.\n{str(e.line).rjust(5)} | {cntx[0]}\n{empty} | {cntx[1]}", file=sys.stderr)
+    print(f"{fname}:{e.line}:{e.column}: Error: {msg}\n{str(e.line).rjust(5)} | {cntx[0]}\n{empty} | {cntx[1]}", file=sys.stderr)
     exit(1)
 
 def format_ex(msg, code, fname):
@@ -131,8 +131,8 @@ if __name__ == "__main__":
         format_ex("'break' outside of a loop.", initializer.code, initializer.opts.mash_file)
     except mex.FlowControlContinue:
         format_ex("'continue' outside of a loop", initializer.code, initializer.opts.mash_file)
-    except mex.MashException as e:
-        format_ex(str(e), initializer.code, initializer.opts.mash_file)
+    #except mex.MashException as e:
+    #    format_ex(str(e), initializer.code, initializer.opts.mash_file)
     except LarkError as e:
         if getattr(e, "get_context", None) is not None:
             format_lark_ex(e, initializer.code, initializer.opts.mash_file)

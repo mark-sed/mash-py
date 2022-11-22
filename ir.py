@@ -520,6 +520,8 @@ class Fun(Instruction):
         if self.internal:
             assign_args = []
             for a, _ in self.args:
+                if type(a) == tuple:
+                    a = a[0]
                 v = symb_table.get(a)
                 if type(v) != list:
                     assign_args.append(v.get_value())
@@ -557,12 +559,12 @@ class Fun(Instruction):
         return f"fun {self.name}({args_s})"+(" internal" if self.internal else "")
 
     def fstr(self):
-        details = ""
-        v = symb_table.get(self.name)
-        if len(v) > 1:
-            details = f" with {len(v)} signatures"
+        #details = ""
+        #v = symb_table.get(self.name)
+        #if len(v) > 1:
+        #    details = f" with {len(v)} signatures"
         n = "".join(self.name)
-        return f"<function '{n}'{details}>"
+        return f"<function '{n}'>"
 
     def ir_str(self):
         return self.fstr()
@@ -763,7 +765,10 @@ class FunCall(Instruction):
                     frame = frame[-1][0].access(frame[-1][1]) 
                     const_call = True
                 else:
-                    frame = frame[-1].frame
+                    if type(frame) == types.Class:
+                        frame = frame[-1].frame
+                    else:
+                        frame = None
         else:
             frame = symb_table.get_frame(self.name)
 
@@ -879,7 +884,7 @@ class FunCall(Instruction):
                         else:
                             found = False
                             supp_t = ", ".join(a[1])
-                            f_excp = mex.TypeError(f"Passed in value for argument {a_str} has unexpected type. Value should be of following type: {supp_t}")
+                            f_excp = mex.TypeError(f"Passed in value for argument {a_str} has unexpected type ({value.type_name()}). Value should be of following type: {supp_t}")
                 if type(a) == tuple:
                     assign_rest.append((a[0], value))
                 else:

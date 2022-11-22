@@ -81,9 +81,44 @@ def Dict_Dict_1(self):
 def NilType_NilType_1(self):
     return None
 
+def File_open_1(self):
+    path = self.attr["path"].get_value()
+    mode = self.attr["mode"].get_value()
+    self.attr["@file"] = open(path, mode)
+
+def File_close_1(self):
+    f = self.attr["@file"]
+    f.close()
+
+def File_write_2(self, content):
+    f = self.attr["@file"]
+    f.write(content)
+
+def File_read_2(self, size):
+    f = self.attr["@file"]
+    return f.read(size)
+
+def File_readln_1(self):
+    f = self.attr["@file"]
+    return f.readline()
+
+def File_readlines_1(self):
+    f = self.attr["@file"]
+    lines = f.readlines()
+    r = []
+    for f in lines:
+        r.append(types.String(f, False))
+    return types.List(r)
+
+def readln_1(prompt):
+    return input(prompt)
+
+def exit_1(code):
+    exit(code)
+
 def type_1(var):
     ir_type = types.wrap_py(var)
-    if type(ir_type) in {ClassFrame, SpaceFrame, types.Enum}:
+    if type(ir_type) in {ClassFrame, types.Enum}:
         return symb_table.get("Type")
     if type(ir_type) == types.Class:
         ir_type = ir_type.frame

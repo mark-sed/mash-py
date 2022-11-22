@@ -69,7 +69,7 @@ class ClassFrame(Frame):
         return id(self) == id(other)
 
     def type_name(self):
-        return self.name
+        return "Type"
 
     def instance(self):
         from mash_types import Class
@@ -199,7 +199,7 @@ class SymbTable(Mash):
                     fprev.append(irfun)
 
     def search_scope(self, symb, scope, write, ret_top=False):
-        from mash_types import Class
+        from mash_types import Class, Enum
         obj_find = False
         move_am = 1
         if symb[0] == ".":
@@ -215,12 +215,15 @@ class SymbTable(Mash):
             s = symb[0]
 
         for f in reversed(scope):
-            if not issubclass(type(f), Frame) and type(f) != Class:
+            if not issubclass(type(f), Frame) and type(f) != Class and type(f) != Enum:
                 return (f, symb)
             if s in f:
                 if len(symb) <= 2:
                     if obj_find:
-                        return f.attr
+                        if type(f) == Class:
+                            return f.attr
+                        else:
+                            raise mex.TypeError(f"{str(f)} cannot be accessed as an object")
                     return f
                 else:
                     if obj_find:
@@ -254,7 +257,10 @@ class SymbTable(Mash):
             if s in f:
                 if len(symb) <= 2:
                     if obj_find:
-                        return [f.attr]
+                        if type(f) == Class:
+                            return [f.attr]
+                        else:
+                            raise mex.TypeError(f"{str(f)} cannot be accessed as an object")
                     return [f]
                 else:
                     if obj_find:

@@ -13,18 +13,18 @@ class Int {
     # new Int(self, v:Float) internal
     # new Int(self, v:Bool) internal
     # new Int(self, v:String) internal
-    new Int(self, v) internal
+    new Int(self, v=0) internal
 }
 
 class Float {
     # new Float(self, v:Float) internal
     # new Float(self, v:Int) internal
     # new Float(self, v:String) internal
-    new Float(self, v) internal
+    new Float(self, v=0.0) internal
 }
 
 class String {
-    new String(self, v) internal
+    new String(self, v="") internal
 
     fun len(self) internal
 }
@@ -34,7 +34,7 @@ class Bool {
     # new Bool(self, v:Int) internal
     # new Bool(self, v:Float) internal
     # new Bool(self, v:NilType) internal
-    new Bool(self, v) internal
+    new Bool(self, v=false) internal
 }
 
 class List {
@@ -71,9 +71,69 @@ class Range {
     }
 }
 
+class Super {
+    new Super(self, type:Type, obj) {
+        self.type = type
+        self.obj = obj
+    }
+}
+
 fun type(var) internal
 
 fun id(var) internal
+
+class File {
+
+    enum FileMode {
+        READ,       # "r"
+        WRITE,      # "w"
+        CREATE,     # "x"
+        APPEND,     # "a"
+        READ_WRITE  # "+"
+    }
+
+    fun mode2str(self, mode:FileMode) {
+        if(mode == ::File::FileMode::READ) return "r"
+        if(mode == ::File::FileMode::WRITE) return "w"
+        if(mode == ::File::FileMode::CREATE) return "x"
+        if(mode == ::File::FileMode::APPEND) return "a"
+        if(mode == ::File::FileMode::READ_WRITE) return "+"
+    }
+
+    fun str2mode(self, mode:String) {
+        if(mode == "r") return ::File::FileMode::READ
+        if(mode == "w") return ::File::FileMode::WRITE
+        if(mode == "x") return ::File::FileMode::CREATE
+        if(mode == "a") return ::File::FileMode::APPEND
+        if(mode == "+") return ::File::FileMode::READ_WRITE
+    }
+
+    new File(self, path:String, mode:String="r") {
+        self.path = path
+        self.mode = mode
+    }
+
+    new File(self, path:String, mode:FileMode) {
+        self.path = path
+        self.mode = self.mode2str(mode)
+    }
+
+    fun write(self, content:String) internal
+
+    fun read(self, size:Int=-1) internal
+
+    fun readln(self) internal
+
+    fun readlines(self) internal
+
+    fun open(self) internal
+
+    fun close(self) internal
+}
+
+fun readln(prompt="") internal
+
+fun exit(code=0) internal
 
 /** Output functions */
 fun print(a) { return ""++a; }
