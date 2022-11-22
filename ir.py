@@ -420,7 +420,11 @@ class For(Instruction):
             
             next_call = FunCall(l, [])
             next_call.exec()
-            symb_table.assign(self.i, SymbTable.RETURN_NAME)
+            iret = symb_table.get(SymbTable.RETURN_NAME)
+            if len(self.i) > 1 and type(iret) != List:
+                raise mex.TypeError(f"Cannot unpack type {iret.type_name()}")
+            if len(self.i) > len(iret.get_value()):
+                raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)} or more, but got {len(iret.get_value())}")
             i_v = symb_table.get(self.i)
             while not (type(i_v) == types.ClassFrame and i_v.name == "StopIteration"):
                 try:
@@ -438,7 +442,18 @@ class For(Instruction):
                     raise e
         else:
             for a in v:
-                symb_table.assign(self.i, a)
+                if len(self.i) > 1:
+                    if type(a) != List:
+                        raise mex.TypeError(f"Cannot unpack type {a.type_name()}")
+                    if len(self.i) > len(a.get_value()):
+                        raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)} or more, but got {len(a.get_value())}")
+                    for c, i_name in enumerate(self.i):
+                        if c == len(self.i)-1 and c < len(a.get_value())-1:
+                            symb_table.assign(i_name, List(a.get_value()[c:]))
+                        else:
+                            symb_table.assign(i_name, a.get_value()[c])
+                else:
+                    symb_table.assign(self.i[0], a)
                 try:
                     for i in self.t:
                         i.exec()
@@ -623,6 +638,11 @@ class Constructor(Fun):
     Class constructor
     """
     def __init__(self, name, args, body):
+        if len(symb_table.spaces) == 0:
+            raise mex.IncorrectDefinition("Constructor has to be inside of a class")
+        parent_class_name = symb_table.spaces[-1].name
+        if name != parent_class_name:
+            raise mex.IncorrectDefinition("Constructor name has to match the class name")
         if len(args) < 1:
             raise mex.TypeError("Constructor has to take at least one argument - the object itself")
         super(Constructor, self).__init__(name, args, body)

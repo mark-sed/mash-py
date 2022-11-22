@@ -234,7 +234,10 @@ while : "while" "(" expr ")" _END* (code_block|_stmts)
 do_while : "do" _END* (code_block|_stmts) _END* "while" "(" expr ")"
 
 // For loop
-for : "for" "(" VAR_NAME ":" expr ")" _END* (code_block|_stmts) _END?
+for : "for" "(" var_list ":" expr ")" _END* (code_block|_stmts) _END?
+// List of variables
+var_list : VAR_NAME
+         | var_list "," VAR_NAME
 
 // Try
 try : "try" _END* (code_block|_stmts) _END* (catch)+ finally?
@@ -246,10 +249,10 @@ space : "space" VAR_NAME? _END* code_block
 
 // Class definition
 class : "class" VAR_NAME _END* _class_code_block
-      | "class" VAR_NAME ":" var_list _END* _class_code_block
+      | "class" VAR_NAME ":" scope_list _END* _class_code_block
 // List of variables/ids
-var_list : _scope_no_glob
-         | var_list "," _scope_no_glob
+scope_list : _scope_no_glob
+           | scope_list "," _scope_no_glob
 
 // Enum definition
 enum : "enum" VAR_NAME _END* "{" _END* _enum_name_list _END* "}"

@@ -452,7 +452,7 @@ class Interpreter(Mash):
                 extends = []
                 start_i = 1
                 if len(root.children) > 1:
-                    if type(root.children[1]) == Token and type(root.children[1].type == "var_list"):
+                    if type(root.children[1]) == Token and type(root.children[1].type == "scope_list"):
                         extends = root.children[1].value
                         start_i += 1
                 symb_table.push_class(root.children[0].value, extends)
@@ -556,7 +556,8 @@ class Interpreter(Mash):
             elif root.data == "for":
                 tree = root.children[0].children
                 i = tree[0].value
-                symb_table.assign(i, types.Nil())
+                for i_name in i:
+                    symb_table.assign(i_name, types.Nil())
                 l = None
                 # list might be complex
                 if type(tree[1]) == Token and tree[1].type == "CODE":

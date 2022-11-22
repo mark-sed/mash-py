@@ -98,6 +98,15 @@ class ConstTransformer(Transformer):
                 var.append(i.value) 
         return Token("var_list", var)
 
+    def scope_list(self, items):
+        var = []
+        for i in items:
+            if type(i.value) == list:
+                var += i.value
+            else:
+                var.append(i.value) 
+        return Token("scope_list", var)
+
     def int(self, items):
         return Token("SIGNED_INT", ir.Int(int(items[0].value)))
 

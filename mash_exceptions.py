@@ -38,6 +38,13 @@ class IndexError(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Index error: "+msg, *args)
 
+class IncorrectDefinition(MashException):
+    """
+    Definition where it should not be or with incorrect values
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Incorrect definition: "+msg, *args)
+
 class ValueError(MashException):
     """
     Value error
