@@ -102,6 +102,7 @@ silent_expr : "~" expr
 ?neg_e : atom
        | "-" atom -> expr_neg
 ?atom : const
+      | xstring
       | scope_name
       | list
       | dict
@@ -112,8 +113,6 @@ const : SIGNED_FLOAT  -> float
       | SIGNED_INT -> int
       | HEX_INT -> hex_int
       | STRING  -> string
-      //| RSTRING -> rstring
-      //| FSTRING -> fstring
       | "nil"   -> nil
       | "true"  -> true
       | "false" -> false
@@ -134,12 +133,14 @@ dict : "{" _dict_val_list "}"
 _dict_val_list : (expr|lambda) ":" (expr|lambda)
               | _dict_val_list "," (expr|lambda) ":" (expr|lambda)
 
-
 // Value assignment excluding standalone variable (nil assignment)
 assignment : scope_name "=" (expr|lambda|assignment)
 
 // Operation and assignment over 1 variable
 op_assign : scope_name ASSIGN_OP (expr|lambda)
+// Scope list
+//scope_list : _pscope_name
+//           | scope_list "," _pscope_name
 // Different assignments
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^="|"++=")
 
@@ -249,10 +250,10 @@ space : "space" VAR_NAME? _END* code_block
 
 // Class definition
 class : "class" VAR_NAME _END* _class_code_block
-      | "class" VAR_NAME ":" scope_list _END* _class_code_block
-// List of variables/ids
-scope_list : _scope_no_glob
-           | scope_list "," _scope_no_glob
+      | "class" VAR_NAME ":" space_list _END* _class_code_block
+// List of classes with possible scope
+space_list : _pspace_name
+           | space_list "," _pspace_name
 
 // Enum definition
 enum : "enum" VAR_NAME _END* "{" _END* _enum_name_list _END* "}"
@@ -275,6 +276,16 @@ _class_code_block : "{" _clstmt "}"
 VAR_NAME : /(?!(if|elif|else|break|continue|do|while|for|import|internal|return|raise|as|finally|try|catch|nil|true|false|fun|class|space|in|or|and|not|new)\b)[a-zA-Z_][a-zA-Z0-9_]*/
 
 // Variable in some scope
+space_name : _pspace_name
+_pspace_name : "(" _pspace_name ")"
+             | SCOPE _space_no_glob //-> glob_var
+             | NON_LOC _space_no_glob //-> nonlocal_var
+             | _space_no_glob
+_space_no_glob : "(" _space_no_glob ")"
+               | _space_no_glob SCOPE VAR_NAME
+               | VAR_NAME
+
+// Variable in some scope
 scope_name : _pscope_name
 _pscope_name : "(" _pscope_name ")"
              | SCOPE _scope_no_glob //-> glob_var
@@ -284,7 +295,6 @@ _scope_no_glob : "(" _scope_no_glob ")"
                | _space_name
                | _dot_name
                | VAR_NAME
-               //| fun_call
 // Class member selection
 _dot_name : _scope_no_glob DOT VAR_NAME
           //| expr DOT VAR_NAME
@@ -305,8 +315,8 @@ INTERNAL : "internal"
 HEX_INT : /0x[a-fA-F0-9]+/
 
 // String
+xstring : VAR_NAME ESCAPED_STRING
 STRING : ESCAPED_STRING
-//RSTRING : "r"ESCAPED_STRING
 //FSTRING : "f"ESCAPED_STRING
 
 // Flow control

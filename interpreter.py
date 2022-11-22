@@ -452,7 +452,7 @@ class Interpreter(Mash):
                 extends = []
                 start_i = 1
                 if len(root.children) > 1:
-                    if type(root.children[1]) == Token and type(root.children[1].type == "scope_list"):
+                    if type(root.children[1]) == Token and type(root.children[1].type == "space_list"):
                         extends = root.children[1].value
                         start_i += 1
                 symb_table.push_class(root.children[0].value, extends)

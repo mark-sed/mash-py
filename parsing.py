@@ -107,6 +107,23 @@ class ConstTransformer(Transformer):
                 var.append(i.value) 
         return Token("scope_list", var)
 
+    def xstring(self, items):
+        if items[0].value == "r":
+            return Token("string", types.String(items[1].value, escape_chs=False))
+        elif items[0].value == "f":
+            raise mex.Unimplemented("fStrings")
+        else:
+            raise mex.SyntaxError(f"Unsupported string prefix '{items[0].value}'")
+
+    def space_list(self, items):
+        var = []
+        for i in items:
+            if type(i.value) == list:
+                var += i.value
+            else:
+                var.append(i.value) 
+        return Token("space_list", var)
+
     def int(self, items):
         return Token("SIGNED_INT", ir.Int(int(items[0].value)))
 
@@ -123,13 +140,6 @@ class ConstTransformer(Transformer):
         return Token("false", types.Bool(False))
 
     def string(self, items):
-        return Token("string", types.String(items[0].value[1:-1]))
-
-    def rstring(self, items):
-        return Token("string", types.String(items[0].value[1:-1], escape_chs=False))
-
-    def fstring(self, items):
-        raise mex.Unimplemented("fStrings")
         return Token("string", types.String(items[0].value[1:-1]))
 
     def hex_int(self, items):
