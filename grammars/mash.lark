@@ -242,7 +242,7 @@ catch : "catch" "(" (VAR_NAME | typed_var) ")" _END* (code_block | _stmts) _END*
 finally : "finally" _END* (code_block|_stmts) _END* 
 
 // Namespace definition
-space : "space" VAR_NAME _END* code_block
+space : "space" VAR_NAME? _END* code_block
 
 // Class definition
 class : "class" VAR_NAME _END* _class_code_block

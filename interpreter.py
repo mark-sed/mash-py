@@ -22,6 +22,7 @@ class Interpreter(Mash):
         self.symb_table = symb_table
         self._last_id = 0
         self._last_lambda = 0
+        self._last_space = 0
 
     def uniq_var(self):
         """
@@ -33,6 +34,10 @@ class Interpreter(Mash):
     def uniq_lambda(self):
         self._last_lambda += 1
         return f"λ{self._last_lambda}"
+
+    def uniq_space(self):
+        self._last_space += 1
+        return f"AnonymousSpace{self._last_space}"
 
     def generate_subexpr(self, src):
         """
@@ -430,9 +435,15 @@ class Interpreter(Mash):
                 insts += self.import_module(root.children[0].value, root.children[1].value)
             # Space
             elif root.data == "space":
-                symb_table.push_space(root.children[0].value)
-                insts.append(ir.SpacePush(root.children[0].value))
-                for tree in root.children[1:]:
+                if len(root.children) > 1:
+                    name = root.children[0].value
+                    space = 1
+                else:
+                    name = self.uniq_space()
+                    space = 0
+                symb_table.push_space(name)
+                insts.append(ir.SpacePush(name))
+                for tree in root.children[space:]:
                     insts += self.generate_ir(tree)
                 insts.append(ir.SpacePop())
                 symb_table.pop_space()
