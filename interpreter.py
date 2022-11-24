@@ -180,7 +180,10 @@ class Interpreter(Mash):
         """
         if op == "=":
             self.symb_table.assign(dst, value)
-            return ir.AssignVar(dst, value)
+            if len(dst) == 1:
+                return ir.AssignVar(dst[0], value)
+            else:
+                return ir.AssignMultiple(dst, value)
         elif op == "+=":
             return ir.Add(dst, value, dst)
         elif op == "-=":

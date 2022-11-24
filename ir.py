@@ -105,6 +105,31 @@ class AssignVar(Instruction):
             return "NOP"
         return f"SET {ir_str(self.value)}, {ir_str(self.dst)}"
 
+class AssignMultiple(Instruction):
+    """
+    Multiple variable assignment
+    """
+    def __init__(self, dst, value):
+        self.dst = dst
+        self.value = value
+        if issubclass(type(value), Type) and type(value) != List:
+            raise mex.TypeError(f"Cannot unpack type {value.type_name()}")
+
+    def exec(self):
+        self.update(self.value)
+        v = self.get(self.value)
+        if type(v) != List:
+            raise mex.TypeError(f"Cannot unpack type {v.type_name()}")
+        for c, d in enumerate(self.dst):
+            if c == len(self.dst)-1 and c < len(v.get_value())-1:
+                symb_table.assign(d, List(v.get_value()[c:]))
+            else:
+                symb_table.assign(d, v.get_value()[c])
+
+    def __str__(self):
+        dst_str = ["".join(x) for x in self.dst]
+        return f"MSET {ir_str(self.value)}, {dst_str}"
+
 class Print(Instruction):
     """
     Variable declaration and definition

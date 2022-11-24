@@ -134,13 +134,13 @@ _dict_val_list : (expr|lambda) ":" (expr|lambda)
               | _dict_val_list "," (expr|lambda) ":" (expr|lambda)
 
 // Value assignment excluding standalone variable (nil assignment)
-assignment : scope_name "=" (expr|lambda|assignment)
+assignment : scope_list "=" (expr|lambda|assignment)
 
 // Operation and assignment over 1 variable
 op_assign : scope_name ASSIGN_OP (expr|lambda)
 // Scope list
-//scope_list : _pscope_name
-//           | scope_list "," _pscope_name
+scope_list : _pscope_name
+           | scope_list "," _pscope_name
 // Different assignments
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^="|"++=")
 
