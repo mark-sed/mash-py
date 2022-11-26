@@ -93,14 +93,17 @@ class SymbTable(Mash):
         self.index = 0
         self.shadow_depth = 0
         self.spaces = []
+        self.last_exec = None
 
     def push(self, shadowing=False):
+        self.last_exec = None
         self.index += 1
         if shadowing:
             self.shadow_depth += 1
         self.frames.insert(self.index, Frame(shadowing))
 
     def pop(self, amount=1):
+        self.last_exec = None
         for _ in range(amount):
             if self.frames[self.index].shadowing:
                 self.shadow_depth -= 1
@@ -120,6 +123,7 @@ class SymbTable(Mash):
 
     def push_space(self, name):
         f = SpaceFrame(name)
+        self.last_exec = f
         if self.in_space():
             self.top()[name] = f
             self.spaces.append(f)
@@ -132,11 +136,13 @@ class SymbTable(Mash):
         #print(f"\nAfter pushing space {name}:", self)
         
     def pop_space(self):
+        self.last_exec = None
         self.spaces.pop()
         self.pop()
 
     def push_class(self, name, extends):
         f = ClassFrame(name, extends)
+        self.last_exec = f
         if self.in_space():
             self.top()[name] = f
             self.spaces.append(f)
@@ -148,6 +154,7 @@ class SymbTable(Mash):
         self.index += 1
         
     def pop_class(self):
+        self.last_exec = None
         self.spaces.pop()
         self.pop()
 
@@ -168,6 +175,7 @@ class SymbTable(Mash):
         """
         Function re/definition
         """
+        self.last_exec = irfun
         fprev = None
         fprevfr = self.get_frame(name, True)
         if fprevfr is not None:

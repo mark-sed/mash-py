@@ -82,6 +82,8 @@ fun type(var) internal
 
 fun id(var) internal
 
+fun doc(obj) internal
+
 class File {
 
     enum FileMode {

@@ -130,6 +130,17 @@ def type_1(var):
 def id_1(var):
     return id(var)
 
+def doc_1(obj):
+    if type(obj) == list and len(obj) > 0 and type(obj[0]) != str:
+        docs = []
+        for f in obj:
+            docs.append(f.doc)
+        return docs
+    elif getattr(obj, "doc", False):
+        return obj.doc
+
+    return ""
+
 def vardump_1(var):
     r = []
     for v in var:

@@ -23,6 +23,7 @@ class Interpreter(Mash):
         self._last_id = 0
         self._last_lambda = 0
         self._last_space = 0
+        self.last_inst = None
 
     def uniq_var(self):
         """
@@ -315,7 +316,6 @@ class Interpreter(Mash):
                     insts = [ir.SetOrPrint(root.value, ir.Nil())]
                 else:
                     insts += [ir.SetIfNotSet(root.value, ir.Nil())]
-                return insts
             # Printing
             elif root.type == "scope_name":
                 # Value cannot be checked since it can be assigned in a class method or as an alias
@@ -332,9 +332,9 @@ class Interpreter(Mash):
                         else:
                             sc.append(v)
                 if not silent:
-                    return insts+[ir.Print(sc)]
+                    insts += [ir.Print(sc)]
                 else:
-                    return insts+[ir.AssignVar(sc, sc)]
+                    insts += [ir.AssignVar(sc, sc)]
             # Generated calculation
             elif root.type == "CALC":
                 insts = []
@@ -350,7 +350,6 @@ class Interpreter(Mash):
                         if i.type in Interpreter.CONSTS:
                             if not silent:
                                 insts.append(ir.Print(i.value))
-                return insts
             # Generated code
             elif root.type == "CODE":
                 insts = []
@@ -361,20 +360,32 @@ class Interpreter(Mash):
                         insts.append(i)
                 if not silent:
                     insts.append(ir.Print(root.value[-1].dst))
-                return insts
             # Const print
             elif root.type in Interpreter.CONSTS:
                 if not silent:
-                    return [ir.Print(root.value)]
+                    insts = [ir.Print(root.value)]
             # Break
             elif root.value == "break":
-                return [ir.Break()]
+                insts = [ir.Break()]
             # Continue
             elif root.value == "continue":
-                return [ir.Continue()]
+                insts = [ir.Continue()]
             # internal
             elif root.value == "internal":
-                return [ir.Internal()]
+                insts = [ir.Internal()]
+            # Note
+            elif root.type == "note":
+                if root.value[0] == "n":
+                    # General note
+                    insts = [ir.Note(root.value[1])]
+                elif root.value[0] == "d":
+                    # Documentation
+                    insts = [ir.Doc(root.value[1])]
+                else:
+                    # This should have been handeled in the parser
+                    raise mex.InternalError(f"Unexpected note prefix '{root.value[0]}'")
+            self.last_inst = insts
+            return insts
         else:
             insts = []
             # Assignment
@@ -419,7 +430,7 @@ class Interpreter(Mash):
                         raise mex.InternalError("Assignment not implemented for such value")
                 else:
                     if tree.data == "fun_call":
-                        return self.generate_ir(tree, True)+[self.op_assign(value, SymbTable.RETURN_NAME, op)]
+                        insts = self.generate_ir(tree, True)+[self.op_assign(value, SymbTable.RETURN_NAME, op)]
                     elif tree.data == "assignment":
                         if root.data == "op_assign":
                             raise mex.SyntaxError("Assignment cannot be chained with compound assignment")
@@ -483,6 +494,7 @@ class Interpreter(Mash):
                     insts += self.generate_ir(tree)
                 insts.append(ir.ClassPop())
                 symb_table.pop_class()
+            # Enum
             elif root.data == "enum":
                 name = root.children[0].value
                 values = [types.EnumValue(x.value, name) for x in root.children[1:]]
@@ -700,7 +712,7 @@ class Interpreter(Mash):
             elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
                 resvar, insts = self.generate_expr(root)
                 if not silent:
-                    return insts+[ir.Print(resvar)]
+                    insts += [ir.Print(resvar)]
             # Member []
             elif root.data == "member":
                 src, extra_insts = self.generate_subexpr(root.children[0])
@@ -734,6 +746,7 @@ class Interpreter(Mash):
                 insts.append(ir.Slice(src, *indices, dst))
                 if not silent:
                     insts.append(ir.Print(dst))
+            self.last_inst = insts
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
         return []
@@ -753,6 +766,7 @@ class Interpreter(Mash):
             if type(i) == Tree or type(i) == Token:
                 gen = self.generate_ir(i, True)
                 self.ir[c:c+1] = gen
+
         if self.opts.verbose:
             debug("Generated code:", self.opts)
             for i in self.ir:

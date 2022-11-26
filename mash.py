@@ -56,6 +56,12 @@ class Initializer():
             print_version()
             exit(0)
         self.code = self.opts.code
+        # Parse output notebook format if set
+        self.output_file = self.opts.output
+        if self.output_file is not None:
+            self.output_format = self.output_file[self.output_file.rfind('.')+1:]
+        else:
+            self.output_format = None
         # If no code was passed on the command line then open stdin
         if self.code is None:
             if self.opts.mash_file is None:
@@ -97,6 +103,8 @@ class Initializer():
                                 help='Does not include libmash.')
         argparser.add_argument('-l', '--lib-path', action='append', help='Path to folders to search for imports', 
                                 required=False, default=None, dest='lib_path', nargs='+')
+        argparser.add_argument('-o', dest='output', default=None,
+                                help='If specified, the interpreter will generate this file with provided notes and code.')
 
 
     def error(self, msg):

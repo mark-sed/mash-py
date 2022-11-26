@@ -159,6 +159,47 @@ class Print(Instruction):
     def __str__(self):
         return f"PRINT {ir_str(self.value)}"
 
+class Note(Instruction):
+    """
+    Notebook note
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def exec(self):
+        ...
+
+    def __str__(self):
+        #show = 15
+        #if len(self.value.get_value()) > show:
+        #    return f"NOTE \"\"\"{self.value.get_value()[:show]}..."
+        #else:
+        return f"NOTE \"\"\"{self.value}\"\"\""
+
+class Doc(Instruction):
+    """
+    Documentation for an object
+    """
+    def __init__(self, value):
+        self.value = value
+        self.dst = None
+
+    def exec(self):
+        if self.dst is None:
+            self.dst = symb_table.last_exec
+        if type(self.dst) in {Fun, SpaceFrame, ClassFrame}:
+            self.dst.doc = self.value
+
+    def __str__(self):
+        #show = 15
+        #if len(self.value.get_value()) > show:
+        #    return f"DOC \"\"\"{self.value.get_value()[:show]}..."
+        #else:
+        if self.dst is not None:
+            return f"DOC \"\"\"{self.value}\"\"\", {ir_str(self.dst)}"
+        else:
+            return f"DOC \"\"\"{self.value}\"\"\""
+
 class SetIfNotSet(Instruction):
     """
     If variable is not yet set, then this declares it,
@@ -559,6 +600,7 @@ class Fun(Instruction):
         self.req_args = [k for k, v in args if v is None]
         self.min_args = len(self.req_args)
         self.max_args = len(self.args)
+        self.doc = String("")
         if len(self.args) > 0 and type(self.args[-1][1]) == types.VarArgs:
             self.max_args = float("inf")
         self.body = body
@@ -578,6 +620,11 @@ class Fun(Instruction):
 
     def exec(self):
         # Exec is for definition
+        if type(self.body) == list:
+            for i in self.body:
+                if type(i) == Doc:
+                    i.dst = self
+                    self.doc = i.value
         symb_table.define_fun(self.name, self.min_args, self.max_args, self)
 
     def wrap_internal(self, v):
@@ -1089,6 +1136,7 @@ class SpacePush(Instruction):
     """
     def __init__(self, name):
         self.name = name
+        self.doc = String("")
 
     def exec(self):
         symb_table.push_space(self.name)
@@ -1116,6 +1164,7 @@ class ClassPush(Instruction):
     def __init__(self, name, extends):
         self.name = name
         self.extends = extends
+        self.doc = String("")
 
     def exec(self):
         symb_table.push_class(self.name, self.extends)

@@ -316,7 +316,7 @@ INTERNAL : "internal"
 HEX_INT : /0x[a-fA-F0-9]+/
 
 // String
-xstring : VAR_NAME MULT_STRING -> xstring_mult
+xstring : VAR_NAME MULT_STRING -> note
         | VAR_NAME ES_STR
 STRING : ESCAPED_STRING
 
@@ -324,8 +324,10 @@ STRING : ESCAPED_STRING
 FLOW_CTRL : ("continue" | "break")
 
 // Multiline string
-MULT_STRING : "\"\"\"" /(.|\n)*?/ "\"\"\""
+MULT_STRING : QUOT3 /(.|\n)*?/ QUOT3
 ES_STR : QUOT _STRING_ESC_INNER QUOT
+
+QUOT3 : "\"\"\""
 
 // Just 1 dot, not 2
 DOT : /(?<!\.)\.(?!\.)/

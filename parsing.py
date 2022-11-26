@@ -112,8 +112,18 @@ class ConstTransformer(Transformer):
             return Token("string", types.String(items[1].value, escape_chs=False))
         elif items[0].value == "f":
             raise mex.Unimplemented("fStrings")
+        elif items[0].value == "n":
+            raise mex.SyntaxError(f"Unsupported string prefix '{items[0].value}'. Perhaps you meant to create a note using {items[0].value}\"\"\"...\"\"\"?")
         else:
             raise mex.SyntaxError(f"Unsupported string prefix '{items[0].value}'")
+
+    def note(self, items):
+        if items[0].value == "n" or items[0].value == "note":
+            return Token("note", ("n", types.String(items[1].value[3:-3], escape_chs=True)))
+        elif items[0].value == "d" or items[0].value == "doc":
+            return Token("note", ("d", types.String(items[1].value[3:-3], escape_chs=True)))
+        else:
+            raise mex.SyntaxError(f"Unsupported note prefix '{items[0].value}'")
 
     def space_list(self, items):
         var = []
