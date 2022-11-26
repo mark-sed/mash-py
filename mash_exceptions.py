@@ -31,6 +31,13 @@ class KeyError(MashException):
     def __init__(self, msg, *args: object):
         super().__init__("Key error: "+msg, *args)
 
+class InternalError(MashException):
+    """
+    Internal
+    """
+    def __init__(self, msg, *args: object):
+        super().__init__("Internal error: "+msg, *args)
+
 class IndexError(MashException):
     """
     Index/member error

@@ -1,4 +1,5 @@
 import mash_exceptions as mex
+from copy import deepcopy
 
 def type_name(o):
     try:
@@ -51,6 +52,10 @@ class VarArgs:
 class Var:
     def __init__(self, name):
         self.name = name
+
+class MultiVar:
+    def __init__(self, names):
+        self.names = names
 
 class NoValue:
     ...
@@ -253,6 +258,7 @@ class List(Value):
     """
     def __init__(self, value):
         self.value = value
+        self.og = deepcopy(value)
 
     def _at(self, index):
         if type(index) != Int:
@@ -282,13 +288,15 @@ class List(Value):
         return False
 
     def update(self):
-        for c, x in enumerate(self.value):
+        for c, x in enumerate(self.og):
             if type(x) == str or type(x) == list:
                 self.value[c] = symb_table.get(x)
             else:
                 x.update()
 
     def __eq__(self, other):
+        if type(other) != List:
+            return False
         return self.value == other.value
 
     def fstr(self):
@@ -324,6 +332,7 @@ class Dict(Value):
     """
     def __init__(self, value):
         self.value = value
+        self.og = deepcopy(value)
 
     def _at(self, index):
         v = index.get_value() if type(index) != list else index
@@ -352,7 +361,7 @@ class Dict(Value):
         return List([List([x, y]) for x, y in self.value])
 
     def update(self):
-        for c, i in enumerate(self.value):
+        for c, i in enumerate(self.og):
             k, v = i
             if type(k) == str or type(k) == list:
                 k = symb_table.get(k)

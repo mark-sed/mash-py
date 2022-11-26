@@ -134,12 +134,13 @@ _dict_val_list : (expr|lambda) ":" (expr|lambda)
               | _dict_val_list "," (expr|lambda) ":" (expr|lambda)
 
 // Value assignment excluding standalone variable (nil assignment)
-assignment : scope_list "=" (expr|lambda|assignment)
+assignment : scope_name "=" (expr|lambda|assignment)
+           | scope_list "=" (expr|lambda|assignment)
 
 // Operation and assignment over 1 variable
 op_assign : scope_name ASSIGN_OP (expr|lambda)
 // Scope list
-scope_list : _pscope_name
+scope_list : _pscope_name "," _pscope_name
            | scope_list "," _pscope_name
 // Different assignments
 ASSIGN_OP : ("+="|"-="|"*="|"/="|"//="|"%="|"^="|"++=")
@@ -315,15 +316,21 @@ INTERNAL : "internal"
 HEX_INT : /0x[a-fA-F0-9]+/
 
 // String
-xstring : VAR_NAME ESCAPED_STRING
+xstring : VAR_NAME MULT_STRING -> xstring_mult
+        | VAR_NAME ES_STR
 STRING : ESCAPED_STRING
-//FSTRING : "f"ESCAPED_STRING
 
 // Flow control
 FLOW_CTRL : ("continue" | "break")
 
+// Multiline string
+MULT_STRING : "\"\"\"" /(.|\n)*?/ "\"\"\""
+ES_STR : QUOT _STRING_ESC_INNER QUOT
+
 // Just 1 dot, not 2
 DOT : /(?<!\.)\.(?!\.)/
+
+QUOT : /(?<!")"(?!")/
 
 SCOPE : "::"
 
@@ -352,6 +359,7 @@ SIGNED_FLOAT: ["+"|"-"] FLOAT
 %import common.NEWLINE
 %import common.C_COMMENT
 %import common.ESCAPED_STRING
+%import common._STRING_ESC_INNER
 
 // Ignoring inline whitespaces and comments (not new lines)
 %ignore WS_INLINE

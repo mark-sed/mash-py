@@ -4,7 +4,7 @@ Mash interpreter
 """
 __author__ = "Marek Sedlacek"
 __date__ = "September 2022"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __email__ = "mr.mareksedlacek@gmail.com"
 
 import argparse
@@ -133,10 +133,9 @@ if __name__ == "__main__":
         format_ex("'continue' outside of a loop", initializer.code, initializer.opts.mash_file)
     #except mex.MashException as e:
     #    format_ex(str(e), initializer.code, initializer.opts.mash_file)
-    except LarkError as e:
-        if getattr(e, "get_context", None) is not None:
-            format_lark_ex(e, initializer.code, initializer.opts.mash_file)
-        else:
-            # Chained
-            format_ex(e.orig_exc, initializer.code, initializer.opts.mash_file)
-    
+    #except LarkError as e:
+    #    if getattr(e, "get_context", None) is not None:
+    #        format_lark_ex(e, initializer.code, initializer.opts.mash_file)
+    #    else:
+    #        # Chained
+    #        format_ex(e.orig_exc, initializer.code, initializer.opts.mash_file)

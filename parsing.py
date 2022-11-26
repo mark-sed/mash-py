@@ -203,11 +203,13 @@ class ConstTransformer(Transformer):
             return Token("arg_list_call_exp", [(i1, i2)])
 
     def arg_list_call_v(self, items):
-        if items[0].type == "CODE":
-            return items[0].value
-        elif items[0].type == "scope_name":
-            return items[0].value
-        return Token("arg_list_call_v", items[0].value)
+        if type(items[0]) == Token:
+            if items[0].type == "CODE":
+                return items[0].value
+            elif items[0].type == "scope_name":
+                return items[0].value
+            return Token("arg_list_call_v", items[0].value)
+        return Token("arg_list_call_v", items[0])
 
     def fun_call_args(self, items):
         args = []

@@ -91,7 +91,7 @@ class AssignVar(Instruction):
             self.skip = True
         if type(self.value) == list and type(self.value[0]) != str:
             self.skip = True
-        if self.dst == self.value:
+        if (type(self.value) != str or type(self.value) != list) and self.dst == self.value:
             self.skip = True
 
     def exec(self):
@@ -120,6 +120,11 @@ class AssignMultiple(Instruction):
         v = self.get(self.value)
         if type(v) != List:
             raise mex.TypeError(f"Cannot unpack type {v.type_name()}")
+        if len(self.dst) > len(v.get_value()):
+            raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.dst)}, but got {len(v.get_value())}")
+        # Remove is unpacking of multiple to last one is allowed
+        if len(self.dst) < len(v.get_value()):
+            raise mex.TypeError(f"Too many values to unpack. Expected {len(self.dst)}, but got {len(v.get_value())}")
         for c, d in enumerate(self.dst):
             if c == len(self.dst)-1 and c < len(v.get_value())-1:
                 symb_table.assign(d, List(v.get_value()[c:]))
@@ -218,20 +223,20 @@ class ToString(Instruction):
     def __str__(self):
         return f"TOSTR {ir_str(self.value)}, {self.dst}"
 
-class ListWrap(Instruction):
-    """
-    Wrap value as a list
-    """
-    def __init__(self, value, dst):
-        self.dst = dst
-        self.value = value
-
-    def exec(self):
-        v = self.get(self.value)
-        symb_table.assign(self.dst, List([v]))
-
-    def __str__(self):
-        return f"LISTWRAP {ir_str(self.value)}, {self.dst}"
+#class ListWrap(Instruction):
+#    """
+#    Wrap value as a list
+#    """
+#    def __init__(self, value, dst):
+#        self.dst = dst
+#        self.value = value
+#
+#    def exec(self):
+#        v = self.get(self.value)
+#        symb_table.assign(self.dst, List([v]))
+#
+#    def __str__(self):
+#        return f"LISTWRAP {ir_str(self.value)}, {self.dst}"
 
 class Nop(Instruction):
     """
@@ -445,19 +450,49 @@ class For(Instruction):
             
             next_call = FunCall(l, [])
             next_call.exec()
-            iret = symb_table.get(SymbTable.RETURN_NAME)
-            if len(self.i) > 1 and type(iret) != List:
-                raise mex.TypeError(f"Cannot unpack type {iret.type_name()}")
-            if len(self.i) > len(iret.get_value()):
-                raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)} or more, but got {len(iret.get_value())}")
-            i_v = symb_table.get(self.i)
-            while not (type(i_v) == types.ClassFrame and i_v.name == "StopIteration"):
+            a = symb_table.get(SymbTable.RETURN_NAME)
+            if not (type(a) == types.ClassFrame and a.name == "StopIteration"):
+                if len(self.i) > 1:
+                    if type(a) != List:
+                        raise mex.TypeError(f"Cannot unpack type {a.type_name()}")
+                    if len(self.i) > len(a.get_value()):
+                        raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)}, but got {len(a.get_value())}")
+                    # Remove is unpacking of multiple to last one is allowed
+                    if len(self.i) < len(a.get_value()):
+                        raise mex.TypeError(f"Too many values to unpack. Expected {len(self.i)}, but got {len(a.get_value())}")
+                    for c, i_name in enumerate(self.i):
+                        if c == len(self.i)-1 and c < len(a.get_value())-1:
+                            symb_table.assign(i_name, List(a.get_value()[c:]))
+                        else:
+                            symb_table.assign(i_name, a.get_value()[c])
+                else:
+                    self.i = self.i[0]
+                    symb_table.assign(self.i, a)
+            while not (type(a) == types.ClassFrame and a.name == "StopIteration"):
                 try:
                     for i in self.t:
                         i.exec()
                     next_call.exec()
-                    symb_table.assign(self.i, SymbTable.RETURN_NAME)
-                    i_v = symb_table.get(self.i)
+                    a = symb_table.get(SymbTable.RETURN_NAME)
+                    if not (type(a) == types.ClassFrame and a.name == "StopIteration"):
+                        if len(self.i) > 1:
+                            if type(a) != List:
+                                raise mex.TypeError(f"Cannot unpack type {a.type_name()}")
+                            if len(self.i) > len(a.get_value()):
+                                raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)}, but got {len(a.get_value())}")
+                            # Remove is unpacking of multiple to last one is allowed
+                            if len(self.i) < len(a.get_value()):
+                                raise mex.TypeError(f"Too many values to unpack. Expected {len(self.i)}, but got {len(a.get_value())}")
+                            for c, i_name in enumerate(self.i):
+                                if c == len(self.i)-1 and c < len(a.get_value())-1:
+                                    symb_table.assign(i_name, List(a.get_value()[c:]))
+                                else:
+                                    symb_table.assign(i_name, a.get_value()[c])
+                        else:
+                            self.i = self.i[0]
+                            symb_table.assign(self.i, a)
+                    else:
+                        break
                 except mex.FlowControlBreak:
                     break
                 except mex.FlowControlContinue:
@@ -471,7 +506,10 @@ class For(Instruction):
                     if type(a) != List:
                         raise mex.TypeError(f"Cannot unpack type {a.type_name()}")
                     if len(self.i) > len(a.get_value()):
-                        raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)} or more, but got {len(a.get_value())}")
+                        raise mex.TypeError(f"Not enough values to unpack. Expected {len(self.i)}, but got {len(a.get_value())}")
+                    # Remove is unpacking of multiple to last one is allowed
+                    if len(self.i) < len(a.get_value()):
+                        raise mex.TypeError(f"Too many values to unpack. Expected {len(self.i)}, but got {len(a.get_value())}")
                     for c, i_name in enumerate(self.i):
                         if c == len(self.i)-1 and c < len(a.get_value())-1:
                             symb_table.assign(i_name, List(a.get_value()[c:]))
@@ -1223,7 +1261,15 @@ class Add(Expr):
         if r is not None:
             symb_table.assign(self.dst, r.name)
         else:
-            self.check_types("+", s1, s2, {Int, Float, String, List})
+            try:
+                self.check_types("+", s1, s2, {Int, Float})
+            except mex.TypeError:
+                try:
+                    self.check_types("+", s1, s2, {String})
+                except mex.TypeError:
+                    self.check_types("+", s1, s2, {List})
+            s1.update()
+            s2.update()
             v1 = s1.get_value()
             v2 = s2.get_value()
             r = v1+v2
@@ -1675,6 +1721,8 @@ class Eq(Expr):
             symb_table.assign(self.dst, r.name)
         else:
             self.check_types("==", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame, types.Enum, types.EnumValue})
+            s1.update()
+            s2.update()
             v1 = s1.get_value()
             v2 = s2.get_value()
             r = v1 == v2
@@ -1698,6 +1746,8 @@ class Neq(Expr):
             symb_table.assign(self.dst, r.name)
         else:
             self.check_types("!=", s1, s2, {Int, Float, String, Bool, List, Dict, Nil, types.Class, SpaceFrame, ClassFrame})
+            s1.update()
+            s2.update()
             v1 = s1.get_value()
             v2 = s2.get_value()
             r = v1 != v2

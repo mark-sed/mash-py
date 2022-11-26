@@ -180,10 +180,10 @@ class Interpreter(Mash):
         """
         if op == "=":
             self.symb_table.assign(dst, value)
-            if len(dst) == 1:
-                return ir.AssignVar(dst[0], value)
+            if type(dst) != types.MultiVar:
+                return ir.AssignVar(dst, value)
             else:
-                return ir.AssignMultiple(dst, value)
+                return ir.AssignMultiple(dst.names, value)
         elif op == "+=":
             return ir.Add(dst, value, dst)
         elif op == "-=":
@@ -201,7 +201,7 @@ class Interpreter(Mash):
         elif op == "++=":
             return ir.Cat(dst, value, dst)
         else:
-            raise mex.Unimplemented("Assignment operator "+str(op))
+            raise mex.InternalError("Somehow an unknown composit assignment was generated")
 
     def find_module(self, name):
         pname = Path(name)
@@ -341,7 +341,11 @@ class Interpreter(Mash):
                 subtree = root.value
                 for i in subtree:
                     if i.type == "CODE":
-                        insts += i.value
+                        for code_inst in i.value:
+                            if type(code_inst) == Tree or type(code_inst) == Token:
+                                insts += self.generate_ir(code_inst, True)
+                            else:
+                                insts.append(code_inst)
                     else:
                         if i.type in Interpreter.CONSTS:
                             if not silent:
@@ -377,44 +381,59 @@ class Interpreter(Mash):
             if root.data == "assignment" or root.data == "op_assign":
                 tree = root.children[1]
                 op = "="
+                if root.children[0].type != "scope_list":
+                    value = root.children[0].value
+                else:
+                    value = types.MultiVar(root.children[0].value)
                 if root.data == "op_assign":
                     tree = root.children[2]
                     op = root.children[1].value
                 if type(tree) == Token:
                     if tree.type in Interpreter.CONSTS:
-                        insts.append(self.op_assign(root.children[0].value, tree.value, op))
+                        insts.append(self.op_assign(value, tree.value, op))
                     elif tree.type == "CODE":
+                        for code_inst in tree.value:
+                            if type(code_inst) == Tree or type(code_inst) == Token:
+                                insts += self.generate_ir(code_inst, True)
+                            else:
+                                insts.append(code_inst)
                         last_dst = tree.value[-1].dst
-                        insts += tree.value+[self.op_assign(root.children[0].value, last_dst, op)]
+                        insts += [self.op_assign(value, last_dst, op)]
                     elif tree.type == "CALC":
                         subtree = tree.value
                         for i in subtree:
                             if i.type == "CODE":
-                                insts += i.value
+                                for code_inst in i.value:
+                                    if type(code_inst) == Tree or type(code_inst) == Token:
+                                        insts += self.generate_ir(code_inst, True)
+                                    else:
+                                        insts.append(code_inst)
                             else:
                                 if i.type in Interpreter.CONSTS:
-                                    insts.append(self.op_assign(root.children[0].value, i.value, op))
+                                    insts.append(self.op_assign(value, i.value, op))
+                                else:
+                                    raise mex.InternalError("Unexpected type in assignment")
                     elif tree.type == "VAR_NAME" or tree.type == "scope_name":
-                        insts.append(self.op_assign(root.children[0].value, tree.value, op))
+                        insts.append(self.op_assign(value, tree.value, op))
                     else:
-                        raise mex.Unimplemented("Assignment not implemented for such value")
+                        raise mex.InternalError("Assignment not implemented for such value")
                 else:
                     if tree.data == "fun_call":
-                        return self.generate_ir(tree, True)+[self.op_assign(root.children[0].value, SymbTable.RETURN_NAME, op)]
+                        return self.generate_ir(tree, True)+[self.op_assign(value, SymbTable.RETURN_NAME, op)]
                     elif tree.data == "assignment":
                         if root.data == "op_assign":
                             raise mex.SyntaxError("Assignment cannot be chained with compound assignment")
                         assign = self.generate_ir(tree, True)
-                        self.symb_table.assign(root.children[0].value, assign[-1].dst)
+                        self.symb_table.assign(value, assign[-1].dst)
                         insts += assign+[ir.AssignVar(root.children[0].value, assign[-1].dst)]
                     elif tree.data == "member" or tree.data == "range":
                         insts += self.generate_ir(tree, True)
-                        insts.append(self.op_assign(root.children[0].value, insts[-1].dst, op))
+                        insts.append(self.op_assign(value, insts[-1].dst, op))
                     elif tree.data == "lambda":
                         insts += self.generate_ir(tree, True)
-                        insts.append(self.op_assign(root.children[0].value, insts[-1].name, op))
+                        insts.append(self.op_assign(value, insts[-1].name, op))
                     else:
-                        raise mex.Unimplemented("Assignment not implemented for such value")
+                        raise mex.InternalError("Assignment not implemented for such value")
             # Block of code
             elif root.data == "code_block":
                 symb_table.push()
@@ -433,7 +452,7 @@ class Interpreter(Mash):
                     elif m.type == "scope_name":
                         insts +=self.import_module(m.value, m.value[-1])
                     else:
-                        raise mex.Unimplemented("Unknwon module parsed type")
+                        raise mex.InternalError("Unknwon module parsed type")
             elif root.data == "import_as":
                 insts += self.import_module(root.children[0].value, root.children[1].value)
             # Space
@@ -578,7 +597,7 @@ class Interpreter(Mash):
                         l, extra = self.generate_expr(tree[1])
                         insts += extra
                     else:
-                        raise mex.Unimplemented("Such expression in for loop")
+                        raise mex.InternalError("Unexpected expression in for loop")
                 elif (type(tree[1]) == Token and tree[1].type == "VAR_NAME") or (type(tree[1]) == Token and tree[1].type == "scope_name"):
                     s, m = self.symb_table.exists(tree[1].value)
                     if not s:
@@ -586,7 +605,6 @@ class Interpreter(Mash):
                     l = tree[1].value
                 else:
                     l = tree[1].value
-
                 if type(tree[2]) == Tree and tree[2].data != "code_block":
                     symb_table.push()
                 t = self.generate_ir(tree[2])
@@ -607,7 +625,7 @@ class Interpreter(Mash):
                     name = tree[0].value
                     offs = 1
                 else:
-                    name = self.uniq_lambda( )
+                    name = self.uniq_lambda()
                 args = tree[offs].value
                 symb_table.push()
                 # Push args
