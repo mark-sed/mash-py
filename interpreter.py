@@ -25,6 +25,7 @@ class Interpreter(Mash):
         self._last_space = 0
         self.last_inst = None
         self.code_blocks = None
+        self.main = False
         # Parse output notebook format if set
         self.output_file = self.opts.output
         if self.output_file is not None:
@@ -384,10 +385,12 @@ class Interpreter(Mash):
             # Note
             elif root.type == "note":
                 if root.value[0] == "n":
-                    if len(symb_table.frames) > 1:
-                        raise mex.IncorrectDefinition("Notes can appear only on the global scope")
-                    # General note
-                    insts = [ir.Note(root.value[1], self.output_file, self.output_format, self.output_notes)]
+                    # Note instructions are generated only for main module
+                    if self.main:
+                        if len(symb_table.frames) > 1:
+                            raise mex.IncorrectDefinition("Notes can appear only on the global scope")
+                        # General note
+                        insts = [ir.Note(root.value[1], self.output_file, self.output_format, self.output_notes)]
                 elif root.value[0] == "d":
                     # Documentation
                     insts = [ir.Doc(root.value[1])]
@@ -841,6 +844,7 @@ def interpret(opts, code, libmash_code):
     ir_parse = parsing.ConstTransformer(symb_table)
     ir_tree = ir_parse.transform(tree)
     ir_code = ir_parse.insts
+    interpreter.main = True
     ir_code += interpreter.interpret_top_level(ir_tree)
     debug("IR generation done", opts)
     if opts.code_only:
@@ -852,5 +856,6 @@ def interpret(opts, code, libmash_code):
         interpreter.interpret(lib_code)
     interpreter.code_blocks = code_blocks
     interpreter.interpret(ir_code)
+    interpreter.main = False
     debug("Finished running IR", opts)
     
