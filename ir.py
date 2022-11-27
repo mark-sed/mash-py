@@ -779,7 +779,11 @@ class Constructor(Fun):
             for a, _ in self.args:
                 if type(a) == tuple:
                     a = a[0]
-                assign_args.append(symb_table.get(a).get_value())
+                v = symb_table.get(a)
+                if type(v) == list:
+                    assign_args.append(v)
+                else:
+                    assign_args.append(v.get_value())
             try:
                 rval = self.wrap_internal(self.body(*assign_args))
             except TypeError:

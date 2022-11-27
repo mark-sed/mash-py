@@ -7,6 +7,7 @@ import random
 import math
 
 import mash_types as types
+import ir
 import mash_exceptions as mex
 from symbol_table import symb_table, ClassFrame, SpaceFrame
 
@@ -36,6 +37,10 @@ def Float_Float_2(self, v):
 
 def String_String_2(self, v):
     if type(v) in {int, float, str, bool}:
+        return str(v)
+    if type(v) == list and len(v) > 0 and type(v[0]) == ir.Fun:
+        return v[0].fstr()
+    if type(v) == SpaceFrame or type(v) == ClassFrame:
         return str(v)
     if type(v) == list:
         return types.List(v).fstr()
