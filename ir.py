@@ -5,6 +5,8 @@ from mash_types import Float, Int, Nil, Bool, String, Value, List, Dict, VarArgs
 import mash_types as types
 import libmash
 
+output_print = []
+
 class IR:
     """
     Base class for all ir nodes
@@ -138,8 +140,10 @@ class Print(Instruction):
     """
     Variable declaration and definition
     """
-    def __init__(self, value):
+    def __init__(self, value, output_file=None, output_format=None):
         self.value = value
+        self.output_file = output_file
+        self.output_format = output_format
 
     def exec(self):
         self.update(self.value)
@@ -151,9 +155,11 @@ class Print(Instruction):
                 details = f" with {len(v)} signatures"
             n = "".join(v[0].name)
             # Function/s (there can be multiple)
-            print(f"<function '{n}'{details}>", end="")
+            t = f"<function '{n}'{details}>"
         else:
-            print(v.__str__(), end="")
+            t = v.__str__()
+        print(t, end="")
+        output_print.append(t)
 
     def __str__(self):
         return f"PRINT {ir_str(self.value)}"
@@ -229,9 +235,11 @@ class SetOrPrint(Instruction):
     If variable is not yet set, then this declares it,
     if it is set, then it prints it
     """
-    def __init__(self, dst, value=Nil()):
+    def __init__(self, dst, value=Nil(), output_file=None, output_format=None):
         self.dst = dst
         self.value = value
+        self.output_file = output_file
+        self.output_format = output_format
 
     def exec(self):
         self.update(self.value)
@@ -248,9 +256,11 @@ class SetOrPrint(Instruction):
                     details = f" with {len(v)} signatures"
                 n = "".join(v[0].name)
                 # Function/s (there can be multiple)
-                print(f"<function '{n}'{details}>", end="")
+                t = f"<function '{n}'{details}>"
             else:
-                print(v.__str__(), end="")
+                t = v.__str__()
+            print(t, end="")
+            output_print.append(t)
 
     def __str__(self):
         return f"SETORPRINT {ir_str(self.value)}, {self.dst}"

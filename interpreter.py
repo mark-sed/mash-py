@@ -322,7 +322,7 @@ class Interpreter(Mash):
             if root.type == "VAR_NAME":
                 self.symb_table.assign(root.value, ir.Nil())
                 if not silent:
-                    insts = [ir.SetOrPrint(root.value, ir.Nil())]
+                    insts = [ir.SetOrPrint(root.value, ir.Nil(), output_file=self.output_file, output_format=self.output_format)]
                 else:
                     insts += [ir.SetIfNotSet(root.value, ir.Nil())]
             # Printing
@@ -341,7 +341,7 @@ class Interpreter(Mash):
                         else:
                             sc.append(v)
                 if not silent:
-                    insts += [ir.Print(sc)]
+                    insts += [ir.Print(sc, output_file=self.output_file, output_format=self.output_format)]
                 else:
                     insts += [ir.AssignVar(sc, sc)]
             # Generated calculation
@@ -358,7 +358,7 @@ class Interpreter(Mash):
                     else:
                         if i.type in Interpreter.CONSTS:
                             if not silent:
-                                insts.append(ir.Print(i.value))
+                                insts.append(ir.Print(i.value, output_file=self.output_file, output_format=self.output_format))
             # Generated code
             elif root.type == "CODE":
                 insts = []
@@ -368,11 +368,11 @@ class Interpreter(Mash):
                     else:
                         insts.append(i)
                 if not silent:
-                    insts.append(ir.Print(root.value[-1].dst))
+                    insts.append(ir.Print(root.value[-1].dst, output_file=self.output_file, output_format=self.output_format))
             # Const print
             elif root.type in Interpreter.CONSTS:
                 if not silent:
-                    insts = [ir.Print(root.value)]
+                    insts = [ir.Print(root.value, output_file=self.output_file, output_format=self.output_format)]
             # Break
             elif root.value == "break":
                 insts = [ir.Break()]
@@ -518,7 +518,7 @@ class Interpreter(Mash):
             elif root.data == "fun_call":
                 insts += self.multi_call(root)
                 if not silent:
-                    insts.append(ir.Print(SymbTable.RETURN_NAME))
+                    insts.append(ir.Print(SymbTable.RETURN_NAME, output_file=self.output_file, output_format=self.output_format))
             # List comprehention
             elif root.data == "list_comp":
                 raise mex.Unimplemented("List comprehention is not yet implemented")
@@ -552,7 +552,7 @@ class Interpreter(Mash):
                 obj_var = self.uniq_var()
                 insts += [ir.FunCall("Range", [start, end, step]), ir.AssignVar(obj_var, SymbTable.RETURN_NAME)]
                 if not silent:
-                    insts.append(ir.Print(obj_var))
+                    insts.append(ir.Print(obj_var, output_file=self.output_file, output_format=self.output_format))
             # If statement or elif part
             elif root.data == "if" or root.data == "elif":
                 tree = root.children[0].children
@@ -725,7 +725,7 @@ class Interpreter(Mash):
             elif len(root.data) > 5 and root.data[0:5] == "EXPR_":
                 resvar, insts = self.generate_expr(root)
                 if not silent:
-                    insts += [ir.Print(resvar)]
+                    insts += [ir.Print(resvar, output_file=self.output_file, output_format=self.output_format)]
             # Member []
             elif root.data == "member":
                 src, extra_insts = self.generate_subexpr(root.children[0])
@@ -735,7 +735,7 @@ class Interpreter(Mash):
                 dst = self.uniq_var()
                 insts.append(ir.Member(src, index, dst))
                 if not silent:
-                    insts.append(ir.Print(dst))
+                    insts.append(ir.Print(dst, output_file=self.output_file, output_format=self.output_format))
             # Subrange
             elif root.data == "slice":
                 src, extra_insts = self.generate_subexpr(root.children[0])
@@ -758,7 +758,7 @@ class Interpreter(Mash):
                 indices += [None] * (3 - len(indices))
                 insts.append(ir.Slice(src, *indices, dst))
                 if not silent:
-                    insts.append(ir.Print(dst))
+                    insts.append(ir.Print(dst, output_file=self.output_file, output_format=self.output_format))
             self.last_inst = insts
             return insts
         debug("No instructions generated for: {}".format(root), self.opts)
@@ -802,14 +802,20 @@ class Interpreter(Mash):
                         s = self.code_blocks.pop()
                         if len(s) > 0 and not s.isspace():
                             outf.write("\n```\n"+s+"\n```\n")
+                            if len(ir.output_print) > 0:
+                                outstdp = "".join(ir.output_print)
+                                outf.write("_[Output]:_\n```\n"+outstdp+"\n```\n")
+                                ir.output_print = []
                 else:
                     raise mex.InternalError("Somehow notes were incorrectly parsed in source code")
             i.exec()
         if self.code_blocks is not None and len(self.code_blocks) > 0 and self.output_file is not None:
             with open(self.output_file, "a", encoding="utf-8") as outf:
-                    outf.write("```\n"+self.code_blocks.pop()+"\n```")
-
-        #print("\n\n"+str(symb_table))
+                    outf.write("```\n"+self.code_blocks.pop()+"\n```\n")
+                    if len(ir.output_print) > 0:
+                        outstdp = "".join(ir.output_print)
+                        outf.write("_[Output]:_\n```\n"+outstdp+"\n```\n")
+                        ir.output_print = []
 
 def format_ir(ir_code):
     for i in ir_code:
