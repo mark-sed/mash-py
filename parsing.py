@@ -5,6 +5,7 @@ from debugging import info, debug
 import mash_exceptions as mex
 from symbol_table import SymbTable
 from mash_parser import Lark_StandAlone, Transformer, Token, Tree
+import re
 
 class Parser(Mash):
     """
@@ -17,15 +18,32 @@ class Parser(Mash):
         """
         self.code = code
         self.opts = opts
+        self.code_blocks = []
         #with open("grammars/mash_lalr.lark", "r") as gfile:
         #    grammar = gfile.read()
         #self.parser = Lark(grammar, start="start", parser="lalr")
         self.parser = Lark_StandAlone()
     
-    def parse(self):
+    def parse(self, main=False):
         """
         Parses mash code
         """
+        # Parse the source code for notebook output
+        #note_pattern = r'n""".*(?:\n?.)+\n*"""'
+        note_pattern = r'n""".*?"""'
+        if main and self.opts.output is not None:
+            matches = re.finditer(note_pattern, self.code, re.MULTILINE | re.DOTALL)
+            start = 0
+            end = 0
+            for match in matches:
+                end = match.start()
+                self.code_blocks.append(self.code[start:end])
+                start = match.end()
+            self.code_blocks.append(self.code[start:])
+            self.code_blocks = list(reversed(self.code_blocks))
+#            if len(self.code) > 6 and self.code[:4] == "n\"\"\"":
+#                self.code_blocks.append("")
+
         parse_tree = self.parser.parse(self.code)
         if self.opts.verbose:
             info(parse_tree.pretty(), self.opts)

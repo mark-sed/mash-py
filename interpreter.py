@@ -2,7 +2,7 @@ from mash_parser import Token, Tree
 from sys import stderr
 from mash import Mash
 import mash_exceptions as mex
-from symbol_table import SpaceFrame, symb_table, SymbTable
+from symbol_table import symb_table, SymbTable
 import ir
 import parsing
 import mash_types as types
@@ -24,6 +24,14 @@ class Interpreter(Mash):
         self._last_lambda = 0
         self._last_space = 0
         self.last_inst = None
+        self.code_blocks = None
+        # Parse output notebook format if set
+        self.output_file = self.opts.output
+        if self.output_file is not None:
+            self.output_format = self.output_file[self.output_file.rfind('.')+1:]
+        else:
+            self.output_format = None
+        self.output_notes = self.opts.output_notes
 
     def uniq_var(self):
         """
@@ -376,8 +384,10 @@ class Interpreter(Mash):
             # Note
             elif root.type == "note":
                 if root.value[0] == "n":
+                    if len(symb_table.frames) > 1:
+                        raise mex.IncorrectDefinition("Notes can appear only on the global scope")
                     # General note
-                    insts = [ir.Note(root.value[1])]
+                    insts = [ir.Note(root.value[1], self.output_file, self.output_format, self.output_notes)]
                 elif root.value[0] == "d":
                     # Documentation
                     insts = [ir.Doc(root.value[1])]
@@ -779,8 +789,23 @@ class Interpreter(Mash):
         @param code IR code to be interpreted
         """
         self.symb_table.analyzer = False
+        if self.output_file is not None:
+            with open(self.output_file, "w", encoding="utf-8") as outf:
+                ...
         for i in code:
+            if self.code_blocks is not None and self.output_file is not None and type(i) == ir.Note:
+                if len(self.code_blocks) > 0:
+                    with open(self.output_file, "a", encoding="utf-8") as outf:
+                        s = self.code_blocks.pop()
+                        if len(s) > 0 and not s.isspace():
+                            outf.write("\n```\n"+s+"\n```\n")
+                else:
+                    raise mex.InternalError("Somehow notes were incorrectly parsed in source code")
             i.exec()
+        if self.code_blocks is not None and len(self.code_blocks) > 0 and self.output_file is not None:
+            with open(self.output_file, "a", encoding="utf-8") as outf:
+                    outf.write("```\n"+self.code_blocks.pop()+"\n```")
+
         #print("\n\n"+str(symb_table))
 
 def format_ir(ir_code):
@@ -793,7 +818,8 @@ def interpret(opts, code, libmash_code):
     """
     debug("Parser started", opts)
     parser = Parser(code, opts)
-    tree = parser.parse()
+    tree = parser.parse(main=True)
+    code_blocks = parser.code_blocks[:]
     debug("Parser finished", opts)
     if opts.parse_only:
         return
@@ -824,6 +850,7 @@ def interpret(opts, code, libmash_code):
     symb_table.clear_all()
     if not opts.no_libmash:
         interpreter.interpret(lib_code)
+    interpreter.code_blocks = code_blocks
     interpreter.interpret(ir_code)
     debug("Finished running IR", opts)
     

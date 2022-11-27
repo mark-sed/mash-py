@@ -1,4 +1,3 @@
-from ast import ClassDef
 from typing import Type
 from symbol_table import symb_table, SymbTable, ClassFrame, Frame, SpaceFrame
 import mash_exceptions as mex
@@ -163,11 +162,18 @@ class Note(Instruction):
     """
     Notebook note
     """
-    def __init__(self, value):
+    def __init__(self, value, output_file, output_format, output_notes):
+        self.output_file = output_file
+        self.output_format = output_format
+        self.output_notes = output_notes
         self.value = value
 
     def exec(self):
-        ...
+        if self.output_notes:
+            print(self.value)
+        if self.output_file is not None:
+            with open(self.output_file, "a", encoding="utf-8") as outf:
+                outf.write(self.value.get_value())
 
     def __str__(self):
         #show = 15

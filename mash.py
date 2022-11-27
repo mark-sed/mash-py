@@ -56,12 +56,6 @@ class Initializer():
             print_version()
             exit(0)
         self.code = self.opts.code
-        # Parse output notebook format if set
-        self.output_file = self.opts.output
-        if self.output_file is not None:
-            self.output_format = self.output_file[self.output_file.rfind('.')+1:]
-        else:
-            self.output_format = None
         # If no code was passed on the command line then open stdin
         if self.code is None:
             if self.opts.mash_file is None:
@@ -105,6 +99,8 @@ class Initializer():
                                 required=False, default=None, dest='lib_path', nargs='+')
         argparser.add_argument('-o', dest='output', default=None,
                                 help='If specified, the interpreter will generate this file with provided notes and code.')
+        argparser.add_argument('--print-notes', '-p', dest='output_notes', action='store_true', default=False,
+                                help='Notes will be also printed to the standard output.')
 
 
     def error(self, msg):
