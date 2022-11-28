@@ -141,12 +141,23 @@ class ConstTransformer(Transformer):
                 v = items[1].value[4:-3]
             else:
                 v = items[1].value[3:-3]
+            return Token("note", ("n", types.String(v, escape_chs=True)))
+        elif items[0].value == "d" or items[0].value == "doc":
+            start = 3
+            end = -3
+            if len(items[1].value) > 6 and items[1].value[3] == "\n":
+                start = 4
+            if len(items[1].value) > 7 and items[1].value[-4] == "\n":
+                end = -4
+
+            v = items[1].value[start:end]
             vl = v.split("\n")
             for c, l in enumerate(vl):
+                if c == len(vl)-1 and l.isspace():
+                    vl.pop()
+                    continue
                 vl[c] = l.lstrip()
-            return Token("note", ("n", types.String("\n".join(vl), escape_chs=True)))
-        elif items[0].value == "d" or items[0].value == "doc":
-            return Token("note", ("d", types.String(items[1].value[3:-3], escape_chs=True)))
+            return Token("note", ("d", types.String("\n".join(vl), escape_chs=True)))
         else:
             raise mex.SyntaxError(f"Unsupported note prefix '{items[0].value}'")
 

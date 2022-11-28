@@ -166,111 +166,108 @@ fun setattr(object, name, value) internal
 
 /** Bit-wise operators **/
 
-/**
- * Bitwise and
- * @param a First Int value
- * @param b Second Int value
- * @return Bitwise and over passed in arguments
- */
 fun bitand(a, b) internal
+d"""
+Bitwise and
+@param a First Int value
+@param b Second Int value
+@return Bitwise and over passed in arguments
+"""
 
-/**
- * Bitwise or
- * @param a First Int value
- * @param b Second Int value
- * @return Bitwise or over passed in arguments
- */
 fun bitor(a, b) internal
+d"""
+Bitwise or
+@param a First Int value
+@param b Second Int value
+@return Bitwise or over passed in arguments
+"""
 
-/**
- * Bitwise exclusive or
- * @param a First Int value
- * @param b Second Int value
- * @return Bitwise xor over passed in arguments
- */
 fun bitxor(a, b) internal
+d"""
+Bitwise exclusive or
+@param a First Int value
+@param b Second Int value
+@return Bitwise xor over passed in arguments
+"""
 
-/**
- * Bitwise inversion
- * @param a Int value
- * @return Bitwise inversion over passed in argument
- */
 fun bitnot(a) internal
+d"""
+Bitwise inversion
+@param a Int value
+@return Bitwise inversion over passed in argument
+"""
 
-/**
- * Left shift
- * @param a Int value
- * @param count Amount to shift by
- * @return First argument shifted left by the amount in the second argument 
- */
 fun lshift(a, count) internal
+d"""
+Left shift
+@param a Int value
+@param count Amount to shift by
+@return First argument shifted left by the amount in the second argument
+"""
 
-/**
- * Right shift
- * @param a Int value
- * @param count Amount to shift by
- * @return First argument shifted right by the amount in the second argument 
- */
 fun rshift(a, count) internal
+d"""
+Right shift
+@param a Int value
+@param count Amount to shift by
+@return First argument shifted right by the amount in the second argument
+"""
 
 /** Lists functions **/
-/**
- * Cartesian product of passed in lists
- * @param l1 List
- * @param l2 List
- * @return List of lists containing cartesian product of passed in arguments.
- */
 fun zip(l1, l2) internal  # Change from internal to [[x, y] : x = l1, y = l2]
+d"""
+Cartesian product of passed in lists
+@param l1 List
+@param l2 List
+@return List of lists containing cartesian product of passed in arguments.
+"""
 
-/**
- * Creates new list by reversing passed one
- * @param l List to reverse
- * @return new list that is reversed version of the passed one
- */
 fun reverse(l) internal
+d"""
+Creates new list by reversing passed one
+@param l List to reverse
+@return new list that is reversed version of the passed one
+"""
 
 /** String functions */
 
-/**
- * Converts string to uppercase
- * @param s String to be converted
- * @return Passed in string in uppercase
- */
 fun upper(s) internal
+d"""
+Converts string to uppercase
+@param s String to be converted
+@return Passed in string in uppercase
+"""
 
-/**
- * Converts string to lowercse
- * @param s String to be converted
- * @return Passed in string in lowercase
- */
 fun lower(s) internal
+d"""
+Converts string to lowercse
+@param s String to be converted
+@return Passed in string in lowercase
+"""
 
-/**
- * Capitalized string
- * First letter is in uppercase, the rest is lowercase
- * @param s String to be capitalized
- * @return Capitalized passed in string
- */
 fun capitalize(s) internal
+d"""
+Capitalized string
+First letter is in uppercase, the rest is lowercase
+@param s String to be capitalized
+@return Capitalized passed in string
+"""
 
-
-
-/** Space for functions using random number generator */
 space Rnd {
+    d"""Space for functions using random number generator"""
 
-    /**
-    * Shuffles elements in a list, not changing the passed in list
-    * @param l List to be shuffled
-    * @return Copy of passed in list with randomly shuffled elements
-    */
     fun shuffle(l) internal
-
+    d"""
+    Shuffles elements in a list, not changing the passed in list
+    @param l List to be shuffled
+    @return Copy of passed in list with randomly shuffled elements
+    """
 }
 
-/** Math functions **/
 space Math {
-
-    /** Constants **/
+    d"""
+    Math functions
+    """
 
     /** π (Ludolph's number) */
     pi = 3.141592653589793115997963468544185161590576171875
@@ -287,57 +284,61 @@ space Math {
     /** Euler–Mascheroni constant */
     euler_gamma = 0.57721566490153286554942724251304753124713897705078125
 
-    /**
-    * Sine
-    * @param x Numeric value
-    * @return Sine of x in radians
-    */
     fun sin(x) internal
+    d"""
+    Sine
+    @param x Numeric value
+    @return Sine of x in radians
+    """
 
-    /**
-    * Tangent
-    * @param x Numeric value
-    * @return Tangent of x in radians
-    */
     fun tan(x) internal
+    d"""
+    Tangent
+    @param x Numeric value
+    @return Tangent of x in radians
+    """
 
-    /**
-    * Cosine
-    * @param x Numeric value
-    * @return Cosine of x in radians
-    */
     fun cos(x) internal
+    d"""
+    Cosine
+    @param x Numeric value
+    @return Cosine of x in radians
+    """
 
-    /**
-    * Arc sine
-    * @param x Numeric value
-    * @return Arc sine of x in radians
-    */
     fun asin(x) internal
+    d"""
+    Arc sine
+    @param x Numeric value
+    @return Arc sine of x in radians
+    """
 
-    /**
-    * Arc tangent
-    * @param x Numeric value
-    * @return Arc tangent of x in radians
-    */
     fun atan(x) internal
-    /** Returns atan(y/x) */
+    d"""
+    Arc tangent
+    @param x Numeric value
+    @return Arc tangent of x in radians
+    """
     fun atan(y, x) internal
+    d"""
+    Returns atan(y/x)
+    """
 
-    /**
-    * Arc cosine
-    * @param x Numeric value
-    * @return Arc cosine of x in radians
-    */
     fun acos(x) internal
+    d"""
+    Arc cosine
+    @param x Numeric value
+    @return Arc cosine of x in radians
+    """
 
-    /**
-    * Square root function
-    * Is equal to x^0.5
-    * @param x Value to be calculated the square root of
-    * @return Square root of passed in argument
-    */
-    fun sqrt(x) { return x^0.5; }
+    fun sqrt(x) {
+        d"""
+        Square root function
+        * Is equal to x^0.5
+        * @param x Value to be calculated the square root of
+        * @return Square root of passed in argument
+        """
+        return x^0.5;
+    }
 
 }
 
