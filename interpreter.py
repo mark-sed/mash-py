@@ -801,7 +801,7 @@ class Interpreter(Mash):
                     with open(self.output_file, "a", encoding="utf-8") as outf:
                         s = self.code_blocks.pop()
                         if len(s) > 0 and not s.isspace():
-                            outf.write("\n```\n"+s+"\n```\n")
+                            outf.write("\n```\n"+s.strip()+"\n```\n")
                             if len(ir.output_print) > 0:
                                 outstdp = "".join(ir.output_print)
                                 outf.write("_[Output]:_\n```\n"+outstdp+"\n```\n")
@@ -811,7 +811,7 @@ class Interpreter(Mash):
             i.exec()
         if self.code_blocks is not None and len(self.code_blocks) > 0 and self.output_file is not None:
             with open(self.output_file, "a", encoding="utf-8") as outf:
-                    outf.write("```\n"+self.code_blocks.pop()+"\n```\n")
+                    outf.write("```\n"+self.code_blocks.pop().strip()+"\n```\n")
                     if len(ir.output_print) > 0:
                         outstdp = "".join(ir.output_print)
                         outf.write("_[Output]:_\n```\n"+outstdp+"\n```\n")

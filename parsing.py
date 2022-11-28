@@ -137,7 +137,14 @@ class ConstTransformer(Transformer):
 
     def note(self, items):
         if items[0].value == "n" or items[0].value == "note":
-            return Token("note", ("n", types.String(items[1].value[3:-3], escape_chs=True)))
+            if len(items[1].value) > 6 and items[1].value[3] == "\n":
+                v = items[1].value[4:-3]
+            else:
+                v = items[1].value[3:-3]
+            vl = v.split("\n")
+            for c, l in enumerate(vl):
+                vl[c] = l.lstrip()
+            return Token("note", ("n", types.String("\n".join(vl), escape_chs=True)))
         elif items[0].value == "d" or items[0].value == "doc":
             return Token("note", ("d", types.String(items[1].value[3:-3], escape_chs=True)))
         else:

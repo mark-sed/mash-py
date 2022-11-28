@@ -27,6 +27,7 @@ class String {
     new String(self, v="") internal
 
     fun len(self) internal
+    #fun upper(self) internal
 }
 
 class Bool {
