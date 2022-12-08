@@ -115,6 +115,9 @@ def File_readlines_1(self):
         r.append(types.String(f, False))
     return types.List(r)
 
+def get_args_0():
+    return symb_table.mash_args
+
 def readln_1(prompt):
     return input(prompt)
 

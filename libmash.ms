@@ -53,6 +53,9 @@ class NilType {
     new NilType(self) internal
 }
 
+fun get_args() internal
+args = get_args()
+
 class StopIteration {}
 
 class Range {

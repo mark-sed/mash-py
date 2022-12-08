@@ -44,7 +44,9 @@ class Initializer():
         # Argument handling
         self.argparser = argparser
         self.add_arguments(argparser)
-        self.opts = self.argparser.parse_args()
+        mash_args_i = self.mash_args_start(sys.argv[1:])+1
+        self.mash_args = [a for a in sys.argv[mash_args_i:]]
+        self.opts = self.argparser.parse_args(sys.argv[1:mash_args_i])
         if self.opts.lib_path is None:
             self.opts.lib_path = [Path(".")]
         else:
@@ -70,12 +72,29 @@ class Initializer():
                 self.libmash_code = mashlib_file.read()
         else:
             self.libmash_code = None
+    
+    def mash_args_start(self, args):
+        """
+        Returns index at which the mash arguments start
+        """
+        i = 0
+        while i < len(args):
+            a = args[i]
+            if a in {"-l", "--lib-path", "-p"}:
+                i+=1
+            elif a in {"--version", "-v", "-s", "--parse-only", "--no-libmash", "--print-notes", "-p"}:
+                i+=1
+            elif a == "-e":
+                return i+2
+            else:
+                return i+1
+        return i
 
     def interpret(self):
         """
         Starts code interpretation
         """
-        interpreter.interpret(self.opts, self.code, self.libmash_code)
+        interpreter.interpret(self.opts, self.code, self.libmash_code, self.mash_args)
 
     def add_arguments(self, argparser):
         """
@@ -101,7 +120,6 @@ class Initializer():
                                 help='If specified, the interpreter will generate this file with provided notes and code.')
         argparser.add_argument('--print-notes', '-p', dest='output_notes', action='store_true', default=False,
                                 help='Notes will be also printed to the standard output.')
-
 
     def error(self, msg):
         """
@@ -135,11 +153,11 @@ if __name__ == "__main__":
         format_ex("'break' outside of a loop.", initializer.code, initializer.opts.mash_file)
     except mex.FlowControlContinue:
         format_ex("'continue' outside of a loop", initializer.code, initializer.opts.mash_file)
-    #except mex.MashException as e:
-    #    format_ex(str(e), initializer.code, initializer.opts.mash_file)
-    #except LarkError as e:
-    #    if getattr(e, "get_context", None) is not None:
-    #        format_lark_ex(e, initializer.code, initializer.opts.mash_file)
-    #    else:
-    #        # Chained
-    #        format_ex(e.orig_exc, initializer.code, initializer.opts.mash_file)
+    except mex.MashException as e:
+        format_ex(str(e), initializer.code, initializer.opts.mash_file)
+    except LarkError as e:
+        if getattr(e, "get_context", None) is not None:
+            format_lark_ex(e, initializer.code, initializer.opts.mash_file)
+        else:
+            # Chained
+            format_ex(e.orig_exc, initializer.code, initializer.opts.mash_file)

@@ -17,7 +17,7 @@ class Interpreter(Mash):
 
     CONSTS = {"SIGNED_INT", "SIGNED_FLOAT", "nil", "true", "false", "string", "list", "dict"}
 
-    def __init__(self, opts, symb_table):
+    def __init__(self, opts, symb_table, mash_args):
         self.opts = opts
         self.symb_table = symb_table
         self._last_id = 0
@@ -26,6 +26,7 @@ class Interpreter(Mash):
         self.last_inst = None
         self.code_blocks = None
         self.main = False
+        self.mash_args = mash_args
         # Parse output notebook format if set
         self.output_file = self.opts.output
         if self.output_file is not None:
@@ -246,7 +247,7 @@ class Interpreter(Mash):
             lib_code = "space "+sp_name+"{ " + lib_code + "}"
         parser = Parser(lib_code, self.opts)
         tree = parser.parse()
-        interpreter = Interpreter(self.opts, self.symb_table)
+        interpreter = Interpreter(self.opts, self.symb_table, self.mash_args)
         lib_ir = interpreter.interpret_top_level(parsing.ConstTransformer(self.symb_table).transform(tree))
         if type(scope) == list:
             lib_ir.append(ir.AssignVar(alias, [sp_name]+scope[1:]))
@@ -824,10 +825,11 @@ def format_ir(ir_code):
     for i in ir_code:
         print(i.output())
 
-def interpret(opts, code, libmash_code):
+def interpret(opts, code, libmash_code, mash_args):
     """
     Interpret mash code
     """
+    mash_args = types.List([types.String(a) for a in mash_args])
     debug("Parser started", opts)
     parser = Parser(code, opts)
     tree = parser.parse(main=True)
@@ -843,7 +845,8 @@ def interpret(opts, code, libmash_code):
         debug("Parsing of libmash finished", opts)
 
     debug("Code generation started", opts)
-    interpreter = Interpreter(opts, symb_table)
+    symb_table.mash_args = mash_args
+    interpreter = Interpreter(opts, symb_table, mash_args)
     if not opts.no_libmash:
         lib_parse = parsing.ConstTransformer(symb_table)
         lpt_tree = lib_parse.transform(libmash_tree)
