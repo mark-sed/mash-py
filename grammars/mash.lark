@@ -20,6 +20,7 @@ _stmts : import _END+
        | _definition _END*
        //| code_block
        | construct _END*
+       | annotation _END*
 
 // Class contents (allows for constructors)
 _clstmt : _clstmt _clstmts
@@ -40,6 +41,7 @@ _clstmts : import _END+
          //| code_block
          | construct _END*
          | constructor _END*
+         | annotation _END*
 
 // Imports
 import : "import" _list_space_scope
@@ -64,6 +66,12 @@ _definition : function
             | enum
 
 silent_expr : "~" expr
+
+// Annotation
+annotation : ANNOT_SYMB INNER? "[" annot_list "]"
+annot_list : fun_call
+           | VAR_NAME
+           | annot_list "," (fun_call | VAR_NAME)
 
 // Expressions using operators
 ?expr : member
@@ -336,7 +344,11 @@ QUOT : /(?<!")"(?!")/
 
 SCOPE : "::"
 
-NON_LOC : "@"
+NON_LOC : "$"
+
+ANNOT_SYMB : "@"
+
+INNER : "!"
 
 // One line comment
 INL_COMMENT : /#[^\n]*/

@@ -939,7 +939,7 @@ class FunCall(Instruction):
         if fl is None:
             raise mex.UndefinedReference("".join(self.name))
         if type(fl) != list and type(fl) != ClassFrame:
-            if self.name[0] == "$":
+            if self.name[0] == "'":
                 raise mex.TypeError("Type '"+types.type_name(fl)+"' is not callable")
             else:
                 raise mex.TypeError("'"+"".join(self.name)+"' is not callable")
@@ -964,7 +964,7 @@ class FunCall(Instruction):
                 if i.max_args >= len(self.args):
                     f.append(i)
             if len(f) == 0:
-                if self.name[0] == "$":
+                if self.name[0] == "'":
                     raise mex.UndefinedReference(f"Arguments do not match any function's '{fl[0].name}' signatures")
                 else:
                     raise mex.UndefinedReference(str(self))

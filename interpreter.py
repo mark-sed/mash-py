@@ -39,7 +39,7 @@ class Interpreter(Mash):
         Generates unique id
         """
         self._last_id += 1
-        return f"$i_{self._last_id}"
+        return f"'i_{self._last_id}"
 
     def uniq_lambda(self):
         self._last_lambda += 1
@@ -468,6 +468,9 @@ class Interpreter(Mash):
             elif root.data == "fun_code_block":
                 for tree in root.children:
                     insts += self.generate_ir(tree)
+            elif root.data == "annotation":
+                inner = len(root.children) > 1 and type(root.children[1]) == Token and root.children[1].type == "INNER"
+                raise mex.Unimplemented("Annotations are not yet implemented")
             # Import
             elif root.data == "import":
                 for m in root.children:

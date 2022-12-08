@@ -66,7 +66,7 @@ class ConstTransformer(Transformer):
 
     def uniq_var(self):
         self._last_id += 1
-        return f"$ct_{self._last_id}"
+        return f"'ct_{self._last_id}"
 
     def scope_name(self, items):
         # Single variable = declaration
