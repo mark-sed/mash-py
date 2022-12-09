@@ -239,17 +239,18 @@ class Interpreter(Mash):
         except Exception:
             raise mex.ImportError("Could not read module file '"+str(lpath)+"'")
         
-        if type(scope) != list:
-            lib_code = "space "+alias+"{ " + lib_code + "}"
-        else:
-            sp_name = "__"+scope[0]
-            # Name that cannot be accessed by the user
-            lib_code = "space "+sp_name+"{ " + lib_code + "}"
+        if alias is not None:
+            if type(scope) != list:
+                lib_code = "space "+alias+"{ " + lib_code + "}"
+            else:
+                sp_name = "__"+scope[0]
+                # Name that cannot be accessed by the user
+                lib_code = "space "+sp_name+"{ " + lib_code + "}"
         parser = Parser(lib_code, self.opts)
         tree = parser.parse()
         interpreter = Interpreter(self.opts, self.symb_table, self.mash_args)
         lib_ir = interpreter.interpret_top_level(parsing.ConstTransformer(self.symb_table).transform(tree))
-        if type(scope) == list:
+        if type(scope) == list and alias is not None:
             lib_ir.append(ir.AssignVar(alias, [sp_name]+scope[1:]))
         return lib_ir
 
@@ -825,7 +826,7 @@ def format_ir(ir_code):
     for i in ir_code:
         print(i.output())
 
-def interpret(opts, code, libmash_code, mash_args):
+def interpret(opts, code, mash_args):
     """
     Interpret mash code
     """
@@ -838,21 +839,13 @@ def interpret(opts, code, libmash_code, mash_args):
     if opts.parse_only:
         return
 
-    if not opts.no_libmash:
-        debug("Parsing of libmash started", opts)
-        parser = Parser(libmash_code, opts)
-        libmash_tree = parser.parse()
-        debug("Parsing of libmash finished", opts)
-
     debug("Code generation started", opts)
     symb_table.mash_args = mash_args
     interpreter = Interpreter(opts, symb_table, mash_args)
     if not opts.no_libmash:
-        lib_parse = parsing.ConstTransformer(symb_table)
-        lpt_tree = lib_parse.transform(libmash_tree)
-        lib_code = lib_parse.insts
-        lib_code += interpreter.interpret_top_level(lpt_tree)
-    debug("Libmash code generated", opts)
+        debug("Importing libmash", opts)
+        lib_code = interpreter.import_module("libmash", None)
+        debug("Libmash code generated", opts)
     ir_parse = parsing.ConstTransformer(symb_table)
     ir_tree = ir_parse.transform(tree)
     ir_code = ir_parse.insts
